@@ -1,15 +1,13 @@
-#.github/workflows/coverage.yml
 name: Code Coverage
 
-# Trigger on pushes and pull requests to main branch, or adjust as needed
 on:
+  push:
+    branches: [ master, develop, feature/* ]
   pull_request:
     branches: [ master, develop, feature/* ]
 
 env:
-  # Ensures colored output for Cargo commands in logs
   CARGO_TERM_COLOR: always
-  # Disable incremental compilation in CI for better caching effectiveness with Swatinem/rust-cache
   CARGO_INCREMENTAL: 0
 
 jobs:
@@ -23,20 +21,12 @@ jobs:
       - name: Install Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          # Optional: Specify toolchain if needed (e.g., 'stable', 'nightly').
-          # Defaults to the version in rust-toolchain.toml or stable.
-          # toolchain: stable
-          # Explicitly install the llvm-tools-preview component required by cargo-llvm-cov
           components: llvm-tools-preview
 
       - name: Setup Rust cache
-        # Uses Swatinem/rust-cache for optimized Rust dependency caching
         uses: Swatinem/rust-cache@v2
-        # This action uses sensible defaults for caching ~/.cargo and target directories.
-        # It automatically handles cache keys based on lock files, toolchain, etc.
 
       - name: Install cargo-llvm-cov
-        # Uses the recommended action to install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Run tests and generate coverage summary JSON
@@ -48,16 +38,11 @@ jobs:
             filename: coverage.cobertura.xml
             badge: true
             fail_below_min: false
-            format: markdown
+            format: text
             hide_branch_rate: false
             hide_complexity: true
             indicators: true
             output: both
             thresholds: '60 80'
         
-      - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@v2
-        if: github.event_name == 'pull_request'
-        with:
-            recreate: true
-            path: code-coverage-results.md
+        
