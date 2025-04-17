@@ -1,2 +1,5 @@
 # a-bit-rusty
-A digital logic library written in Rust
+
+![Coverage](https://github.com/harvey-cash/a-bit-rusty/actions/workflows/coverage.yml/badge.svg)
+
+Digital logic library written in Rust.

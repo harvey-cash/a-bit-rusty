@@ -1,0 +1,69 @@
+<?xml version="1.0" ?>
+<!DOCTYPE coverage SYSTEM "https://cobertura.sourceforge.net/xml/coverage-04.dtd">
+<coverage branch-rate="0" branches-covered="0" branches-valid="0" complexity="0" line-rate="0.3684210526315789" lines-covered="7" lines-valid="19" timestamp="1744920624" version="2.0.3">
+    <sources>
+        <source>D:\GitRepos\a-bit-rusty</source>
+    </sources>
+    <packages>
+        <package line-rate="0.3684210526315789" branch-rate="0" name="src" complexity="0">
+            <classes>
+                <class branch-rate="0" complexity="0" filename="src\lib.rs" line-rate="1" name="src.lib.rs">
+                    <methods>
+                        <method name="a_bit_rusty::add" signature="" complexity="0" line-rate="1" branch-rate="1">
+                            <lines>
+                                <line hits="1" number="1" branch="false"/>
+                            </lines>
+                        </method>
+                        <method name="a_bit_rusty::add" signature="" complexity="0" line-rate="1" branch-rate="1">
+                            <lines>
+                                <line hits="1" number="1" branch="false"/>
+                            </lines>
+                        </method>
+                        <method name="a_bit_rusty::tests::it_works" signature="" complexity="0" line-rate="1" branch-rate="1">
+                            <lines>
+                                <line hits="1" number="10" branch="false"/>
+                            </lines>
+                        </method>
+                    </methods>
+                    <lines>
+                        <line branch="false" hits="2" number="1"/>
+                        <line branch="false" hits="2" number="2"/>
+                        <line branch="false" hits="2" number="3"/>
+                        <line branch="false" hits="1" number="10"/>
+                        <line branch="false" hits="1" number="11"/>
+                        <line branch="false" hits="1" number="12"/>
+                        <line branch="false" hits="1" number="13"/>
+                    </lines>
+                </class>
+                <class branch-rate="0" complexity="0" filename="src\main.rs" line-rate="0" name="src.main.rs">
+                    <methods>
+                        <method name="a_bit_rusty::main" signature="" complexity="0" line-rate="0" branch-rate="0">
+                            <lines>
+                                <line hits="0" number="4" branch="false"/>
+                            </lines>
+                        </method>
+                        <method name="a_bit_rusty::main" signature="" complexity="0" line-rate="0" branch-rate="0">
+                            <lines>
+                                <line hits="0" number="4" branch="false"/>
+                            </lines>
+                        </method>
+                    </methods>
+                    <lines>
+                        <line branch="false" hits="0" number="4"/>
+                        <line branch="false" hits="0" number="5"/>
+                        <line branch="false" hits="0" number="6"/>
+                        <line branch="false" hits="0" number="7"/>
+                        <line branch="false" hits="0" number="8"/>
+                        <line branch="false" hits="0" number="9"/>
+                        <line branch="false" hits="0" number="10"/>
+                        <line branch="false" hits="0" number="11"/>
+                        <line branch="false" hits="0" number="12"/>
+                        <line branch="false" hits="0" number="13"/>
+                        <line branch="false" hits="0" number="14"/>
+                        <line branch="false" hits="0" number="15"/>
+                    </lines>
+                </class>
+            </classes>
+        </package>
+    </packages>
+</coverage>

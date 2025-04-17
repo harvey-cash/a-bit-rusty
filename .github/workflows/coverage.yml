@@ -1,22 +1,63 @@
-name: Coverage
+#.github/workflows/coverage.yml
+name: Code Coverage
 
-on: [pull_request]
+# Trigger on pushes and pull requests to main branch, or adjust as needed
+on:
+  pull_request:
+    branches: [ master, develop, feature/* ]
+
+env:
+  # Ensures colored output for Cargo commands in logs
+  CARGO_TERM_COLOR: always
+  # Disable incremental compilation in CI for better caching effectiveness with Swatinem/rust-cache
+  CARGO_INCREMENTAL: 0
 
 jobs:
   coverage:
+    name: Run tests and generate coverage report
     runs-on: ubuntu-latest
-    env:
-      CARGO_TERM_COLOR: always
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Rust
-        run: rustup update stable
-      - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
-      - name: Generate code coverage
-        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          files: lcov.info
-          fail_ci_if_error: true
+          # Optional: Specify toolchain if needed (e.g., 'stable', 'nightly').
+          # Defaults to the version in rust-toolchain.toml or stable.
+          # toolchain: stable
+          # Explicitly install the llvm-tools-preview component required by cargo-llvm-cov
+          components: llvm-tools-preview
+
+      - name: Setup Rust cache
+        # Uses Swatinem/rust-cache for optimized Rust dependency caching
+        uses: Swatinem/rust-cache@v2
+        # This action uses sensible defaults for caching ~/.cargo and target directories.
+        # It automatically handles cache keys based on lock files, toolchain, etc.
+
+      - name: Install cargo-llvm-cov
+        # Uses the recommended action to install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Run tests and generate coverage summary JSON
+        run: cargo llvm-cov --workspace --all-features --locked --cobertura --output-path ./coverage.cobertura.xml
+
+      - name: Code Coverage Summary Report
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+            filename: coverage.cobertura.xml
+            badge: true
+            fail_below_min: false
+            format: markdown
+            hide_branch_rate: false
+            hide_complexity: true
+            indicators: true
+            output: both
+            thresholds: '60 80'
+        
+      - name: Add Coverage PR Comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+            recreate: true
+            path: code-coverage-results.md
