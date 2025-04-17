@@ -32,17 +32,10 @@ jobs:
       - name: Run tests and generate coverage summary JSON
         run: cargo llvm-cov --workspace --all-features --locked --cobertura --output-path ./coverage.cobertura.xml
 
-      - name: Code Coverage Summary Report
-        uses: irongut/CodeCoverageSummary@v1.3.0
+      - name: Upload coverage report
+        uses: gaelgirodon/ci-badges-action@v1
         with:
-            filename: coverage.cobertura.xml
-            badge: true
-            fail_below_min: false
-            format: text
-            hide_branch_rate: false
-            hide_complexity: true
-            indicators: true
-            output: both
-            thresholds: '60 80'
+            gist-id: ba441ef05e0a64327d9a24b5d526d08a
+            token: ${{ secrets.GIST_TOKEN }}
         
         
