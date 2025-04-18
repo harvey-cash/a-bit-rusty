@@ -20,4 +20,4 @@ target/
 
 /target
 
-.coverage.cobertura.xml
+./coverage.cobertura.xml
