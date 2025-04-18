@@ -1,0 +1,41 @@
+name: Code Coverage
+
+on:
+  push:
+    branches: [ master, develop, feature/* ]
+  pull_request:
+    branches: [ master, develop, feature/* ]
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  coverage:
+    name: Run tests and generate coverage report
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          components: llvm-tools-preview
+
+      - name: Setup Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: Run tests and generate coverage summary JSON
+        run: cargo llvm-cov --workspace --all-features --locked --cobertura --output-path ./coverage.cobertura.xml
+
+      - name: Upload coverage report
+        uses: gaelgirodon/ci-badges-action@v1
+        with:
+            gist-id: ba441ef05e0a64327d9a24b5d526d08a
+            token: ${{ secrets.GIST_TOKEN }}
+        
+        
