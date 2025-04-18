@@ -1,4 +1,4 @@
-name: Build
+name: Test
 
 on:
   push:
@@ -10,8 +10,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: Build
+  test:
+    name: Test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -32,14 +32,3 @@ jobs:
       - name: Test
         id: test_results
         run: cargo test
-  
-      - name: Comment on Pull Request with Test Results
-        if: github.event_name == 'pull_request'
-        uses: marocchino/sticky-pull-request-comment@v2
-        with:
-          number: ${{ github.event.pull_request.number }}
-          header: Test Results
-          message: |
-            ```
-            ${{ steps.test_results.outputs.stdout }}
-            ```
