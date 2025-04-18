@@ -1,6 +1,4 @@
-use super::*;
-
-use NANDGate;
+use crate::component::NANDGate;
 
 #[test]
 fn given_new_then_inputs_are_0() {

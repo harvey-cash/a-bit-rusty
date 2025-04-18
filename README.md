@@ -12,3 +12,7 @@ Digital logic library written in Rust.
     ```bash
     cargo install cargo-llvm-cov
     ```
+- Run tests with coverage
+    ```bash
+    cargo llvm-cov
+    ```

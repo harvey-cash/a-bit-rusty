@@ -1,7 +1,8 @@
 mod nand_gate;
-
 pub use nand_gate::NANDGate;
 
+mod component;
+pub use component::Component;
+
 #[cfg(test)]
-#[cfg_attr(coverage_nightly, coverage(off))]
-mod test_nand_gate;
+mod tests;
