@@ -51,8 +51,7 @@ impl Chip {
         }
     }
 
-    pub fn get_output(&self, index: &usize) -> u8 {
-        let output_index = self.get_output_value_index(index);
+    pub fn get_output(&self, output_index: usize) -> u8 {
         self.output_values[output_index]
     }
 

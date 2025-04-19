@@ -80,18 +80,18 @@ fn given_one_link_then_output_equals_input() {
 
     chip.set_input(0, 1);
     chip.update();
-    assert_eq!(chip.get_output(&1), 1);
+    assert_eq!(chip.get_output(0), 1);
 
     chip.set_input(0, 0);
     chip.update();
-    assert_eq!(chip.get_output(&1), 0);
+    assert_eq!(chip.get_output(0), 0);
 }
 
 #[test]
 fn given_one_link_then_output_not_set_before_update() {
     let mut chip = Chip::new(1, 1, 0, vec![Link::new(0, 1)]);
     chip.set_input(0, 1);
-    assert_eq!(chip.get_output(&1), 0);
+    assert_eq!(chip.get_output(0), 0);
 }
 
 #[test]
@@ -102,8 +102,8 @@ fn given_two_separate_links_then_outputs_equal_corresponding_inputs() {
     chip.set_input(0, 0);
     chip.set_input(1, 1);
     chip.update();
-    assert_eq!(chip.get_output(&2), 0);
-    assert_eq!(chip.get_output(&3), 1);
+    assert_eq!(chip.get_output(0), 0);
+    assert_eq!(chip.get_output(1), 1);
 }
 
 #[test]
@@ -114,8 +114,8 @@ fn given_two_crossed_links_then_outputs_equal_corresponding_inputs() {
     chip.set_input(0, 0);
     chip.set_input(1, 1);
     chip.update();
-    assert_eq!(chip.get_output(&2), 1);
-    assert_eq!(chip.get_output(&3), 0);
+    assert_eq!(chip.get_output(0), 1);
+    assert_eq!(chip.get_output(1), 0);
 }
 
 // #[test]
