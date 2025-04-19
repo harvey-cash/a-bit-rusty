@@ -1,12 +1,11 @@
-
-pub struct NAND {
+pub struct NANDChip {
     pub input_a: u8,
     pub input_b: u8,
     pub vcc: u8,
     pub gnd: u8,
 }
 
-impl NAND {
+impl NANDChip {
     pub fn new() -> Self {
         Self {
             input_a: 0,

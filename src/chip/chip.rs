@@ -14,6 +14,14 @@ impl Output {
     }
 }
 
+pub struct Nand {}
+
+impl Nand {
+    pub fn new() -> Self {
+        Nand {}
+    }
+}
+
 pub struct Link {}
 
 impl Link {
@@ -27,12 +35,15 @@ pub struct Chip {
 }
 
 impl Chip {
-    pub fn new<const N: usize, const M: usize, const L: usize>(
-        _inputs: [Input; N],
-        _outputs: [Output; M],
+    pub fn new<const I: usize, const O: usize, const N: usize, const L: usize>(
+        _inputs: [Input; I],
+        _outputs: [Output; O],
+        _nands: [Nand; N],
         _links: [Link; L],
     ) -> Self {
-        Chip { last_input_value: 0 } // Default value, will be overwritten by update_input
+        Chip {
+            last_input_value: 0,
+        } // Default value, will be overwritten by update_input
     }
 
     pub fn update_input(&mut self, _index: usize, value: i32) {
