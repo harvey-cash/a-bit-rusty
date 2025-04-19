@@ -24,7 +24,6 @@ use crate::chip::{Chip, Link};
 // Input values do not reset on tick, allowing for the possibility of feedback loops in the graph between ticks.
 // Thus tick frequency should be significantly faster than the update frequency.
 
-
 #[test]
 #[should_panic]
 fn given_no_inputs_then_panics() {
@@ -118,15 +117,15 @@ fn given_two_crossed_links_then_outputs_equal_corresponding_inputs() {
     assert_eq!(chip.get_output(1), 0);
 }
 
-// #[test]
-// fn given_nand_when_inputs_both_0_then_output_is_1() {
-//     let links = vec![Link::new(0, 2), Link::new(1, 2)];
-//     let mut chip = Chip::new(2, 1, 1, links);
-//     chip.set_input(0, 0);
-//     chip.set_input(1, 0);
-//     chip.update();
-//     assert_eq!(chip.get_output(0), 1);
-// }
+#[test]
+fn given_nand_when_inputs_both_0_then_output_is_1() {
+    let links = vec![Link::new(0, 3), Link::new(1, 3), Link::new(3, 2)];
+    let mut chip = Chip::new(2, 1, 1, links);
+    chip.set_input(0, 0);
+    chip.set_input(1, 0);
+    chip.update();
+    assert_eq!(chip.get_output(0), 1);
+}
 
 // #[test]
 // fn given_nand_when_inputs_both_1_then_output_is_0() {
