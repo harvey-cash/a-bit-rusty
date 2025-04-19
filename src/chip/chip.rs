@@ -22,17 +22,17 @@ impl Link {
     }
 }
 
-pub struct Component {
+pub struct Chip {
     last_input_value: i32,
 }
 
-impl Component {
+impl Chip {
     pub fn new<const N: usize, const M: usize, const L: usize>(
         _inputs: [Input; N],
         _outputs: [Output; M],
         _links: [Link; L],
     ) -> Self {
-        Component { last_input_value: 0 } // Default value, will be overwritten by update_input
+        Chip { last_input_value: 0 } // Default value, will be overwritten by update_input
     }
 
     pub fn update_input(&mut self, _index: usize, value: i32) {
