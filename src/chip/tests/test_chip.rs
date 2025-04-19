@@ -1,4 +1,4 @@
-use crate::chip::{Chip, Input, Link, Nand, Output};
+use crate::chip::{Chip, Link};
 
 // A Circuit comprises Inputs, Outputs, and Chips connected by traces.
 // A Circuit may only be compiled to a Chip if all its Chips have GND and VCC connected.
@@ -24,24 +24,124 @@ use crate::chip::{Chip, Input, Link, Nand, Output};
 // Input values do not reset on tick, allowing for the possibility of feedback loops in the graph between ticks.
 // Thus tick frequency should be significantly faster than the update frequency.
 
+
 #[test]
-fn given_one_link_when_updated_then_output_equals_input() {
-    let inputs = [Input::new()];
-    let outputs = [Output::new()];
-    let nands = [Nand::new()];
-    let links = [Link::new(0, 1)];
-    let mut component = Chip::new(inputs, outputs, nands, links);
-    component.update_input(0, 1);
-    assert_eq!(component.get_output(0, 1), 1);
+#[should_panic]
+fn given_no_inputs_then_panics() {
+    Chip::new(0, 1, 0, vec![Link::new(0, 0)]);
 }
 
 #[test]
-fn given_one_link_when_updated_with_zero_then_output_is_zero() {
-    let inputs = [Input::new()];
-    let outputs = [Output::new()];
-    let nands = [Nand::new()];
-    let links = [Link::new(0, 0)];
-    let mut component = Chip::new(inputs, outputs, nands, links);
-    component.update_input(0, 0);
-    assert_eq!(component.get_output(0, 1), 0);
+#[should_panic]
+fn given_no_outputs_then_panics() {
+    Chip::new(1, 0, 0, vec![Link::new(0, 0)]);
 }
+
+#[test]
+#[should_panic]
+fn given_no_links_then_panics() {
+    Chip::new(1, 1, 0, vec![]);
+}
+
+#[test]
+fn given_no_nands_then_does_not_panic() {
+    Chip::new(1, 1, 0, vec![Link::new(0, 0)]);
+}
+
+#[test]
+fn given_link_source_out_of_range_then_panics() {
+    let f = || -> Chip { Chip::new(1, 1, 0, vec![Link::new(5, 0)]) };
+    let result = std::panic::catch_unwind(f);
+    assert!(result.is_err());
+
+    let links = vec![Link::new(0, 0), Link::new(5, 0)];
+    let f = || -> Chip { Chip::new(1, 1, 0, links) };
+    let result = std::panic::catch_unwind(f);
+    assert!(result.is_err());
+}
+
+#[test]
+fn given_link_source_in_range_then_does_not_panic() {
+    Chip::new(2, 1, 0, vec![Link::new(1, 0)]);
+}
+
+#[test]
+fn given_link_target_in_range_then_does_not_panic() {
+    Chip::new(2, 1, 0, vec![Link::new(0, 2)]);
+}
+
+// ToDo: given_link_source_and_target_are_equal_then_panics?
+// ToDo: given_link_targets_input_then_panics
+// ToDo: given_link_sources_output_then_panics
+
+#[test]
+fn given_one_link_then_output_equals_input() {
+    let mut chip = Chip::new(1, 1, 0, vec![Link::new(0, 1)]);
+
+    chip.set_input(0, 1);
+    chip.update();
+    assert_eq!(chip.get_output(&1), 1);
+
+    chip.set_input(0, 0);
+    chip.update();
+    assert_eq!(chip.get_output(&1), 0);
+}
+
+#[test]
+fn given_one_link_then_output_not_set_before_update() {
+    let mut chip = Chip::new(1, 1, 0, vec![Link::new(0, 1)]);
+    chip.set_input(0, 1);
+    assert_eq!(chip.get_output(&1), 0);
+}
+
+#[test]
+fn given_two_separate_links_then_outputs_equal_corresponding_inputs() {
+    let links = vec![Link::new(0, 2), Link::new(1, 3)];
+    let mut chip = Chip::new(2, 2, 0, links);
+
+    chip.set_input(0, 0);
+    chip.set_input(1, 1);
+    chip.update();
+    assert_eq!(chip.get_output(&2), 0);
+    assert_eq!(chip.get_output(&3), 1);
+}
+
+#[test]
+fn given_two_crossed_links_then_outputs_equal_corresponding_inputs() {
+    let links = vec![Link::new(0, 3), Link::new(1, 2)];
+    let mut chip = Chip::new(2, 2, 0, links);
+
+    chip.set_input(0, 0);
+    chip.set_input(1, 1);
+    chip.update();
+    assert_eq!(chip.get_output(&2), 1);
+    assert_eq!(chip.get_output(&3), 0);
+}
+
+// #[test]
+// fn given_nand_when_inputs_both_0_then_output_is_1() {
+//     let links = vec![Link::new(0, 2), Link::new(1, 2)];
+//     let mut chip = Chip::new(2, 1, 1, links);
+//     chip.set_input(0, 0);
+//     chip.set_input(1, 0);
+//     chip.update();
+//     assert_eq!(chip.get_output(0), 1);
+// }
+
+// #[test]
+// fn given_nand_when_inputs_both_1_then_output_is_0() {
+//     let mut nand = NANDChip::new();
+//     nand.set_vcc(1);
+//     nand.set_inputs(1, 1);
+//     assert_eq!(nand.output(), 0);
+// }
+
+// #[test]
+// fn given_nand_when_single_input_1_then_output_is_1() {
+//     let mut nand = NANDChip::new();
+//     nand.set_vcc(1);
+//     nand.set_inputs(1, 0);
+//     assert_eq!(nand.output(), 1);
+//     nand.set_inputs(0, 1);
+//     assert_eq!(nand.output(), 1);
+// }
