@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 #[derive(PartialEq)]
 enum NodeType {
@@ -68,14 +68,14 @@ impl Chip {
     }
 
     pub fn update(&mut self) {
-        for index in 0..self.num_nodes {
-            let node_type: &NodeType = self.node_types.get(&index).unwrap();
+        let inputs: Vec<usize> = (0..self.num_inputs).collect();
+        let mut queue: VecDeque<usize> = VecDeque::from(inputs);
 
-            if *node_type == NodeType::NAnd {
-                self.values[index] = self.nand(&index);
-            } else if *node_type == NodeType::Output {
-                let source = self.back_links[&index][0];
-                self.values[index] = self.values[source];
+        while let Some(index) = queue.pop_front() {
+            self.update_node(&index);
+
+            if let Some(targets) = self.forward_links.get(&index) {
+                queue.extend(targets.iter().copied());
             }
         }
     }
@@ -134,6 +134,16 @@ impl Chip {
             .chain((num_inputs..=end_nands - 1).map(|i| (i, NodeType::NAnd)))
             .chain((end_nands..=end_outputs - 1).map(|i| (i, NodeType::Output)))
             .collect()
+    }
+
+    fn update_node(&mut self, index: &usize) {
+        let node_type: &NodeType = self.node_types.get(&index).unwrap();
+        if *node_type == NodeType::NAnd {
+            self.values[*index] = self.nand(&index);
+        } else if *node_type == NodeType::Output {
+            let source = self.back_links[&index][0];
+            self.values[*index] = self.values[source];
+        }
     }
 
     fn nand(&self, index: &usize) -> u8 {

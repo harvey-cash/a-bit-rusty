@@ -192,3 +192,23 @@ fn given_nand_same_source_three_times_then_panics() {
     ];
     Chip::new(1, 1, 1, links);
 }
+
+#[test]
+fn given_two_nots_in_series_then_output_equals_input() {
+    let links = vec![
+        Link::new(0, 2),
+        Link::new(0, 2),
+        Link::new(2, 1),
+        Link::new(2, 1),
+        Link::new(1, 3),
+    ];
+    let mut chip = Chip::new(1, 2, 1, links);
+
+    chip.set_input(0, 1);
+    chip.update();
+    assert_eq!(chip.get_output(0), 1);
+
+    chip.set_input(0, 0);
+    chip.update();
+    assert_eq!(chip.get_output(0), 0);
+}
