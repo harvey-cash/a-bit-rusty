@@ -7,19 +7,19 @@ use crate::chip::{Chip, Link};
 // If GND != 0 and/or VCC != 1, all of a Chip's Outputs will be 0.
 // A Chip is a dependency graph of Nodes connected by directed Links.
 // The Node types are Input, Output, and NAnd.
+// Nodes have a state value.
+// Input values can be set on the Chip. Output values can be read from the Chip.
 // Inputs and Outputs are leaves in the graph.
 // Inputs are the source of >= 1 Link. 
 // Inputs can not be a target. 
-// Inputs have a state which can be set. 
 // Outputs are the target of 1 Link only. 
 // Outputs can not be a source.
-// Outputs have a state which can be read.
 // NAnd Nodes must be the target of 2 Links.
 // NAnd Nodes must be the source of 1 Link.
 // A Chip must have at least 1 Input node and at least 1 Output node. It may have 0 NANDs.
-// When an Input is updated, it writes its value to its targets.
-// When an Output is updated, it stores its value.
-// When a NAnd is updated, it reads it source values and writes the result of their logical NAnd to its target.
+// When an Input is updated, it does nothing.
+// When an Output is updated, it copies the value of its source to itself.
+// When a NAnd is updated, it reads the values of its sources and writes the result of their logical NAnd to itself.
 // When a Chip is updated, it calls update throughout its directed graph in topological order.
 // The graph is connected and may contain cycles.
 // Chips and Nodes can only be updated once per tick. Subsequent updates are ignored.

@@ -20,6 +20,7 @@ impl Link {
 pub struct Chip {
     num_inputs: usize,
     num_nands: usize,
+    num_nodes: usize,
     forward_links: HashMap<usize, Vec<usize>>,
     back_links: HashMap<usize, Vec<usize>>,
     node_types: HashMap<usize, NodeType>,
@@ -52,6 +53,7 @@ impl Chip {
         Chip {
             num_inputs,
             num_nands,
+            num_nodes,
             forward_links,
             back_links,
             node_types,
@@ -64,14 +66,15 @@ impl Chip {
     }
 
     pub fn update(&mut self) {
-        for (index, node_type) in self.node_types.iter() {
-            if matches!(node_type, NodeType::Input) {
-                for target in self.forward_links[index].iter() {
-                    self.values[*target] = self.values[*index];
-                }
-            } else if matches!(node_type, NodeType::NAnd) {
-                let target = self.forward_links[index][0];
-                self.values[target] = self.nand(index);
+        for index in 0..self.num_nodes {      
+            let node_type: &NodeType = self.node_types.get(&index).unwrap();
+
+            if matches!(node_type, NodeType::NAnd) {
+                self.values[index] = self.nand(&index);
+            }
+            else if matches!(node_type, NodeType::Output) {
+                let source = self.back_links[&index][0];
+                self.values[index] = self.values[source];
             }
         }
     }
