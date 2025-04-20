@@ -118,7 +118,7 @@ impl Chip {
 
     fn nand(&self, index: &usize) -> u8 {
         let a_idx = self.back_links[index][0];
-        let b_idx = self.back_links[index][0];
+        let b_idx = self.back_links[index][1];
         let a = self.values[a_idx];
         let b = self.values[b_idx];
 

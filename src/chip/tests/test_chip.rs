@@ -127,20 +127,27 @@ fn given_nand_when_inputs_both_0_then_output_is_1() {
     assert_eq!(chip.get_output(0), 1);
 }
 
-// #[test]
-// fn given_nand_when_inputs_both_1_then_output_is_0() {
-//     let mut nand = NANDChip::new();
-//     nand.set_vcc(1);
-//     nand.set_inputs(1, 1);
-//     assert_eq!(nand.output(), 0);
-// }
+#[test]
+fn given_nand_when_inputs_both_1_then_output_is_0() {
+    let links = vec![Link::new(0, 3), Link::new(1, 3), Link::new(3, 2)];
+    let mut chip = Chip::new(2, 1, 1, links);
+    chip.set_input(0, 1);
+    chip.set_input(1, 1);
+    chip.update();
+    assert_eq!(chip.get_output(0), 0);
+}
 
-// #[test]
-// fn given_nand_when_single_input_1_then_output_is_1() {
-//     let mut nand = NANDChip::new();
-//     nand.set_vcc(1);
-//     nand.set_inputs(1, 0);
-//     assert_eq!(nand.output(), 1);
-//     nand.set_inputs(0, 1);
-//     assert_eq!(nand.output(), 1);
-// }
+#[test]
+fn given_nand_when_single_input_1_then_output_is_1() {
+    let links = vec![Link::new(0, 3), Link::new(1, 3), Link::new(3, 2)];
+    let mut chip = Chip::new(2, 1, 1, links);
+    chip.set_input(0, 1);
+    chip.set_input(1, 0);
+    chip.update();
+    assert_eq!(chip.get_output(0), 1);
+
+    chip.set_input(0, 0);
+    chip.set_input(1, 1);
+    chip.update();
+    assert_eq!(chip.get_output(0), 1);
+}
