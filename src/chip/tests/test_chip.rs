@@ -2,34 +2,6 @@ use ntest::timeout;
 
 use crate::chip::{Chip, Link};
 
-// A Circuit comprises Inputs, Outputs, and Chips connected by traces.
-// A Circuit may only be compiled to a Chip if all its Chips have GND and VCC connected.
-
-// CHIP REQUIREMENTS:
-// A Chip has GND, VCC, at least 1 Input and at least 1 Output.
-// If GND != 0 and/or VCC != 1, all of a Chip's Outputs will be 0.
-// A Chip is a dependency graph of Nodes connected by directed Links.
-// The Node types are Input, Output, and NAnd.
-// Nodes have a state value.
-// Input values can be set on the Chip. Output values can be read from the Chip.
-// Inputs and Outputs are leaves in the graph.
-// Inputs are the source of >= 1 Link.
-// Inputs can not be a target.
-// Outputs are the target of 1 Link only.
-// Outputs can not be a source.
-// NAnd Nodes must be the target of 2 Links.
-// NAnd Nodes must be the source of >= 1 Link.
-// A Chip must have at least 1 Input node and at least 1 Output node. It may have 0 NANDs.
-// When an Input is updated, it does nothing.
-// When an Output is updated, it copies the value of its source to itself.
-// When a NAnd is updated, it reads the values of its sources and writes the result of their logical NAnd to itself.
-// When a Chip is ticked, it calls update on Nodes throughout its graph in topological order.
-// The graph is connected and may contain cycles.
-// Nodes can only be updated once per tick. Subsequent updates are ignored.
-
-// Input values do not reset on tick, allowing for the possibility of feedback loops in the graph between ticks.
-// Thus tick frequency should be significantly faster than the input change frequency.
-
 #[test]
 #[should_panic]
 fn given_no_inputs_then_panics() {
