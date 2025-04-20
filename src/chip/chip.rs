@@ -1,4 +1,7 @@
-use std::{collections::{HashMap, VecDeque}, ops::Range};
+use std::{
+    collections::{HashMap, VecDeque},
+    ops::Range,
+};
 
 type NodeId = usize;
 type LinkMap = HashMap<NodeId, Vec<NodeId>>;
@@ -29,23 +32,23 @@ pub struct Chip {
     back_links: LinkMap,
     node_types: NodeTypeMap,
     values: Vec<u8>,
-    updated_this_tick: Vec<bool>
+    updated_this_tick: Vec<bool>,
 }
 
 impl Chip {
     pub fn new(num_inputs: usize, num_nands: usize, num_outputs: usize, links: Vec<Link>) -> Self {
         Self::panic_if_insufficient_nodes(num_inputs, num_outputs, &links);
 
-        let (input_iter, nand_iter, output_iter) = 
+        let (input_iter, nand_iter, output_iter) =
             Self::create_node_iters(num_inputs, num_nands, num_outputs);
-        let node_types: NodeTypeMap = 
+        let node_types: NodeTypeMap =
             Self::construct_node_types(&input_iter, &nand_iter, &output_iter);
 
         let forward_links = Self::construct_forward_links(&links);
         let back_links = Self::construct_back_links(&links);
 
         let num_nodes: usize = num_inputs + num_nands + num_outputs;
-        
+
         Self::panic_if_any_link_out_of_range(&links, num_nodes);
         Self::panic_if_any_link_targets_input(&back_links, &node_types);
         Self::panic_if_any_link_sources_output(&forward_links, &node_types);
@@ -64,7 +67,7 @@ impl Chip {
             back_links,
             node_types,
             values,
-            updated_this_tick
+            updated_this_tick,
         }
     }
 
@@ -121,8 +124,14 @@ impl Chip {
         back_links
     }
 
-    fn construct_node_types(inputs: &Range<usize>, nands: &Range<usize>, outputs: &Range<usize>) -> NodeTypeMap {
-        inputs.clone().map(|i| (i, NodeType::Input))
+    fn construct_node_types(
+        inputs: &Range<usize>,
+        nands: &Range<usize>,
+        outputs: &Range<usize>,
+    ) -> NodeTypeMap {
+        inputs
+            .clone()
+            .map(|i| (i, NodeType::Input))
             .chain(nands.clone().map(|i| (i, NodeType::NAnd)))
             .chain(outputs.clone().map(|i| (i, NodeType::Output)))
             .collect()
@@ -131,7 +140,7 @@ impl Chip {
     fn create_node_iters(
         num_inputs: usize,
         num_nands: usize,
-        num_outputs: usize
+        num_outputs: usize,
     ) -> (Range<usize>, Range<usize>, Range<usize>) {
         let end_nands = num_inputs + num_nands;
         let end_outputs = end_nands + num_outputs;
@@ -140,7 +149,7 @@ impl Chip {
         let nand_iter = num_inputs..end_nands;
         let output_iter = end_nands..end_outputs;
 
-        return (input_iter, nand_iter, output_iter)
+        return (input_iter, nand_iter, output_iter);
     }
 
     fn update_node(&mut self, index: &NodeId) {
@@ -164,10 +173,10 @@ impl Chip {
 
     fn panic_if_any_link_out_of_range(links: &Vec<Link>, num_nodes: usize) {
         let max_node_index: NodeId = num_nodes - 1;
-        
+
         for link in links {
-            if link.source > max_node_index || link.target > max_node_index { 
-                panic!("Link {} -> {} out of range!", link.source, link.target) 
+            if link.source > max_node_index || link.target > max_node_index {
+                panic!("Link {} -> {} out of range!", link.source, link.target)
             }
         }
     }
@@ -175,33 +184,45 @@ impl Chip {
     fn panic_if_any_link_targets_input(back_links: &LinkMap, node_types: &NodeTypeMap) {
         for (index, _) in back_links {
             if node_types.get(&index).is_none_or(|t| t == &NodeType::Input) {
-                panic!("Link targets input with id {}!", index)
-            }            
+                panic!("Link targets input with id {index}!")
+            }
         }
     }
 
     fn panic_if_any_link_sources_output(forward_links: &LinkMap, node_types: &NodeTypeMap) {
         for (index, _) in forward_links {
-            if node_types.get(&index).is_none_or(|t| t == &NodeType::Output) {
-                panic!("Link sources output with id {}!", index)
-            }            
+            if node_types
+                .get(&index)
+                .is_none_or(|t| t == &NodeType::Output)
+            {
+                panic!("Link sources output with id {index}!")
+            }
         }
     }
 
-    fn panic_if_any_node_unconnected(num_nodes: usize, forward_links: &LinkMap, back_links: &LinkMap) {
+    fn panic_if_any_node_unconnected(
+        num_nodes: usize,
+        forward_links: &LinkMap,
+        back_links: &LinkMap,
+    ) {
         for index in 0..num_nodes {
             if !forward_links.contains_key(&index) && !back_links.contains_key(&index) {
-                panic!("Node with id {} not connected!", index)
+                panic!("Node with id {index} not connected!")
             }
         }
     }
 
     fn panic_if_any_nand_has_bad_sources(back_links: &LinkMap, nand_iter: &Range<usize>) {
         for index in nand_iter.clone() {
-            if back_links.get(&index).unwrap_or(&vec![]).len() != 2 {
-                panic!("NAnd with id {} does not have two sources!", index)
+            let empty: Vec<usize> = vec![];
+            let sources = back_links.get(&index).unwrap_or(&empty);
+            if sources.len() != 2 {
+                panic!("NAnd with id {index} does not have two sources!")
             }
-        }        
+            if sources[0] == index && sources[1] == index {
+                panic!("NAnd with id {index} is unconnected and targeting only itself!")
+            }
+        }
     }
 
     fn panic_if_any_nand_has_no_targets(forward_links: &LinkMap, nand_iter: &Range<usize>) {
@@ -211,14 +232,17 @@ impl Chip {
             }
         }
     }
-    
+
     fn panic_if_insufficient_nodes(num_inputs: usize, num_outputs: usize, links: &Vec<Link>) {
         if num_inputs == 0 || num_outputs == 0 || links.len() == 0 {
             panic!("Chip must have at least one input, one output, and one link!")
         }
     }
-    
-    fn panic_if_any_output_targeted_more_than_once(back_links: &HashMap<usize, Vec<usize>>, output_iter: &Range<usize>) {
+
+    fn panic_if_any_output_targeted_more_than_once(
+        back_links: &HashMap<usize, Vec<usize>>,
+        output_iter: &Range<usize>,
+    ) {
         for index in output_iter.clone() {
             if back_links.get(&index).is_none_or(|links| links.len() != 1) {
                 panic!("Output with id {} must be targeted exactly once!", index)

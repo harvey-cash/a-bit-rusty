@@ -40,13 +40,23 @@ fn given_link_source_out_of_range_then_panics() {
 #[test]
 #[should_panic]
 fn given_link_targets_input_then_panics() {
-    Chip::new(2, 0, 2, vec![Link::new(0, 1), Link::new(0, 2), Link::new(1, 3)]);
+    Chip::new(
+        2,
+        0,
+        2,
+        vec![Link::new(0, 1), Link::new(0, 2), Link::new(1, 3)],
+    );
 }
 
 #[test]
 #[should_panic]
 fn given_link_sources_output_then_panics() {
-    Chip::new(1, 0, 2, vec![Link::new(0, 1), Link::new(0, 2), Link::new(1, 2)]);
+    Chip::new(
+        1,
+        0,
+        2,
+        vec![Link::new(0, 1), Link::new(0, 2), Link::new(1, 2)],
+    );
 }
 
 #[test]
@@ -57,9 +67,19 @@ fn given_output_targeted_by_two_links_then_panics() {
 }
 
 #[test]
-#[should_panic]
 fn given_any_node_unconnected_then_panics() {
-    Chip::new(1, 0, 2, vec![Link::new(0, 1)]);
+    let f = || -> Chip { Chip::new(1, 0, 2, vec![Link::new(0, 1)]) };
+    assert!(std::panic::catch_unwind(f).is_err());
+
+    let f = || -> Chip {
+        Chip::new(
+            1,
+            1,
+            1,
+            vec![Link::new(0, 2), Link::new(1, 1), Link::new(1, 1)],
+        )
+    };
+    assert!(std::panic::catch_unwind(f).is_err());
 }
 
 #[test]
@@ -236,11 +256,7 @@ fn given_two_nots_in_series_when_input_1_then_output_1() {
 #[test]
 #[timeout(1)]
 fn given_cycle_when_ticked_then_does_not_loop_forever() {
-    let links = vec![
-        Link::new(0, 1),
-        Link::new(1, 1),
-        Link::new(1, 2)
-    ];
+    let links = vec![Link::new(0, 1), Link::new(1, 1), Link::new(1, 2)];
     let mut chip = Chip::new(1, 1, 1, links);
     chip.set_input(0, 1);
     chip.tick();
@@ -250,7 +266,41 @@ fn given_cycle_when_ticked_then_does_not_loop_forever() {
 #[test]
 #[timeout(1)]
 fn given_cycle_nand_when_ticked_then_output_oscillates() {
-    let mut chip = Chip::new(1, 1, 1, vec![Link::new(0, 1), Link::new(1, 1), Link::new(1, 2)]);
+    let mut chip = Chip::new(
+        1,
+        1,
+        1,
+        vec![Link::new(0, 1), Link::new(1, 1), Link::new(1, 2)],
+    );
+    chip.set_input(0, 1);
+
+    chip.tick();
+    assert_eq!(chip.get_output(0), 1);
+
+    chip.tick();
+    assert_eq!(chip.get_output(0), 0);
+
+    chip.tick();
+    assert_eq!(chip.get_output(0), 1);
+}
+
+#[test]
+#[timeout(1)]
+fn given_three_nand_loop_when_ticked_then_oscillates() {
+    let mut chip = Chip::new(
+        1,
+        3,
+        1,
+        vec![
+            Link::new(0, 1),
+            Link::new(1, 2),
+            Link::new(1, 2),
+            Link::new(2, 3),
+            Link::new(2, 3),
+            Link::new(3, 1),
+            Link::new(3, 4),
+        ],
+    );
     chip.set_input(0, 1);
 
     chip.tick();
