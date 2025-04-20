@@ -19,6 +19,7 @@ impl Link {
 
 pub struct Chip {
     num_inputs: usize,
+    num_nands: usize,
     forward_links: HashMap<usize, Vec<usize>>,
     back_links: HashMap<usize, Vec<usize>>,
     node_types: HashMap<usize, NodeType>,
@@ -26,12 +27,12 @@ pub struct Chip {
 }
 
 impl Chip {
-    pub fn new(num_inputs: usize, num_outputs: usize, num_nands: usize, links: Vec<Link>) -> Self {
+    pub fn new(num_inputs: usize, num_nands: usize, num_outputs: usize, links: Vec<Link>) -> Self {
         if num_inputs == 0 || num_outputs == 0 || links.len() == 0 {
             panic!("Chip must have at least one input, one output, and one link!")
         }
 
-        let num_nodes: usize = num_inputs + num_outputs + num_nands;
+        let num_nodes: usize = num_inputs + num_nands + num_outputs;
         let max_node_index: usize = num_nodes - 1;
 
         let link_out_of_range =
@@ -41,15 +42,16 @@ impl Chip {
             panic!("Bad link!")
         }
 
-        let forward_links = Self::get_forward_links(&links);
-        let back_links = Self::get_back_links(&links);
+        let forward_links = Self::construct_forward_links(&links);
+        let back_links = Self::construct_back_links(&links);
 
         let node_types: HashMap<usize, NodeType> =
-            Self::get_node_types(num_inputs, num_outputs, num_nands);
+            Self::construct_node_types(num_inputs, num_nands, num_outputs);
         let values = vec![0; num_nodes];
 
         Chip {
             num_inputs,
+            num_nands,
             forward_links,
             back_links,
             node_types,
@@ -75,10 +77,10 @@ impl Chip {
     }
 
     pub fn get_output(&self, output_index: usize) -> u8 {
-        self.values[self.num_inputs + output_index]
+        self.values[self.num_inputs + self.num_nands + output_index]
     }
 
-    fn get_forward_links(links: &Vec<Link>) -> HashMap<usize, Vec<usize>> {
+    fn construct_forward_links(links: &Vec<Link>) -> HashMap<usize, Vec<usize>> {
         let mut forward_links: HashMap<usize, Vec<usize>> = HashMap::new();
 
         for link in links {
@@ -91,7 +93,7 @@ impl Chip {
         forward_links
     }
 
-    fn get_back_links(links: &Vec<Link>) -> HashMap<usize, Vec<usize>> {
+    fn construct_back_links(links: &Vec<Link>) -> HashMap<usize, Vec<usize>> {
         let mut back_links: HashMap<usize, Vec<usize>> = HashMap::new();
 
         for link in links {
@@ -101,18 +103,18 @@ impl Chip {
         back_links
     }
 
-    fn get_node_types(
+    fn construct_node_types(
         num_inputs: usize,
-        num_outputs: usize,
         num_nands: usize,
+        num_outputs: usize,
     ) -> HashMap<usize, NodeType> {
-        let end_outputs = num_inputs + num_outputs;
-        let end_nands = end_outputs + num_nands;
+        let end_nands = num_inputs + num_nands;
+        let end_outputs = end_nands + num_outputs;
 
         (0..=num_inputs - 1)
             .map(|i| (i, NodeType::Input))
-            .chain((num_inputs..=end_outputs - 1).map(|i| (i, NodeType::Output)))
-            .chain((end_outputs..=end_nands - 1).map(|i| (i, NodeType::NAnd)))
+            .chain((num_inputs..=end_nands - 1).map(|i| (i, NodeType::NAnd)))
+            .chain((end_nands..=end_outputs - 1).map(|i| (i, NodeType::Output)))
             .collect()
     }
 
