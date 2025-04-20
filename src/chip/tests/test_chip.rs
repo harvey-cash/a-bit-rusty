@@ -5,6 +5,7 @@ use crate::chip::{Chip, Link};
 // A Circuit comprises Inputs, Outputs, and Chips connected by traces.
 // A Circuit may only be compiled to a Chip if all its Chips have GND and VCC connected.
 
+// CHIP REQUIREMENTS:
 // A Chip has GND, VCC, at least 1 Input and at least 1 Output.
 // If GND != 0 and/or VCC != 1, all of a Chip's Outputs will be 0.
 // A Chip is a dependency graph of Nodes connected by directed Links.
@@ -17,7 +18,7 @@ use crate::chip::{Chip, Link};
 // Outputs are the target of 1 Link only.
 // Outputs can not be a source.
 // NAnd Nodes must be the target of 2 Links.
-// NAnd Nodes must be the source of 1 Link.
+// NAnd Nodes must be the source of >= 1 Link.
 // A Chip must have at least 1 Input node and at least 1 Output node. It may have 0 NANDs.
 // When an Input is updated, it does nothing.
 // When an Output is updated, it copies the value of its source to itself.
@@ -80,8 +81,22 @@ fn given_link_sources_output_then_panics() {
 
 #[test]
 #[should_panic]
+fn given_output_targeted_by_two_links_then_panics() {
+    let links = vec![Link::new(0, 2), Link::new(1, 2)];
+    Chip::new(2, 0, 1, links);
+}
+
+#[test]
+#[should_panic]
 fn given_any_node_unconnected_then_panics() {
     Chip::new(1, 0, 2, vec![Link::new(0, 1)]);
+}
+
+#[test]
+#[should_panic]
+fn given_nand_with_no_targets_then_panics() {
+    let links = vec![Link::new(0, 1), Link::new(0, 1), Link::new(0, 2)];
+    Chip::new(1, 1, 1, links);
 }
 
 #[test]

@@ -49,8 +49,10 @@ impl Chip {
         Self::panic_if_any_link_out_of_range(&links, num_nodes);
         Self::panic_if_any_link_targets_input(&back_links, &node_types);
         Self::panic_if_any_link_sources_output(&forward_links, &node_types);
+        Self::panic_if_any_output_targeted_more_than_once(&back_links, &output_iter);
         Self::panic_if_any_node_unconnected(num_nodes, &forward_links, &back_links);
-        Self::panic_if_any_nand_has_bad_sources(&back_links, nand_iter);
+        Self::panic_if_any_nand_has_bad_sources(&back_links, &nand_iter);
+        Self::panic_if_any_nand_has_no_targets(&forward_links, &nand_iter);
 
         let values = vec![0; num_nodes];
         let updated_this_tick: Vec<bool> = vec![false; num_nodes];
@@ -191,17 +193,33 @@ impl Chip {
         }
     }
 
-    fn panic_if_any_nand_has_bad_sources(back_links: &LinkMap, nand_iter: Range<usize>) {
-        for index in nand_iter {
+    fn panic_if_any_nand_has_bad_sources(back_links: &LinkMap, nand_iter: &Range<usize>) {
+        for index in nand_iter.clone() {
             if back_links.get(&index).unwrap_or(&vec![]).len() != 2 {
                 panic!("NAnd with id {} does not have two sources!", index)
             }
         }        
     }
+
+    fn panic_if_any_nand_has_no_targets(forward_links: &LinkMap, nand_iter: &Range<usize>) {
+        for index in nand_iter.clone() {
+            if forward_links.get(&index).is_none() {
+                panic!("NAnd with id {} does not have any targets!", index)
+            }
+        }
+    }
     
     fn panic_if_insufficient_nodes(num_inputs: usize, num_outputs: usize, links: &Vec<Link>) {
         if num_inputs == 0 || num_outputs == 0 || links.len() == 0 {
             panic!("Chip must have at least one input, one output, and one link!")
+        }
+    }
+    
+    fn panic_if_any_output_targeted_more_than_once(back_links: &HashMap<usize, Vec<usize>>, output_iter: &Range<usize>) {
+        for index in output_iter.clone() {
+            if back_links.get(&index).is_none_or(|links| links.len() != 1) {
+                panic!("Output with id {} must be targeted exactly once!", index)
+            }
         }
     }
 }
