@@ -49,7 +49,7 @@ fn given_no_links_then_panics() {
 
 #[test]
 fn given_no_nands_then_does_not_panic() {
-    Chip::new(1, 0, 1, vec![Link::new(0, 0)]);
+    Chip::new(1, 0, 1, vec![Link::new(0, 1)]);
 }
 
 #[test]
@@ -65,18 +65,22 @@ fn given_link_source_out_of_range_then_panics() {
 }
 
 #[test]
-fn given_link_source_in_range_then_does_not_panic() {
-    Chip::new(2, 0, 1, vec![Link::new(1, 0)]);
+#[should_panic]
+fn given_link_targets_input_then_panics() {
+    Chip::new(2, 0, 2, vec![Link::new(0, 1), Link::new(0, 2), Link::new(1, 3)]);
 }
 
 #[test]
-fn given_link_target_in_range_then_does_not_panic() {
-    Chip::new(2, 0, 1, vec![Link::new(0, 2)]);
+#[should_panic]
+fn given_link_sources_output_then_panics() {
+    Chip::new(1, 0, 2, vec![Link::new(0, 1), Link::new(0, 2), Link::new(1, 2)]);
 }
 
-// ToDo: given_link_source_and_target_are_equal_then_panics?
-// ToDo: given_link_targets_input_then_panics
-// ToDo: given_link_sources_output_then_panics
+#[test]
+#[should_panic]
+fn given_any_node_unconnected_then_panics() {
+    Chip::new(1, 0, 2, vec![Link::new(0, 1)]);
+}
 
 #[test]
 fn given_one_link_then_output_equals_input() {

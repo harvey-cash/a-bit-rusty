@@ -1,6 +1,8 @@
 use std::collections::{HashMap, VecDeque};
 
 type NodeId = usize;
+type LinkMap = HashMap<NodeId, Vec<NodeId>>;
+type NodeTypeMap = HashMap<NodeId, NodeType>;
 
 #[derive(PartialEq, Debug)]
 enum NodeType {
@@ -23,9 +25,9 @@ impl Link {
 pub struct Chip {
     num_inputs: usize,
     num_nands: usize,
-    forward_links: HashMap<NodeId, Vec<NodeId>>,
-    back_links: HashMap<NodeId, Vec<NodeId>>,
-    node_types: HashMap<NodeId, NodeType>,
+    forward_links: LinkMap,
+    back_links: LinkMap,
+    node_types: NodeTypeMap,
     values: Vec<u8>,
 }
 
@@ -33,23 +35,21 @@ impl Chip {
     pub fn new(num_inputs: usize, num_nands: usize, num_outputs: usize, links: Vec<Link>) -> Self {
         if num_inputs == 0 || num_outputs == 0 || links.len() == 0 {
             panic!("Chip must have at least one input, one output, and one link!")
-        }
+        }        
+
+        let node_types: NodeTypeMap =
+            Self::construct_node_types(num_inputs, num_nands, num_outputs);
 
         let num_nodes: usize = num_inputs + num_nands + num_outputs;
-        let max_node_index: NodeId = num_nodes - 1;
 
-        let link_out_of_range =
-            |link: &Link| -> bool { link.source > max_node_index || link.target > max_node_index };
-
-        if links.iter().any(link_out_of_range) {
-            panic!("Bad link!")
-        }
-
-        let node_types: HashMap<NodeId, NodeType> =
-            Self::construct_node_types(num_inputs, num_nands, num_outputs);
+        Self::panic_if_any_link_out_of_range(&links, num_nodes);
 
         let forward_links = Self::construct_forward_links(&links);
         let back_links = Self::construct_back_links(&links, &node_types);
+
+        Self::panic_if_any_link_targets_input(&back_links, &node_types);
+        Self::panic_if_any_link_sources_output(&forward_links, &node_types);
+        Self::panic_if_any_node_unconnected(num_nodes, &forward_links, &back_links);
 
         let values = vec![0; num_nodes];
 
@@ -84,8 +84,8 @@ impl Chip {
         self.values[self.num_inputs + self.num_nands + output_index]
     }
 
-    fn construct_forward_links(links: &Vec<Link>) -> HashMap<NodeId, Vec<NodeId>> {
-        let mut forward_links: HashMap<NodeId, Vec<NodeId>> = HashMap::new();
+    fn construct_forward_links(links: &Vec<Link>) -> LinkMap {
+        let mut forward_links: LinkMap = HashMap::new();
 
         for link in links {
             forward_links
@@ -99,9 +99,9 @@ impl Chip {
 
     fn construct_back_links(
         links: &Vec<Link>,
-        node_types: &HashMap<NodeId, NodeType>,
-    ) -> HashMap<NodeId, Vec<NodeId>> {
-        let mut back_links: HashMap<NodeId, Vec<NodeId>> = HashMap::new();
+        node_types: &NodeTypeMap,
+    ) -> LinkMap {
+        let mut back_links: LinkMap = HashMap::new();
 
         for link in links {
             let sources = back_links.entry(link.target).or_default();
@@ -125,7 +125,7 @@ impl Chip {
         num_inputs: usize,
         num_nands: usize,
         num_outputs: usize,
-    ) -> HashMap<NodeId, NodeType> {
+    ) -> NodeTypeMap {
         let end_nands = num_inputs + num_nands;
         let end_outputs = end_nands + num_outputs;
 
@@ -153,5 +153,40 @@ impl Chip {
         let b = self.values[b_idx];
 
         if a == 1 && b == 1 { 0 } else { 1 }
+    }
+
+    fn panic_if_any_link_out_of_range(links: &Vec<Link>, num_nodes: usize) {
+        let max_node_index: NodeId = num_nodes - 1;
+        
+        let link_out_of_range =
+            |link: &Link| -> bool { link.source > max_node_index || link.target > max_node_index };
+
+        if links.iter().any(link_out_of_range) { 
+            panic!("Link out of range!") 
+        }
+    }
+
+    fn panic_if_any_link_targets_input(back_links: &LinkMap, node_types: &NodeTypeMap) {
+        for (index, _) in back_links {
+            if node_types.get(&index).is_none_or(|t| t == &NodeType::Input) {
+                panic!("Link targets input!")
+            }            
+        }
+    }
+
+    fn panic_if_any_link_sources_output(forward_links: &LinkMap, node_types: &NodeTypeMap) {
+        for (index, _) in forward_links {
+            if node_types.get(&index).is_none_or(|t| t == &NodeType::Output) {
+                panic!("Link sources output!")
+            }            
+        }
+    }
+
+    fn panic_if_any_node_unconnected(num_nodes: usize, forward_links: &LinkMap, back_links: &LinkMap) {
+        for index in 0..num_nodes {
+            if !forward_links.contains_key(&index) && !back_links.contains_key(&index) {
+                panic!("Node {} not connected!", index)
+            }
+        }
     }
 }
