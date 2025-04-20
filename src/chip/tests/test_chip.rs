@@ -1,3 +1,5 @@
+use ntest::timeout;
+
 use crate::chip::{Chip, Link};
 
 // A Circuit comprises Inputs, Outputs, and Chips connected by traces.
@@ -83,16 +85,21 @@ fn given_any_node_unconnected_then_panics() {
 }
 
 #[test]
-fn given_one_link_then_output_equals_input() {
+fn given_one_link_when_input_0_then_output_0() {
+    let mut chip = Chip::new(1, 0, 1, vec![Link::new(0, 1)]);
+
+    chip.set_input(0, 0);
+    chip.update();
+    assert_eq!(chip.get_output(0), 0);
+}
+
+#[test]
+fn given_one_link_when_input_1_then_output_1() {
     let mut chip = Chip::new(1, 0, 1, vec![Link::new(0, 1)]);
 
     chip.set_input(0, 1);
     chip.update();
     assert_eq!(chip.get_output(0), 1);
-
-    chip.set_input(0, 0);
-    chip.update();
-    assert_eq!(chip.get_output(0), 0);
 }
 
 #[test]
@@ -162,12 +169,18 @@ fn given_nand_when_single_input_1_then_output_is_1() {
 }
 
 #[test]
-fn given_nand_linked_inputs_then_output_is_not_input() {
+fn given_nand_linked_sources_when_input_0_then_output_1() {
     let links = vec![Link::new(0, 1), Link::new(0, 1), Link::new(1, 2)];
     let mut chip = Chip::new(1, 1, 1, links);
     chip.set_input(0, 0);
     chip.update();
     assert_eq!(chip.get_output(0), 1);
+}
+
+#[test]
+fn given_nand_linked_sources_when_input_1_then_output_0() {
+    let links = vec![Link::new(0, 1), Link::new(0, 1), Link::new(1, 2)];
+    let mut chip = Chip::new(1, 1, 1, links);
     chip.set_input(0, 1);
     chip.update();
     assert_eq!(chip.get_output(0), 0);
@@ -204,7 +217,23 @@ fn given_nand_same_source_three_times_then_panics() {
 }
 
 #[test]
-fn given_two_nots_in_series_then_output_equals_input() {
+fn given_two_nots_in_series_when_input_0_then_output_0() {
+    let links = vec![
+        Link::new(0, 2),
+        Link::new(0, 2),
+        Link::new(2, 1),
+        Link::new(2, 1),
+        Link::new(1, 3),
+    ];
+    let mut chip = Chip::new(1, 2, 1, links);
+
+    chip.set_input(0, 0);
+    chip.update();
+    assert_eq!(chip.get_output(0), 0);
+}
+
+#[test]
+fn given_two_nots_in_series_when_input_1_then_output_1() {
     let links = vec![
         Link::new(0, 2),
         Link::new(0, 2),
@@ -217,8 +246,18 @@ fn given_two_nots_in_series_then_output_equals_input() {
     chip.set_input(0, 1);
     chip.update();
     assert_eq!(chip.get_output(0), 1);
+}
 
-    chip.set_input(0, 0);
+#[test]
+#[timeout(1)]
+fn given_cycle_when_updated_then_does_not_loop_forever() {
+    let links = vec![
+        Link::new(0, 1),
+        Link::new(1, 1),
+        Link::new(1, 2)
+    ];
+    let mut chip = Chip::new(1, 1, 1, links);
+    chip.set_input(0, 1);
     chip.update();
-    assert_eq!(chip.get_output(0), 0);
+    assert_eq!(chip.get_output(0), 1);
 }

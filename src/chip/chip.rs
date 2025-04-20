@@ -29,6 +29,7 @@ pub struct Chip {
     back_links: LinkMap,
     node_types: NodeTypeMap,
     values: Vec<u8>,
+    updated_this_tick: Vec<bool>
 }
 
 impl Chip {
@@ -52,6 +53,7 @@ impl Chip {
         Self::panic_if_any_nand_has_bad_sources(&back_links, nand_iter);
 
         let values = vec![0; num_nodes];
+        let updated_this_tick: Vec<bool> = vec![false; num_nodes];
 
         Chip {
             num_inputs,
@@ -60,6 +62,7 @@ impl Chip {
             back_links,
             node_types,
             values,
+            updated_this_tick
         }
     }
 
@@ -72,7 +75,12 @@ impl Chip {
         let mut queue: VecDeque<NodeId> = VecDeque::from(inputs);
 
         while let Some(index) = queue.pop_front() {
+            if self.updated_this_tick[index] == true {
+                continue;
+            }
+
             self.update_node(&index);
+            self.updated_this_tick[index] = true;
 
             if let Some(targets) = self.forward_links.get(&index) {
                 queue.extend(targets.iter().copied());
