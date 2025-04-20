@@ -175,6 +175,12 @@ fn given_nand_linked_inputs_then_output_is_not_input() {
 
 #[test]
 #[should_panic]
+fn given_nand_no_sources_then_panics() {
+    Chip::new(1, 1, 2, vec![Link::new(0, 2), Link::new(1, 3)]);
+}
+
+#[test]
+#[should_panic]
 fn given_nand_three_sources_then_panics() {
     let links = vec![
         Link::new(0, 3),

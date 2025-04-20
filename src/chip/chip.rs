@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::{collections::{HashMap, VecDeque}, ops::Range};
 
 type NodeId = usize;
 type LinkMap = HashMap<NodeId, Vec<NodeId>>;
@@ -33,23 +33,23 @@ pub struct Chip {
 
 impl Chip {
     pub fn new(num_inputs: usize, num_nands: usize, num_outputs: usize, links: Vec<Link>) -> Self {
-        if num_inputs == 0 || num_outputs == 0 || links.len() == 0 {
-            panic!("Chip must have at least one input, one output, and one link!")
-        }        
+        Self::panic_if_insufficient_nodes(num_inputs, num_outputs, &links);
 
-        let node_types: NodeTypeMap =
-            Self::construct_node_types(num_inputs, num_nands, num_outputs);
-
-        let num_nodes: usize = num_inputs + num_nands + num_outputs;
-
-        Self::panic_if_any_link_out_of_range(&links, num_nodes);
+        let (input_iter, nand_iter, output_iter) = 
+            Self::create_node_iters(num_inputs, num_nands, num_outputs);
+        let node_types: NodeTypeMap = 
+            Self::construct_node_types(&input_iter, &nand_iter, &output_iter);
 
         let forward_links = Self::construct_forward_links(&links);
-        let back_links = Self::construct_back_links(&links, &node_types);
+        let back_links = Self::construct_back_links(&links);
 
+        let num_nodes: usize = num_inputs + num_nands + num_outputs;
+        
+        Self::panic_if_any_link_out_of_range(&links, num_nodes);
         Self::panic_if_any_link_targets_input(&back_links, &node_types);
         Self::panic_if_any_link_sources_output(&forward_links, &node_types);
         Self::panic_if_any_node_unconnected(num_nodes, &forward_links, &back_links);
+        Self::panic_if_any_nand_has_bad_sources(&back_links, nand_iter);
 
         let values = vec![0; num_nodes];
 
@@ -97,43 +97,37 @@ impl Chip {
         forward_links
     }
 
-    fn construct_back_links(
-        links: &Vec<Link>,
-        node_types: &NodeTypeMap,
-    ) -> LinkMap {
+    fn construct_back_links(links: &Vec<Link>) -> LinkMap {
         let mut back_links: LinkMap = HashMap::new();
 
         for link in links {
             let sources = back_links.entry(link.target).or_default();
             sources.push(link.source);
-
-            if let Some(node_type) = node_types.get(&link.target) {
-                if *node_type == NodeType::NAnd && sources.len() > 2 {
-                    panic!(
-                        "Node {} of type NAnd has more than two sources ({} found)",
-                        link.target,
-                        sources.len()
-                    );
-                }
-            }
         }
 
         back_links
     }
 
-    fn construct_node_types(
+    fn construct_node_types(inputs: &Range<usize>, nands: &Range<usize>, outputs: &Range<usize>) -> NodeTypeMap {
+        inputs.clone().map(|i| (i, NodeType::Input))
+            .chain(nands.clone().map(|i| (i, NodeType::NAnd)))
+            .chain(outputs.clone().map(|i| (i, NodeType::Output)))
+            .collect()
+    }
+
+    fn create_node_iters(
         num_inputs: usize,
         num_nands: usize,
-        num_outputs: usize,
-    ) -> NodeTypeMap {
+        num_outputs: usize
+    ) -> (Range<usize>, Range<usize>, Range<usize>) {
         let end_nands = num_inputs + num_nands;
         let end_outputs = end_nands + num_outputs;
 
-        (0..=num_inputs - 1)
-            .map(|i| (i, NodeType::Input))
-            .chain((num_inputs..=end_nands - 1).map(|i| (i, NodeType::NAnd)))
-            .chain((end_nands..=end_outputs - 1).map(|i| (i, NodeType::Output)))
-            .collect()
+        let input_iter = 0..num_inputs;
+        let nand_iter = num_inputs..end_nands;
+        let output_iter = end_nands..end_outputs;
+
+        return (input_iter, nand_iter, output_iter)
     }
 
     fn update_node(&mut self, index: &NodeId) {
@@ -158,18 +152,17 @@ impl Chip {
     fn panic_if_any_link_out_of_range(links: &Vec<Link>, num_nodes: usize) {
         let max_node_index: NodeId = num_nodes - 1;
         
-        let link_out_of_range =
-            |link: &Link| -> bool { link.source > max_node_index || link.target > max_node_index };
-
-        if links.iter().any(link_out_of_range) { 
-            panic!("Link out of range!") 
+        for link in links {
+            if link.source > max_node_index || link.target > max_node_index { 
+                panic!("Link {} -> {} out of range!", link.source, link.target) 
+            }
         }
     }
 
     fn panic_if_any_link_targets_input(back_links: &LinkMap, node_types: &NodeTypeMap) {
         for (index, _) in back_links {
             if node_types.get(&index).is_none_or(|t| t == &NodeType::Input) {
-                panic!("Link targets input!")
+                panic!("Link targets input with id {}!", index)
             }            
         }
     }
@@ -177,7 +170,7 @@ impl Chip {
     fn panic_if_any_link_sources_output(forward_links: &LinkMap, node_types: &NodeTypeMap) {
         for (index, _) in forward_links {
             if node_types.get(&index).is_none_or(|t| t == &NodeType::Output) {
-                panic!("Link sources output!")
+                panic!("Link sources output with id {}!", index)
             }            
         }
     }
@@ -185,8 +178,22 @@ impl Chip {
     fn panic_if_any_node_unconnected(num_nodes: usize, forward_links: &LinkMap, back_links: &LinkMap) {
         for index in 0..num_nodes {
             if !forward_links.contains_key(&index) && !back_links.contains_key(&index) {
-                panic!("Node {} not connected!", index)
+                panic!("Node with id {} not connected!", index)
             }
+        }
+    }
+
+    fn panic_if_any_nand_has_bad_sources(back_links: &LinkMap, nand_iter: Range<usize>) {
+        for index in nand_iter {
+            if back_links.get(&index).unwrap_or(&vec![]).len() != 2 {
+                panic!("NAnd with id {} does not have two sources!", index)
+            }
+        }        
+    }
+    
+    fn panic_if_insufficient_nodes(num_inputs: usize, num_outputs: usize, links: &Vec<Link>) {
+        if num_inputs == 0 || num_outputs == 0 || links.len() == 0 {
+            panic!("Chip must have at least one input, one output, and one link!")
         }
     }
 }
