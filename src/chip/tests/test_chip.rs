@@ -10,9 +10,9 @@ use crate::chip::{Chip, Link};
 // Nodes have a state value.
 // Input values can be set on the Chip. Output values can be read from the Chip.
 // Inputs and Outputs are leaves in the graph.
-// Inputs are the source of >= 1 Link. 
-// Inputs can not be a target. 
-// Outputs are the target of 1 Link only. 
+// Inputs are the source of >= 1 Link.
+// Inputs can not be a target.
+// Outputs are the target of 1 Link only.
 // Outputs can not be a source.
 // NAnd Nodes must be the target of 2 Links.
 // NAnd Nodes must be the source of 1 Link.
@@ -169,9 +169,26 @@ fn given_nand_linked_inputs_then_output_is_not_input() {
     assert_eq!(chip.get_output(0), 0);
 }
 
-// #[test]
-// #[should_panic]
-// fn given_nand_three_sources_then_panics() {
-//     let links = vec![Link::new(0, 2), Link::new(0, 2), Link::new(0, 2), Link::new(2, 1)];
-//     Chip::new(1, 1, 1, links);
-// }
+#[test]
+#[should_panic]
+fn given_nand_three_sources_then_panics() {
+    let links = vec![
+        Link::new(0, 3),
+        Link::new(1, 3),
+        Link::new(2, 3),
+        Link::new(3, 4),
+    ];
+    Chip::new(3, 1, 1, links);
+}
+
+#[test]
+#[should_panic]
+fn given_nand_same_source_three_times_then_panics() {
+    let links = vec![
+        Link::new(0, 1),
+        Link::new(0, 1),
+        Link::new(0, 1),
+        Link::new(1, 2),
+    ];
+    Chip::new(1, 1, 1, links);
+}

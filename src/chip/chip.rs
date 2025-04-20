@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+#[derive(PartialEq)]
 enum NodeType {
     Input,
     Output,
@@ -43,11 +44,12 @@ impl Chip {
             panic!("Bad link!")
         }
 
-        let forward_links = Self::construct_forward_links(&links);
-        let back_links = Self::construct_back_links(&links);
-
         let node_types: HashMap<usize, NodeType> =
             Self::construct_node_types(num_inputs, num_nands, num_outputs);
+
+        let forward_links = Self::construct_forward_links(&links);
+        let back_links = Self::construct_back_links(&links, &node_types);
+
         let values = vec![0; num_nodes];
 
         Chip {
@@ -66,13 +68,12 @@ impl Chip {
     }
 
     pub fn update(&mut self) {
-        for index in 0..self.num_nodes {      
+        for index in 0..self.num_nodes {
             let node_type: &NodeType = self.node_types.get(&index).unwrap();
 
-            if matches!(node_type, NodeType::NAnd) {
+            if *node_type == NodeType::NAnd {
                 self.values[index] = self.nand(&index);
-            }
-            else if matches!(node_type, NodeType::Output) {
+            } else if *node_type == NodeType::Output {
                 let source = self.back_links[&index][0];
                 self.values[index] = self.values[source];
             }
@@ -96,11 +97,25 @@ impl Chip {
         forward_links
     }
 
-    fn construct_back_links(links: &Vec<Link>) -> HashMap<usize, Vec<usize>> {
+    fn construct_back_links(
+        links: &Vec<Link>,
+        node_types: &HashMap<usize, NodeType>,
+    ) -> HashMap<usize, Vec<usize>> {
         let mut back_links: HashMap<usize, Vec<usize>> = HashMap::new();
 
         for link in links {
-            back_links.entry(link.target).or_default().push(link.source);
+            let sources = back_links.entry(link.target).or_default();
+            sources.push(link.source);
+
+            if let Some(node_type) = node_types.get(&link.target) {
+                if *node_type == NodeType::NAnd && sources.len() > 2 {
+                    panic!(
+                        "Node {} of type NAnd has more than two sources ({} found)",
+                        link.target,
+                        sources.len()
+                    );
+                }
+            }
         }
 
         back_links
