@@ -72,7 +72,10 @@ impl Chip {
         self.values[index] = value;
     }
 
-    pub fn update(&mut self) {
+    pub fn tick(&mut self) {
+        let num_nodes = self.node_types.len();
+        self.updated_this_tick = vec![false; num_nodes];
+
         let inputs: Vec<NodeId> = (0..self.num_inputs).collect();
         let mut queue: VecDeque<NodeId> = VecDeque::from(inputs);
 

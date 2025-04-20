@@ -23,14 +23,12 @@ use crate::chip::{Chip, Link};
 // When an Input is updated, it does nothing.
 // When an Output is updated, it copies the value of its source to itself.
 // When a NAnd is updated, it reads the values of its sources and writes the result of their logical NAnd to itself.
-// When a Chip is updated, it calls update throughout its directed graph in topological order.
+// When a Chip is ticked, it calls update on Nodes throughout its graph in topological order.
 // The graph is connected and may contain cycles.
-// Chips and Nodes can only be updated once per tick. Subsequent updates are ignored.
-// In any 1 tick the graph's update is acyclic.
-// Ticks are called on all Nodes in the graph simultaneously.
+// Nodes can only be updated once per tick. Subsequent updates are ignored.
 
 // Input values do not reset on tick, allowing for the possibility of feedback loops in the graph between ticks.
-// Thus tick frequency should be significantly faster than the update frequency.
+// Thus tick frequency should be significantly faster than the input change frequency.
 
 #[test]
 #[should_panic]
@@ -104,7 +102,7 @@ fn given_one_link_when_input_0_then_output_0() {
     let mut chip = Chip::new(1, 0, 1, vec![Link::new(0, 1)]);
 
     chip.set_input(0, 0);
-    chip.update();
+    chip.tick();
     assert_eq!(chip.get_output(0), 0);
 }
 
@@ -113,12 +111,12 @@ fn given_one_link_when_input_1_then_output_1() {
     let mut chip = Chip::new(1, 0, 1, vec![Link::new(0, 1)]);
 
     chip.set_input(0, 1);
-    chip.update();
+    chip.tick();
     assert_eq!(chip.get_output(0), 1);
 }
 
 #[test]
-fn given_one_link_then_output_not_set_before_update() {
+fn given_one_link_then_output_not_set_before_tick() {
     let mut chip = Chip::new(1, 0, 1, vec![Link::new(0, 1)]);
     chip.set_input(0, 1);
     assert_eq!(chip.get_output(0), 0);
@@ -131,7 +129,7 @@ fn given_two_separate_links_then_outputs_equal_corresponding_inputs() {
 
     chip.set_input(0, 0);
     chip.set_input(1, 1);
-    chip.update();
+    chip.tick();
     assert_eq!(chip.get_output(0), 0);
     assert_eq!(chip.get_output(1), 1);
 }
@@ -143,7 +141,7 @@ fn given_two_crossed_links_then_outputs_equal_corresponding_inputs() {
 
     chip.set_input(0, 0);
     chip.set_input(1, 1);
-    chip.update();
+    chip.tick();
     assert_eq!(chip.get_output(0), 1);
     assert_eq!(chip.get_output(1), 0);
 }
@@ -154,7 +152,7 @@ fn given_nand_when_inputs_both_0_then_output_is_1() {
     let mut chip = Chip::new(2, 1, 1, links);
     chip.set_input(0, 0);
     chip.set_input(1, 0);
-    chip.update();
+    chip.tick();
     assert_eq!(chip.get_output(0), 1);
 }
 
@@ -164,7 +162,7 @@ fn given_nand_when_inputs_both_1_then_output_is_0() {
     let mut chip = Chip::new(2, 1, 1, links);
     chip.set_input(0, 1);
     chip.set_input(1, 1);
-    chip.update();
+    chip.tick();
     assert_eq!(chip.get_output(0), 0);
 }
 
@@ -174,12 +172,12 @@ fn given_nand_when_single_input_1_then_output_is_1() {
     let mut chip = Chip::new(2, 1, 1, links);
     chip.set_input(0, 1);
     chip.set_input(1, 0);
-    chip.update();
+    chip.tick();
     assert_eq!(chip.get_output(0), 1);
 
     chip.set_input(0, 0);
     chip.set_input(1, 1);
-    chip.update();
+    chip.tick();
     assert_eq!(chip.get_output(0), 1);
 }
 
@@ -188,7 +186,7 @@ fn given_nand_linked_sources_when_input_0_then_output_1() {
     let links = vec![Link::new(0, 1), Link::new(0, 1), Link::new(1, 2)];
     let mut chip = Chip::new(1, 1, 1, links);
     chip.set_input(0, 0);
-    chip.update();
+    chip.tick();
     assert_eq!(chip.get_output(0), 1);
 }
 
@@ -197,7 +195,7 @@ fn given_nand_linked_sources_when_input_1_then_output_0() {
     let links = vec![Link::new(0, 1), Link::new(0, 1), Link::new(1, 2)];
     let mut chip = Chip::new(1, 1, 1, links);
     chip.set_input(0, 1);
-    chip.update();
+    chip.tick();
     assert_eq!(chip.get_output(0), 0);
 }
 
@@ -243,7 +241,7 @@ fn given_two_nots_in_series_when_input_0_then_output_0() {
     let mut chip = Chip::new(1, 2, 1, links);
 
     chip.set_input(0, 0);
-    chip.update();
+    chip.tick();
     assert_eq!(chip.get_output(0), 0);
 }
 
@@ -259,13 +257,13 @@ fn given_two_nots_in_series_when_input_1_then_output_1() {
     let mut chip = Chip::new(1, 2, 1, links);
 
     chip.set_input(0, 1);
-    chip.update();
+    chip.tick();
     assert_eq!(chip.get_output(0), 1);
 }
 
 #[test]
 #[timeout(1)]
-fn given_cycle_when_updated_then_does_not_loop_forever() {
+fn given_cycle_when_ticked_then_does_not_loop_forever() {
     let links = vec![
         Link::new(0, 1),
         Link::new(1, 1),
@@ -273,6 +271,22 @@ fn given_cycle_when_updated_then_does_not_loop_forever() {
     ];
     let mut chip = Chip::new(1, 1, 1, links);
     chip.set_input(0, 1);
-    chip.update();
+    chip.tick();
+    assert_eq!(chip.get_output(0), 1);
+}
+
+#[test]
+#[timeout(1)]
+fn given_cycle_nand_when_ticked_then_output_oscillates() {
+    let mut chip = Chip::new(1, 1, 1, vec![Link::new(0, 1), Link::new(1, 1), Link::new(1, 2)]);
+    chip.set_input(0, 1);
+
+    chip.tick();
+    assert_eq!(chip.get_output(0), 1);
+
+    chip.tick();
+    assert_eq!(chip.get_output(0), 0);
+
+    chip.tick();
     assert_eq!(chip.get_output(0), 1);
 }
