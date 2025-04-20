@@ -1,6 +1,8 @@
 use std::collections::{HashMap, VecDeque};
 
-#[derive(PartialEq)]
+type NodeId = usize;
+
+#[derive(PartialEq, Debug)]
 enum NodeType {
     Input,
     Output,
@@ -8,12 +10,12 @@ enum NodeType {
 }
 
 pub struct Link {
-    pub source: usize,
-    pub target: usize,
+    pub source: NodeId,
+    pub target: NodeId,
 }
 
 impl Link {
-    pub fn new(source: usize, target: usize) -> Self {
+    pub fn new(source: NodeId, target: NodeId) -> Self {
         Link { source, target }
     }
 }
@@ -21,10 +23,9 @@ impl Link {
 pub struct Chip {
     num_inputs: usize,
     num_nands: usize,
-    num_nodes: usize,
-    forward_links: HashMap<usize, Vec<usize>>,
-    back_links: HashMap<usize, Vec<usize>>,
-    node_types: HashMap<usize, NodeType>,
+    forward_links: HashMap<NodeId, Vec<NodeId>>,
+    back_links: HashMap<NodeId, Vec<NodeId>>,
+    node_types: HashMap<NodeId, NodeType>,
     values: Vec<u8>,
 }
 
@@ -35,7 +36,7 @@ impl Chip {
         }
 
         let num_nodes: usize = num_inputs + num_nands + num_outputs;
-        let max_node_index: usize = num_nodes - 1;
+        let max_node_index: NodeId = num_nodes - 1;
 
         let link_out_of_range =
             |link: &Link| -> bool { link.source > max_node_index || link.target > max_node_index };
@@ -44,7 +45,7 @@ impl Chip {
             panic!("Bad link!")
         }
 
-        let node_types: HashMap<usize, NodeType> =
+        let node_types: HashMap<NodeId, NodeType> =
             Self::construct_node_types(num_inputs, num_nands, num_outputs);
 
         let forward_links = Self::construct_forward_links(&links);
@@ -55,7 +56,6 @@ impl Chip {
         Chip {
             num_inputs,
             num_nands,
-            num_nodes,
             forward_links,
             back_links,
             node_types,
@@ -63,13 +63,13 @@ impl Chip {
         }
     }
 
-    pub fn set_input(&mut self, index: usize, value: u8) {
+    pub fn set_input(&mut self, index: NodeId, value: u8) {
         self.values[index] = value;
     }
 
     pub fn update(&mut self) {
-        let inputs: Vec<usize> = (0..self.num_inputs).collect();
-        let mut queue: VecDeque<usize> = VecDeque::from(inputs);
+        let inputs: Vec<NodeId> = (0..self.num_inputs).collect();
+        let mut queue: VecDeque<NodeId> = VecDeque::from(inputs);
 
         while let Some(index) = queue.pop_front() {
             self.update_node(&index);
@@ -80,12 +80,12 @@ impl Chip {
         }
     }
 
-    pub fn get_output(&self, output_index: usize) -> u8 {
+    pub fn get_output(&self, output_index: NodeId) -> u8 {
         self.values[self.num_inputs + self.num_nands + output_index]
     }
 
-    fn construct_forward_links(links: &Vec<Link>) -> HashMap<usize, Vec<usize>> {
-        let mut forward_links: HashMap<usize, Vec<usize>> = HashMap::new();
+    fn construct_forward_links(links: &Vec<Link>) -> HashMap<NodeId, Vec<NodeId>> {
+        let mut forward_links: HashMap<NodeId, Vec<NodeId>> = HashMap::new();
 
         for link in links {
             forward_links
@@ -99,9 +99,9 @@ impl Chip {
 
     fn construct_back_links(
         links: &Vec<Link>,
-        node_types: &HashMap<usize, NodeType>,
-    ) -> HashMap<usize, Vec<usize>> {
-        let mut back_links: HashMap<usize, Vec<usize>> = HashMap::new();
+        node_types: &HashMap<NodeId, NodeType>,
+    ) -> HashMap<NodeId, Vec<NodeId>> {
+        let mut back_links: HashMap<NodeId, Vec<NodeId>> = HashMap::new();
 
         for link in links {
             let sources = back_links.entry(link.target).or_default();
@@ -125,7 +125,7 @@ impl Chip {
         num_inputs: usize,
         num_nands: usize,
         num_outputs: usize,
-    ) -> HashMap<usize, NodeType> {
+    ) -> HashMap<NodeId, NodeType> {
         let end_nands = num_inputs + num_nands;
         let end_outputs = end_nands + num_outputs;
 
@@ -136,7 +136,7 @@ impl Chip {
             .collect()
     }
 
-    fn update_node(&mut self, index: &usize) {
+    fn update_node(&mut self, index: &NodeId) {
         let node_type: &NodeType = self.node_types.get(&index).unwrap();
         if *node_type == NodeType::NAnd {
             self.values[*index] = self.nand(&index);
@@ -146,7 +146,7 @@ impl Chip {
         }
     }
 
-    fn nand(&self, index: &usize) -> u8 {
+    fn nand(&self, index: &NodeId) -> u8 {
         let a_idx = self.back_links[index][0];
         let b_idx = self.back_links[index][1];
         let a = self.values[a_idx];
