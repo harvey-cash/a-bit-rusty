@@ -8,7 +8,6 @@
 // [ ] Chips can be rotated in 90 degree increments.
 // [ ] Chips may not overlap other Chips.
 // [ ] Chips can be removed from a Circuit.
-// [ ] Chips have a Pin for Ground, Supply, each Input and each Output.
 // [ ] Pins exist at points adjacent to their Chip's surface area on the front layer.
 // [ ] Pins are two dimensional lines in Z, occupying Z = [0, 1] at a single XY co-ordinate.
 // [ ] Pins may not be coincident with other Pins.
@@ -29,11 +28,6 @@
 // [ ] TraceGraphs have a state value which defaults to 0.
 // [ ] If a TraceGraph intersects an Output Pin, its value equals the state of the Output Pin.
 // [ ] If a TraceGraph intersects multiple Output Pins it is invalid.
-// [ ] The fundamental Chips are Ground, Supply, Input, NAnd, and Output.
-// [ ] Ground Chips have a single Output Pin which is 0.
-// [ ] Supply Chips have a single Output Pin which is 1 (if the Machine is powered).
-// [ ] Chips have >=1 Ground Input Pins and >=1 Supply Input Pins.
-// [ ] Chip Output Pins are all 0 if Ground Input != 0 or Supply Input != 1.
 // [ ] If a Circuit is valid, it can be compiled to a ChipDescription.
 // [ ] Circuits are invalid if any TraceGraph is invalid.
 // [ ] Compilation turns TraceGraphs into Links in the ChipDescription.

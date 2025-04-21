@@ -3,6 +3,14 @@ use ntest::timeout;
 use crate::chip::{Chip, ChipDescription};
 use crate::chip::chip_description::Link;
 
+// ToDo:
+// [ ] Chips have a Pin for Ground, Supply, each Input and each Output.
+// [ ] Chips have >=1 Ground Input Pins and >=1 Supply Input Pins.
+// [ ] Chip Output Pins are all 0 if Ground Input != 0 or Supply Input != 1.
+// [ ] The fundamental Chips are Ground, Supply, Input, NAnd, and Output.
+// [ ] Ground Chips have a single Output Pin which is 0.
+// [ ] Supply Chips have a single Output Pin which is 1 (if powered).
+
 #[test]
 #[should_panic]
 fn given_bad_description_then_panics() {

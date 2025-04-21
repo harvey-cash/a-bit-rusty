@@ -1,13 +1,14 @@
 use crate::chip::chip_description::{ChipDescription, Link};
 
-// [ ] ChipDescriptions define the XY size of a new Chip.
-// [ ] ChipDescriptions define the co-ordinates of new Pins adjacent the the size bounds.
+// ToDo:
 // [X] If a ChipDescription is valid, it can be used to create a new Chip.
+// [X] ChipDescriptions are invalid if multiple sources have the same target.
+// [X] ChipDescriptions are invalid if any Chip is unconnected.
+// [ ] ChipDescriptions define the XY size of a new Chip.
+// [ ] ChipDescriptions define the co-ordinates of Pins adjacent the the size bounds.
 // [ ] ChipDescriptions are invalid if any Chip's Ground Pin is not connected to a Ground Chip.
 // [ ] ChipDescriptions are invalid if any Chip's Supply Pin is not connected to a Supply Chip.
 // [ ] ChipDescriptions are invalid if there is not >=1 Ground, >=1 Supply, >=1 Input and >=1 Output.
-// [X] ChipDescriptions are invalid if multiple sources have the same target.
-// [X] ChipDescriptions are invalid if any Chip is unconnected.
 
 #[test]
 fn given_no_inputs_then_invalid() {
@@ -31,6 +32,12 @@ fn given_no_links_then_invalid() {
 fn given_no_nands_then_still_valid() {
     let description = ChipDescription::new(1, 0, 1, vec![Link::new(0, 1)]);
 	assert_eq!(description.is_valid(), true);
+}
+
+#[test]
+fn given_single_wired_up_nand_then_valid() {
+    let description = ChipDescription::new(2, 1, 1, vec![Link::new(0, 2), Link::new(1, 2), Link::new(2, 3)]);
+    assert_eq!(description.is_valid(), true);
 }
 
 #[test]
