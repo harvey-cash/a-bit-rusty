@@ -21,7 +21,12 @@ impl TraceMap {
         self.trace_map.entry(b).or_default().insert(a);
     }
 
-    pub fn get_graphs(&self) -> HashMap<i32, HashSet<Vector3>> {
+    pub fn delete(&mut self, point: Vector3) {
+        self.trace_map.entry(point).or_default().remove(&point);
+        self.trace_map.remove(&point);
+    }
+
+    pub fn get_traces(&self) -> HashMap<i32, HashSet<Vector3>> {
         let mut trace_id = 0;
         let mut traces: HashMap<i32, HashSet<Vector3>> = HashMap::new();
         let mut covered_points: HashSet<Vector3> = HashSet::new();
@@ -61,12 +66,14 @@ impl TraceMap {
         covered_points.insert(*point);
 
         for connected_point in connections {
-            let connections_at_point: &HashSet<Vector3> =
-                self.trace_map.get(connected_point).unwrap();
+            let options_at_point = self.trace_map.get(connected_point);
+            if options_at_point.is_none() {
+                continue;
+            }
 
             self.find_all_points_on_trace(
                 connected_point,
-                connections_at_point,
+                options_at_point.unwrap(),
                 points_on_trace,
                 covered_points,
             );
