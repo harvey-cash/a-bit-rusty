@@ -2,9 +2,9 @@ use nalgebra::{self, Matrix};
 
 pub type Vector3 = nalgebra::Vector3<i32>;
 
-pub struct Trace {}
+struct TraceSegment {}
 
-impl Trace {
+impl TraceSegment {
     pub fn new(a: Vector3, b: Vector3) -> Self {
         Self::panic_if_ends_too_far_apart(&a, &b);
         Self {}
@@ -20,7 +20,7 @@ impl Trace {
 }
 
 pub struct TraceMap {
-    traces: Vec<Trace>,
+    traces: Vec<TraceSegment>,
 }
 
 impl TraceMap {
@@ -29,11 +29,12 @@ impl TraceMap {
         Self { traces }
     }
 
-    pub fn add(&mut self, trace: Trace) {
-        self.traces.push(trace);
+    pub fn add(&mut self, a: Vector3, b: Vector3) {
+        self.traces.push(TraceSegment::new(a, b));
     }
 
-    pub fn get_graphs(&self) -> &Vec<Trace> {
-        &self.traces
+    pub fn get_graphs(&self) -> Vec<i32> {
+        let list: Vec<i32> = self.traces.iter().map(|_f| 1).collect();
+        list
     }
 }
