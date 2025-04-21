@@ -12,20 +12,11 @@
 // [ ] Pins are two dimensional lines in Z, occupying Z = [0, 1] at a single XY co-ordinate.
 // [ ] Pins may not be coincident with other Pins.
 // [ ] Traces can be added to a Circuit.
-// [ ] Traces are Nodes in a TraceGraph.
-// [ ] Traces have two end points in 3D space.
-// [ ] The two ends of a Trace may be the same point - making it a Dot.
-// [ ] If on the same Z layer, the two ends of a Trace may be adjacent or diagonal.
-// [ ] If on different Z layers, the two ends of a Trace must be adjacent - making it a Via.
 // [ ] Traces can not overlap any point covered by a Chip (on the front layer).
 // [ ] Traces can intersect Pins.
 // [ ] A Trace Via can not be coincident with a Pin's XY coordinates.
 // [ ] Traces can be deleted from a Circuit.
-// [ ] Traces that share an end point are part of the same TraceGraph. 
-// [ ] Traces belonging to different TraceGraphs have no common end points.
-// [ ] A TraceGraph has >=1 Traces.
 // [ ] When multiple Pins intersect Traces belonging to the same TraceGraph, they are connected.
-// [ ] TraceGraphs have a state value which defaults to 0.
 // [ ] If a TraceGraph intersects an Output Pin, its value equals the state of the Output Pin.
 // [ ] If a TraceGraph intersects multiple Output Pins it is invalid.
 // [ ] If a Circuit is valid, it can be compiled to a ChipDescription.
