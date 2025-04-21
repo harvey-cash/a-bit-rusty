@@ -10,6 +10,10 @@ pub struct Chip {
 
 impl Chip {
     pub fn new(description: ChipDescription) -> Self {
+        if !description.is_valid() {
+            panic!("Chip can not be built from invalid description!");
+        }
+
         let num_nodes = description.num_nodes;
         Self {
             description,

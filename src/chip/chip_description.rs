@@ -31,12 +31,12 @@ pub struct ChipDescription {
     pub node_types: NodeTypeMap,
     pub forward_links: LinkMap,
     pub back_links: LinkMap,
+
+    is_valid: bool,
 }
 
 impl ChipDescription {
     pub fn new(num_inputs: usize, num_nands: usize, num_outputs: usize, links: Vec<Link>) -> Self {
-        
-        Self::panic_if_insufficient_nodes(num_inputs, num_outputs, &links);
 
         let (input_iter, nand_iter, output_iter) =
             Self::create_node_iters(num_inputs, num_nands, num_outputs);
@@ -48,16 +48,21 @@ impl ChipDescription {
 
         let num_nodes: usize = num_inputs + num_nands + num_outputs;
 
-        Self::panic_if_any_link_out_of_range(&links, num_nodes);
-        Self::panic_if_any_link_targets_input(&back_links, &node_types);
-        Self::panic_if_any_link_sources_output(&forward_links, &node_types);
-        Self::panic_if_any_output_targeted_more_than_once(&back_links, &output_iter);
-        Self::panic_if_any_node_unconnected(num_nodes, &forward_links, &back_links);
-        Self::panic_if_any_nand_has_bad_sources(&back_links, &nand_iter);
-        Self::panic_if_any_nand_has_no_targets(&forward_links, &nand_iter);
+        let mut is_valid = !Self::has_insufficient_nodes(num_inputs, num_outputs, &links);
+        is_valid &= !Self::any_link_out_of_range(&links, num_nodes);
+        is_valid &= !Self::any_link_targets_input(&back_links, &node_types);
+        is_valid &= !Self::any_link_sources_output(&forward_links, &node_types);
+        is_valid &= !Self::any_output_targeted_more_than_once(&back_links, &output_iter);
+        is_valid &= !Self::any_node_unconnected(num_nodes, &forward_links, &back_links);
+        is_valid &= !Self::any_nand_has_bad_sources(&back_links, &nand_iter);
+        is_valid &= !Self::any_nand_has_no_targets(&forward_links, &nand_iter);
 
-        Self { num_nodes, num_inputs, num_nands, node_types, forward_links, back_links }
-    }    
+        Self { num_nodes, num_inputs, num_nands, node_types, forward_links, back_links, is_valid }
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.is_valid
+    }
 
     fn construct_forward_links(links: &Vec<Link>) -> LinkMap {
         let mut forward_links: LinkMap = HashMap::new();
@@ -111,82 +116,98 @@ impl ChipDescription {
         return (input_iter, nand_iter, output_iter);
     }
 
-    fn panic_if_any_link_out_of_range(links: &Vec<Link>, num_nodes: usize) {
+    fn any_link_out_of_range(links: &Vec<Link>, num_nodes: usize) -> bool {
         let max_node_index: NodeId = num_nodes - 1;
-
         for link in links {
             if link.source > max_node_index || link.target > max_node_index {
-                panic!("Link {} -> {} out of range!", link.source, link.target)
+                eprintln!("Link {} -> {} out of range!", link.source, link.target);
+                return true;
             }
         }
+        return false;
     }
 
-    fn panic_if_any_link_targets_input(back_links: &LinkMap, node_types: &NodeTypeMap) {
+    fn any_link_targets_input(back_links: &LinkMap, node_types: &NodeTypeMap) -> bool {
         for (index, _) in back_links {
             if node_types.get(&index).is_none_or(|t| t == &NodeType::Input) {
-                panic!("Link targets input with id {index}!")
+                eprintln!("Link targets input with id {index}!");
+                return true;
             }
         }
+        return false;
     }
 
-    fn panic_if_any_link_sources_output(forward_links: &LinkMap, node_types: &NodeTypeMap) {
+    fn any_link_sources_output(forward_links: &LinkMap, node_types: &NodeTypeMap) -> bool {
         for (index, _) in forward_links {
             if node_types
                 .get(&index)
                 .is_none_or(|t| t == &NodeType::Output)
             {
-                panic!("Link sources output with id {index}!")
+                eprintln!("Link sources output with id {index}!");
+                return true;
             }
         }
+        return false;
     }
 
-    fn panic_if_any_node_unconnected(
+    fn any_node_unconnected(
         num_nodes: usize,
         forward_links: &LinkMap,
         back_links: &LinkMap,
-    ) {
+    ) -> bool {
         for index in 0..num_nodes {
             if !forward_links.contains_key(&index) && !back_links.contains_key(&index) {
-                panic!("Node with id {index} not connected!")
+                eprintln!("Node with id {index} not connected!");
+                return true;
             }
         }
+        return false;
     }
 
-    fn panic_if_any_nand_has_bad_sources(back_links: &LinkMap, nand_iter: &Range<usize>) {
+    fn any_nand_has_bad_sources(back_links: &LinkMap, nand_iter: &Range<usize>) -> bool {
         for index in nand_iter.clone() {
             let empty: Vec<usize> = vec![];
             let sources = back_links.get(&index).unwrap_or(&empty);
             if sources.len() != 2 {
-                panic!("NAnd with id {index} does not have two sources!")
+                eprintln!("NAnd with id {index} does not have two sources!");
+                return true;
             }
             if sources[0] == index && sources[1] == index {
-                panic!("NAnd with id {index} is unconnected and targeting only itself!")
+                eprintln!("NAnd with id {index} is unconnected and targeting only itself!");
+                return true;
             }
         }
+        return false;
     }
 
-    fn panic_if_any_nand_has_no_targets(forward_links: &LinkMap, nand_iter: &Range<usize>) {
+    fn any_nand_has_no_targets(forward_links: &LinkMap, nand_iter: &Range<usize>) -> bool {
         for index in nand_iter.clone() {
             if forward_links.get(&index).is_none() {
-                panic!("NAnd with id {} does not have any targets!", index)
+                eprintln!("NAnd with id {} does not have any targets!", index);
+                return true;
             }
         }
+        return false;
     }
 
-    fn panic_if_insufficient_nodes(num_inputs: usize, num_outputs: usize, links: &Vec<Link>) {
+    fn has_insufficient_nodes(num_inputs: usize, num_outputs: usize, links: &Vec<Link>) -> bool {
         if num_inputs == 0 || num_outputs == 0 || links.len() == 0 {
-            panic!("Chip must have at least one input, one output, and one link!")
+            eprintln!("Chip must have at least one input, one output, and one link!");
+            return true;
         }
+        return false;
     }
 
-    fn panic_if_any_output_targeted_more_than_once(
+    fn any_output_targeted_more_than_once(
         back_links: &HashMap<usize, Vec<usize>>,
         output_iter: &Range<usize>,
-    ) {
+    ) -> bool {
         for index in output_iter.clone() {
             if back_links.get(&index).is_none_or(|links| links.len() != 1) {
-                panic!("Output with id {} must be targeted exactly once!", index)
+                eprintln!("Output must have exactly one source!");
+                return true;
             }
         }
+        return false;
     }
 }

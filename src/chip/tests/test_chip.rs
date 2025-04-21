@@ -3,6 +3,12 @@ use ntest::timeout;
 use crate::chip::{Chip, ChipDescription};
 use crate::chip::chip_description::Link;
 
+#[test]
+#[should_panic]
+fn given_bad_description_then_panics() {
+    let description = ChipDescription::new(0, 1, 0, vec![Link::new(0, 0)]);
+    Chip::new(description);
+}
 
 #[test]
 fn given_one_link_when_input_0_then_output_0() {

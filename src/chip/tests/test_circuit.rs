@@ -37,12 +37,4 @@
 // [ ] If a Circuit is valid, it can be compiled to a ChipDescription.
 // [ ] Circuits are invalid if any TraceGraph is invalid.
 // [ ] Compilation turns TraceGraphs into Links in the ChipDescription.
-// [ ] ChipDescriptions define the XY size of a new Chip.
-// [ ] ChipDescriptions define the co-ordinates of new Pins adjacent the the size bounds.
-// [ ] If a ChipDescription is valid, it can be used to create a new Chip.
-// [ ] ChipDescriptions are invalid if any Chip's Ground Pin is not connected to a Ground Chip.
-// [ ] ChipDescriptions are invalid if any Chip's Supply Pin is not connected to a Supply Chip.
-// [ ] ChipDescriptions are invalid if there is not >=1 Ground, >=1 Supply, >=1 Input and >=1 Output.
-// [ ] ChipDescriptions are invalid if multiple sources have the same target.
-// [ ] ChipDescriptions are invalid if any Chip is unconnected.
 //
