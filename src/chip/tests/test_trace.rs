@@ -7,7 +7,6 @@
 // [ ] TraceSegments that share an end point are part of the same Trace.
 // [ ] TraceSegments belonging to different Traces have no common end points.
 // [ ] A Trace has >=1 TraceSegments.
-// [ ] Traces have a state value which defaults to 0.
 
 use nalgebra::vector;
 
