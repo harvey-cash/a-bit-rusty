@@ -1,17 +1,19 @@
-use std::collections::HashMap;
-
-pub enum ChipType {}
-
 pub type ChipID = usize;
 
 pub struct CircuitDescription {
     pub ground_chips: Vec<ChipID>,
+    pub supply_chips: Vec<ChipID>,
+    pub input_chips: Vec<ChipID>,
+    pub output_chips: Vec<ChipID>,
 }
 
 impl CircuitDescription {
     pub fn new() -> Self {
         Self {
             ground_chips: vec![1],
+            supply_chips: vec![1],
+            input_chips: vec![1],
+            output_chips: vec![1],
         }
     }
 }
@@ -29,7 +31,7 @@ impl Circuit {
         CircuitDescription::new()
     }
 
-    pub fn get_output(&self, output_index: usize) -> u8 {
+    pub fn get_output(&self, _output_index: usize) -> u8 {
         self.value
     }
 

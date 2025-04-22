@@ -40,9 +40,31 @@
 // [ ] Trace states can be read from a Circuit.
 // [ ] All Chip Pin states can be read from a Circuit.
 
-use ntest::assert_true;
+use crate::chip::Circuit;
 
-use crate::chip::{Circuit, CircuitDescription, circuit};
+#[test]
+fn given_empty_then_description_contains_one_ground() {
+    let description = Circuit::new().get_description();
+    assert_eq!(description.ground_chips.len(), 1);
+}
+
+#[test]
+fn given_empty_then_description_contains_one_supply() {
+    let description = Circuit::new().get_description();
+    assert_eq!(description.supply_chips.len(), 1);
+}
+
+#[test]
+fn given_empty_then_description_contains_one_input() {
+    let description = Circuit::new().get_description();
+    assert_eq!(description.input_chips.len(), 1);
+}
+
+#[test]
+fn given_empty_then_description_contains_one_output() {
+    let description = Circuit::new().get_description();
+    assert_eq!(description.output_chips.len(), 1);
+}
 
 #[test]
 fn given_empty_then_output_is_0() {
@@ -51,15 +73,8 @@ fn given_empty_then_output_is_0() {
 }
 
 #[test]
-fn given_empty_then_description_contains_only_basic_chips() {
-    let circuit = Circuit::new();
-    let description = circuit.get_description();
-    assert_eq!(description.ground_chips.len(), 1);
+fn given_supply_connected_then_output_is_1() {
+    let mut circuit = Circuit::new();
+    circuit.set_supply(1);
+    assert_eq!(circuit.get_output(0), 1);
 }
-
-// #[test]
-// fn given_supply_connected_then_output_is_1() {
-//     let mut circuit = Circuit::new();
-//     circuit.set_supply(1);
-//     assert_eq!(circuit.get_output(0), 1);
-// }
