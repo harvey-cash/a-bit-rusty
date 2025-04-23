@@ -40,96 +40,63 @@
 // [ ] Trace states can be read from a Circuit.
 // [ ] All Chip Pin states can be read from a Circuit.
 
-use crate::chip::Circuit;
+use crate::chip::{circuit::ChipType, Circuit};
 
 #[test]
-fn given_empty_then_description_contains_one_ground() {
-    let circuit = Circuit::new();
-    let description = circuit.get_description();
-    assert_eq!(description.ground_chips.len(), 1);
-}
-
-#[test]
-fn given_empty_then_description_contains_one_supply() {
-    let circuit = Circuit::new();
-    let description = circuit.get_description();
-    assert_eq!(description.supply_chips.len(), 1);
-}
-
-#[test]
-fn given_empty_then_description_contains_one_input() {
-    let circuit = Circuit::new();
-    let description = circuit.get_description();
-    assert_eq!(description.input_chips.len(), 1);
-}
-
-#[test]
-fn given_empty_then_description_contains_one_output() {
-    let circuit = Circuit::new();
-    let description = circuit.get_description();
-    assert_eq!(description.output_chips.len(), 1);
-}
-
-#[test]
-fn given_empty_then_description_contains_1_supply_pin() {
-    let circuit = Circuit::new();
-    let description = circuit.get_description();
-    let supply_id = description.supply_chips[0];
-    assert_eq!(description.pins[&supply_id].len(), 1);
-}
-
-#[test]
-fn given_empty_then_description_contains_1_ground_pin() {
-    let circuit = Circuit::new();
-    let description = circuit.get_description();
-    let ground_id = description.ground_chips[0];
-    assert_eq!(description.pins[&ground_id].len(), 1);
-}
-
-#[test]
-fn given_empty_then_description_contains_1_input_pin() {
-    let circuit = Circuit::new();
-    let description = circuit.get_description();
-    let input_id = description.input_chips[0];
-    assert_eq!(description.pins[&input_id].len(), 1);
-}
-
-#[test]
-fn given_empty_then_description_contains_1_output_pin() {
-    let circuit = Circuit::new();
-    let description = circuit.get_description();
-    let output_id = description.output_chips[0];
-    assert_eq!(description.pins[&output_id].len(), 1);
-}
-
-#[test]
-fn given_empty_then_output_is_0() {
-    let circuit = Circuit::new();
+fn given_just_output_then_output_is_0() {
+    let mut circuit = Circuit::new();
+    circuit.add_chip(ChipType::Output);
     assert_eq!(circuit.get_output(0), 0);
 }
 
 #[test]
 fn given_supply_connected_then_output_is_1() {
     let mut circuit = Circuit::new();
-    circuit.set_supply(1);
-    let description = circuit.get_description();
-    let supply_id = description.supply_chips[0];
-    let supply_pin_id = description.pins[&supply_id][0];
-    let output_id = description.output_chips[0];
-    let output_pin_id = description.pins[&output_id][0];
-    circuit.create_link(supply_pin_id, output_pin_id);
+    let supply_id = circuit.add_chip(ChipType::Supply);
+    let output_id = circuit.add_chip(ChipType::Output);
+    circuit.create_link(supply_id, output_id);
     assert_eq!(circuit.get_output(0), 1);
 }
 
 #[test]
 fn given_ground_connected_then_output_is_0() {
     let mut circuit = Circuit::new();
-    circuit.set_supply(1);
-    let description = circuit.get_description();
-    let ground_id = description.ground_chips[0];
-    let ground_pin_id = description.pins[&ground_id][0];
-    let output_id = description.output_chips[0];
-    let output_pin_id = description.pins[&output_id][0];
-    circuit.create_link(ground_pin_id, output_pin_id);
+    let ground_id = circuit.add_chip(ChipType::Ground);
+    let output_id = circuit.add_chip(ChipType::Output);
+    circuit.create_link(ground_id, output_id);
     assert_eq!(circuit.get_output(0), 0);
+}
+
+#[test]
+fn given_input_connected_when_0_then_output_is_0() {
+    let mut circuit = Circuit::new();
+    let input_id = circuit.add_chip(ChipType::Input);
+    let output_id = circuit.add_chip(ChipType::Output);
+    circuit.set_input(input_id, 0);
+    circuit.create_link(input_id, output_id);
+    assert_eq!(circuit.get_output(0), 0);
+}
+
+#[test]
+fn given_input_connected_when_1_then_output_is_1() {
+    let mut circuit = Circuit::new();
+    let input_id = circuit.add_chip(ChipType::Input);
+    let output_id = circuit.add_chip(ChipType::Output);
+    circuit.set_input(input_id, 1);
+    circuit.create_link(input_id, output_id);
+    assert_eq!(circuit.get_output(0), 1);
+}
+
+#[test]
+fn given_not_gate_when_input_1_then_output_0() {
+    let mut circuit = Circuit::new();
+    let input_id = circuit.add_chip(ChipType::Input);
+    let nand_id = circuit.add_chip(ChipType::Nand);
+    let output_id = circuit.add_chip(ChipType::Output);
+    circuit.set_input(input_id, 0);
+    circuit.create_link(input_id, nand_id);
+    circuit.create_link(input_id, nand_id);
+    circuit.create_link(nand_id, output_id);
+    circuit.tick();
+    assert_eq!(circuit.get_output(output_id), 1);
 }
