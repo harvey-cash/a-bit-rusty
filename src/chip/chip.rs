@@ -1,11 +1,19 @@
-use crate::chip::chip_description::{NodeId, NodeType, ChipDescription};
+use crate::chip::chip_description::{ChipDescription, NodeId, NodeType};
 
-use std::collections::VecDeque;
+use super::Tickable;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ChipType {
+    Ground,
+    Supply,
+    Input,
+    Output,
+    Nand,
+}
 
 pub struct Chip {
     description: ChipDescription,
     values: Vec<u8>,
-    updated_this_tick: Vec<bool>,
 }
 
 impl Chip {
@@ -18,7 +26,6 @@ impl Chip {
         Self {
             description,
             values: vec![0; num_nodes],
-            updated_this_tick: vec![false; num_nodes],
         }
     }
 
@@ -26,29 +33,27 @@ impl Chip {
         self.values[index] = value;
     }
 
-    pub fn tick(&mut self) {
-        let num_nodes = self.description.node_types.len();
-        self.updated_this_tick = vec![false; num_nodes];
-
-        let inputs: Vec<NodeId> = (0..self.description.num_inputs).collect();
-        let mut queue: VecDeque<NodeId> = VecDeque::from(inputs);
-
-        while let Some(index) = queue.pop_front() {
-            if self.updated_this_tick[index] == true {
-                continue;
-            }
-
-            self.update_node(&index);
-            self.updated_this_tick[index] = true;
-
-            if let Some(targets) = self.description.forward_links.get(&index) {
-                queue.extend(targets.iter().copied());
-            }
-        }
-    }
-
     pub fn get_output(&self, output_index: NodeId) -> u8 {
         self.values[self.description.num_inputs + self.description.num_nands + output_index]
+    }
+
+    fn nand(&self, index: &NodeId) -> u8 {
+        let a_idx = self.description.back_links[index][0];
+        let b_idx = self.description.back_links[index][1];
+        let a = self.values[a_idx];
+        let b = self.values[b_idx];
+
+        if a == 1 && b == 1 { 0 } else { 1 }
+    }
+}
+
+impl Tickable for Chip {
+    fn get_num_components(&self) -> usize {
+        self.description.node_types.len()
+    }
+
+    fn get_input_ids(&self) -> Vec<usize> {
+        (0..self.description.num_inputs).collect()
     }
 
     fn update_node(&mut self, index: &NodeId) {
@@ -61,12 +66,7 @@ impl Chip {
         }
     }
 
-    fn nand(&self, index: &NodeId) -> u8 {
-        let a_idx = self.description.back_links[index][0];
-        let b_idx = self.description.back_links[index][1];
-        let a = self.values[a_idx];
-        let b = self.values[b_idx];
-
-        if a == 1 && b == 1 { 0 } else { 1 }
+    fn get_forward_links_for(&mut self, index: &usize) -> Option<&Vec<usize>> {
+        self.description.forward_links.get(&index)
     }
 }

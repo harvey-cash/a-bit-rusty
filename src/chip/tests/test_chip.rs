@@ -1,6 +1,7 @@
 use ntest::timeout;
 
 use crate::chip::{Chip, ChipDescription};
+use crate::chip::Tickable;
 use crate::chip::chip_description::Link;
 
 // ToDo:

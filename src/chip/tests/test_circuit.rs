@@ -40,7 +40,7 @@
 // [ ] Trace states can be read from a Circuit.
 // [ ] All Chip Pin states can be read from a Circuit.
 
-use crate::chip::{circuit::ChipType, Circuit};
+use crate::chip::{ChipType, Circuit, Tickable};
 
 #[test]
 fn given_just_output_then_output_is_0() {
