@@ -1,16 +1,40 @@
 use ntest::timeout;
 
-use crate::chip::{Chip, ChipDescription};
-use crate::chip::Tickable;
 use crate::chip::chip_description::Link;
+use crate::chip::{Chip, ChipDescription, NAndChip, SupplyChip};
+use crate::chip::{GroundChip, Tickable};
 
 // ToDo:
 // [ ] Chips have a Pin for Ground, Supply, each Input and each Output.
-// [ ] Chips have >=1 Ground Input Pins and >=1 Supply Input Pins.
-// [ ] Chip Output Pins are all 0 if Ground Input != 0 or Supply Input != 1.
+// [ ] Chips have 1 Ground Input Pin and 1 Supply Input Pin.
 // [ ] The fundamental Chips are Ground, Supply, Input, NAnd, and Output.
-// [ ] Ground Chips have a single Output Pin which is 0.
-// [ ] Supply Chips have a single Output Pin which is 1 (if powered).
+
+#[test]
+fn given_ground_then_output_0() {
+    let chip = GroundChip::new();
+    assert_eq!(chip.get_output(0), 0);
+}
+
+#[test]
+fn given_supply_then_output_1() {
+    let chip = SupplyChip::new();
+    assert_eq!(chip.get_output(0), 1);
+}
+
+#[test]
+fn given_supply_when_off_then_output_0() {
+    let mut chip = SupplyChip::new();
+    chip.turn_off();
+    assert_eq!(chip.get_output(0), 0);
+}
+
+#[test]
+fn given_supply_when_on_then_output_1() {
+    let mut chip = SupplyChip::new();
+    chip.turn_off();
+    chip.turn_on();
+    assert_eq!(chip.get_output(0), 1);
+}
 
 #[test]
 #[should_panic]
@@ -37,6 +61,26 @@ fn given_one_link_when_input_1_then_output_1() {
     chip.set_input(0, 1);
     chip.tick();
     assert_eq!(chip.get_output(0), 1);
+}
+
+#[test]
+fn given_supply_0_then_output_0() {
+    let description = ChipDescription::new(1, 0, 1, vec![Link::new(0, 1)]);
+    let mut chip = Chip::new(description);
+    chip.set_supply(0);
+    chip.set_input(0, 1);
+    chip.tick();
+    assert_eq!(chip.get_output(0), 0);
+}
+
+#[test]
+fn given_ground_1_then_output_0() {
+    let description = ChipDescription::new(1, 0, 1, vec![Link::new(0, 1)]);
+    let mut chip = Chip::new(description);
+    chip.set_ground(1);
+    chip.set_input(0, 1);
+    chip.tick();
+    assert_eq!(chip.get_output(0), 0);
 }
 
 #[test]
@@ -71,6 +115,38 @@ fn given_two_crossed_links_then_outputs_equal_corresponding_inputs() {
     chip.tick();
     assert_eq!(chip.get_output(0), 1);
     assert_eq!(chip.get_output(1), 0);
+}
+
+#[test]
+fn given_nand_chip_when_inputs_both_0_then_output_is_1() {
+    let mut chip = NAndChip::new();
+    chip.set_input(0, 0);
+    chip.set_input(1, 0);
+    chip.tick();
+    assert_eq!(chip.get_output(0), 1);
+}
+
+#[test]
+fn given_nand_chip_when_inputs_both_1_then_output_is_0() {
+    let mut chip = NAndChip::new();
+    chip.set_input(0, 1);
+    chip.set_input(1, 1);
+    chip.tick();
+    assert_eq!(chip.get_output(0), 0);
+}
+
+#[test]
+fn given_nand_chip_when_single_input_1_then_output_is_1() {
+    let mut chip = NAndChip::new();
+    chip.set_input(0, 1);
+    chip.set_input(1, 0);
+    chip.tick();
+    assert_eq!(chip.get_output(0), 1);
+
+    chip.set_input(0, 0);
+    chip.set_input(1, 1);
+    chip.tick();
+    assert_eq!(chip.get_output(0), 1);
 }
 
 #[test]

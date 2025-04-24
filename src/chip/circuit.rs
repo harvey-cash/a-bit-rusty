@@ -48,6 +48,7 @@ impl Circuit {
             ChipType::Input => 0,
             ChipType::Output => 0,
             ChipType::Nand => 0,
+            ChipType::Custom => 0,
         };
         self.values.push(value);
         id
