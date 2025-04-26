@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::{HashMap, VecDeque}, hash::Hash, vec};
 
 use super::{Chip, ChipType, Tickable};
 
@@ -23,18 +23,28 @@ impl CircuitDescription {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PinType {
+    In,
+    Out,
+}
+
+type ChipAndPin = (usize, PinType, usize);
+
 pub struct Circuit {
     description: CircuitDescription,
-    values: Vec<u8>,
-    forward_links: HashMap<usize, Vec<usize>>,
-    back_links: HashMap<usize, Vec<usize>>,
+    chips: HashMap<usize, Box<dyn Chip>>,
+    pin_values: HashMap<usize, HashMap<PinType, Vec<u8>>>,
+    forward_links: HashMap<ChipAndPin, Vec<ChipAndPin>>,
+    back_links: HashMap<ChipAndPin, ChipAndPin>,
 }
 
 impl Circuit {
     pub fn new() -> Self {
         Self {
             description: CircuitDescription::new(),
-            values: vec![],
+            chips: HashMap::new(),
+            pin_values: HashMap::new(),
             forward_links: HashMap::new(),
             back_links: HashMap::new(),
         }
@@ -42,16 +52,20 @@ impl Circuit {
 
     pub fn add_chip<C: Chip + 'static>(&mut self, chip: C) -> usize {
         let chip_type = chip.get_type();
+
+        let num_inputs = chip.get_num_inputs();
+        let num_outputs = chip.get_num_outputs();
+
+        let mut values = HashMap::new();
+        values.insert(PinType::In, vec![0; num_inputs]);
+        values.insert(PinType::Out, vec![0; num_outputs]);
+
+        
         let id = self.description.add_chip(chip_type);
-        let value = match chip_type {
-            ChipType::Ground => 0,
-            ChipType::Supply => 1,
-            ChipType::Input => 0,
-            ChipType::Output => 0,
-            ChipType::Custom => 0,
-        };
-        self.values.push(value);
-        id
+        self.pin_values.insert(id, values);
+        self.chips.insert(id, Box::new(chip));
+
+        return id;
     }
 
     pub fn get_description(&self) -> &CircuitDescription {
@@ -59,63 +73,118 @@ impl Circuit {
     }
 
     pub fn set_input(&mut self, input_chip_id: usize, value: u8) {
-        if self.description.chips.get(&input_chip_id) == Some(&ChipType::Input) {
-            self.values[input_chip_id] = value;
-        } else {
+        if self.description.chips.get(&input_chip_id) != Some(&ChipType::Input) {
             panic!("Invalid chip ID for input.");
         }
+
+        self.chips.get_mut(&input_chip_id).unwrap().set_input(0, value);
     }
 
     pub fn get_output(&self, output_index: usize) -> u8 {
-        self.values[output_index]
+        if self.description.chips.get(&output_index) != Some(&ChipType::Output) {
+            panic!("Invalid chip ID for output.");
+        }
+
+        let pins = self.pin_values.get(&output_index);
+        match pins {
+            Some(pins) => {
+                if let Some(pin_values) = pins.get(&PinType::Out) {
+                    pin_values[0]
+                } else {
+                    panic!("No output pin found for chip ID: {}", output_index);
+                }
+            }
+            None => panic!("No pin values found for chip ID: {}", output_index),
+        }
     }
 
-    pub fn create_link(&mut self, source_chip_id: usize, target_chip_id: usize) {
+    pub fn create_link(&mut self, source: ChipAndPin, target: ChipAndPin) {
         self.forward_links
-            .entry(source_chip_id)
+            .entry(source)
             .or_insert_with(Vec::new)
-            .push(target_chip_id);
-        self.back_links
-            .entry(target_chip_id)
-            .or_insert_with(Vec::new)
-            .push(source_chip_id);
-    }
+            .push(target);
 
-    fn nand(&self, index: &usize) -> u8 {
-        let a_idx = self.back_links[index][0];
-        let b_idx = self.back_links[index][1];
-        let a = self.values[a_idx];
-        let b = self.values[b_idx];
-
-        if a == 1 && b == 1 { 0 } else { 1 }
-    }
-
-    fn get_num_components(&self) -> usize {
-        self.description.num_chips
+        self.back_links.insert(target, source);
     }
 
     fn get_input_ids(&self) -> Vec<usize> {
         self.description
             .chips
             .iter()
-            .filter(|(_, chip_type)| chip_type == &&ChipType::Input)
+            .filter(|(_, chip_type)| chip_type == &&ChipType::Ground || chip_type == &&ChipType::Supply || chip_type == &&ChipType::Input)
             .map(|(&id, _)| id)
             .collect()
     }
+    
+    fn get_input_values_for_chip(&self, index: &usize) -> Vec<u8> {
+        let num_inputs = self.chips.get(index).unwrap().get_num_inputs();
+        let mut inputs = vec![0; num_inputs];
+        
+        for pin_idx in 0..num_inputs {
+            let pin: ChipAndPin = (*index, PinType::In, pin_idx);
+            let back_link_option = self.back_links.get(&pin);
 
-    fn update_node(&mut self, index: &usize) {
-        let chip_type: &ChipType = self.description.chips.get(index).unwrap();
-        if *chip_type == ChipType::Output {
-            let source = self.back_links[&index][0];
-            self.values[*index] = self.values[source];
+            if back_link_option.is_none() {
+                inputs[pin_idx] = 0;
+                continue;
+            }
+
+            let back_link = back_link_option.unwrap();
+            let source_pin: ChipAndPin = *back_link;
+
+            let value = self.pin_values.get(&source_pin.0).unwrap().get(&source_pin.1).unwrap()[source_pin.2];
+            inputs[pin_idx] = value;
         }
-    }
-
-    fn get_forward_links_for(&mut self, index: &usize) -> Option<&Vec<usize>> {
-        self.forward_links.get(&index)
+        inputs
+        
     }
 }
 
 impl Tickable for Circuit {
-    
+    fn tick(&mut self) {
+        let mut updated_this_tick = vec![false; self.description.num_chips];
+
+        let inputs: Vec<usize> = self.get_input_ids();
+        let mut queue: VecDeque<usize> = VecDeque::from(inputs);
+
+        while let Some(index) = queue.pop_front() {
+            if updated_this_tick[index] == true {
+                continue;
+            }
+
+            let input_values = self.get_input_values_for_chip(&index);
+
+            let chip_option = self.chips.get_mut(&index);
+            if chip_option.is_none() {
+                panic!("Chip with ID {} not found.", index);
+            }
+
+            let chip = chip_option.unwrap();
+            for (i, value) in input_values.iter().enumerate() {
+                chip.set_input(i, *value);
+            }
+            chip.tick();
+            updated_this_tick[index] = true;
+
+            let num_outputs = chip.get_num_outputs();
+            let mut outputs = vec![0; num_outputs];
+            for i in 0..num_outputs {
+                outputs[i] = chip.get_output(i);
+            }
+            let pins = self.pin_values.get_mut(&index).unwrap();
+            if let Some(pin_values) = pins.get_mut(&PinType::Out) {
+                for i in 0..num_outputs {
+                    pin_values[i] = outputs[i];
+                }
+            } else {
+                panic!("No output pin found for chip ID: {}", index);
+            }
+
+            if let Some(targets) = self.forward_links.get(&(index, PinType::Out, 0)) {
+                for target in targets {
+                    queue.push_back(target.0);
+                }
+            }
+        }
+    }
 }

@@ -62,7 +62,7 @@ impl InputChip {
 }
 impl Chip for InputChip {
     fn get_type(&self) -> ChipType { ChipType::Input }
-    fn get_num_inputs(&self) -> usize { 1 }
+    fn get_num_inputs(&self) -> usize { 0 }
     fn set_input(&mut self, _index: usize, value: u8) { self.value = value; }
     fn get_num_outputs(&self) -> usize { 1 }
     fn get_output(&self, _index: usize) -> u8 { self.value }
