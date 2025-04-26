@@ -28,6 +28,7 @@ pub struct ChipDescription {
     pub num_nodes: usize,
     pub num_inputs: usize,
     pub num_nands: usize,
+    pub num_outputs: usize,
     pub node_types: NodeTypeMap,
     pub forward_links: LinkMap,
     pub back_links: LinkMap,
@@ -57,7 +58,7 @@ impl ChipDescription {
         is_valid &= !Self::any_nand_has_bad_sources(&back_links, &nand_iter);
         is_valid &= !Self::any_nand_has_no_targets(&forward_links, &nand_iter);
 
-        Self { num_nodes, num_inputs, num_nands, node_types, forward_links, back_links, is_valid }
+        Self { num_nodes, num_inputs, num_nands, num_outputs, node_types, forward_links, back_links, is_valid }
     }
 
     pub fn is_valid(&self) -> bool {

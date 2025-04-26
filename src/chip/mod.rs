@@ -2,10 +2,7 @@ mod chip_description;
 pub use chip_description::ChipDescription;
 
 mod chip;
-pub use chip::{Chip, ChipType, GroundChip, NAndChip, SupplyChip};
-
-mod tickable;
-pub use tickable::Tickable;
+pub use chip::{Chip, Tickable, CustomChip, ChipType, GroundChip, NAndChip, SupplyChip};
 
 mod trace;
 pub use trace::TraceMap;

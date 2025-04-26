@@ -87,16 +87,16 @@ fn given_input_connected_when_1_then_output_is_1() {
     assert_eq!(circuit.get_output(0), 1);
 }
 
-#[test]
-fn given_not_gate_when_input_1_then_output_0() {
-    let mut circuit = Circuit::new();
-    let input_id = circuit.add_chip(ChipType::Input);
-    let nand_id = circuit.add_chip(ChipType::Nand);
-    let output_id = circuit.add_chip(ChipType::Output);
-    circuit.set_input(input_id, 0);
-    circuit.create_link(input_id, nand_id);
-    circuit.create_link(input_id, nand_id);
-    circuit.create_link(nand_id, output_id);
-    circuit.tick();
-    assert_eq!(circuit.get_output(output_id), 1);
-}
+// #[test]
+// fn given_not_gate_when_input_1_then_output_0() {
+//     let mut circuit = Circuit::new();
+//     let input_id = circuit.add_chip(ChipType::Input);
+//     let nand_id = circuit.add_chip(ChipType::Nand);
+//     let output_id = circuit.add_chip(ChipType::Output);
+//     circuit.set_input(input_id, 0);
+//     circuit.create_link(input_id, nand_id);
+//     circuit.create_link(input_id, nand_id);
+//     circuit.create_link(nand_id, output_id);
+//     circuit.tick();
+//     assert_eq!(circuit.get_output(output_id), 1);
+// }

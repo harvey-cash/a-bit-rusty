@@ -47,7 +47,6 @@ impl Circuit {
             ChipType::Supply => 1,
             ChipType::Input => 0,
             ChipType::Output => 0,
-            ChipType::Nand => 0,
             ChipType::Custom => 0,
         };
         self.values.push(value);
@@ -89,9 +88,7 @@ impl Circuit {
 
         if a == 1 && b == 1 { 0 } else { 1 }
     }
-}
 
-impl Tickable for Circuit {
     fn get_num_components(&self) -> usize {
         self.description.num_chips
     }
@@ -107,9 +104,7 @@ impl Tickable for Circuit {
 
     fn update_node(&mut self, index: &usize) {
         let chip_type: &ChipType = self.description.chips.get(index).unwrap();
-        if *chip_type == ChipType::Nand {
-            self.values[*index] = self.nand(&index);
-        } else if *chip_type == ChipType::Output {
+        if *chip_type == ChipType::Output {
             let source = self.back_links[&index][0];
             self.values[*index] = self.values[source];
         }
@@ -118,4 +113,8 @@ impl Tickable for Circuit {
     fn get_forward_links_for(&mut self, index: &usize) -> Option<&Vec<usize>> {
         self.forward_links.get(&index)
     }
+}
+
+impl Tickable for Circuit {
+    
 }
