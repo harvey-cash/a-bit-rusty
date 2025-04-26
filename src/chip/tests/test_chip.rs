@@ -1,7 +1,9 @@
 use ntest::timeout;
 
-use crate::chip::chip_description::Link;
-use crate::chip::{Tickable, Chip, ChipDescription, CustomChip, NAndChip, SupplyChip, GroundChip};
+use crate::chip::{
+    chip::{Chip, CustomChip, GroundChip, NAndChip, SupplyChip, Tickable}, 
+    chip_description::{ChipDescription, Link}
+};
 
 // ToDo:
 // [ ] Chips have a Pin for Ground, Supply, each Input and each Output.

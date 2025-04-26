@@ -10,7 +10,16 @@
 
 use nalgebra::vector;
 
-use crate::chip::TraceMap;
+use crate::chip::trace::TraceMap;
+
+//GivenSingleTraceSegment_WhenDeleteSinglePoint_ThenStillSingleTrace
+//GivenSingleTraceSegment_WhenDeleteBothPoints_ThenNoTraces
+//GivenTwoTraceSegmentsOverlap_ThenOneTraceExists
+//GivenTwoTraceSegmentsOverlap_WhenDeletePointOfOverlap_ThenTwoTracesExist
+//GiveTwoTraces_WhenJoined_ThenOneExists
+//GivenTwoTracesOnDifferentLayers_ThenTwoTracesExist
+//GivenTwoTracesOnDifferentLayers_WhenJoinedByVia_ThenOneTraceExists
+//GivenTwoTracesJoinedByVia_WhenViaDeleted_ThenTwoTracesExist
 
 #[test]
 fn given_no_segments_then_no_traces() {
@@ -55,12 +64,3 @@ fn given_single_segment_when_delete_point_then_still_single_trace() {
     map.delete(vector!(0, 0, 0));
     assert_eq!(map.get_traces().len(), 1);
 }
-
-//GivenSingleTraceSegment_WhenDeleteSinglePoint_ThenStillSingleTrace
-//GivenSingleTraceSegment_WhenDeleteBothPoints_ThenNoTraces
-//GivenTwoTraceSegmentsOverlap_ThenOneTraceExists
-//GivenTwoTraceSegmentsOverlap_WhenDeletePointOfOverlap_ThenTwoTracesExist
-//GiveTwoTraces_WhenJoined_ThenOneExists
-//GivenTwoTracesOnDifferentLayers_ThenTwoTracesExist
-//GivenTwoTracesOnDifferentLayers_WhenJoinedByVia_ThenOneTraceExists
-//GivenTwoTracesJoinedByVia_WhenViaDeleted_ThenTwoTracesExist

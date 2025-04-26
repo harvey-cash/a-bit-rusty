@@ -1,6 +1,10 @@
 use std::{collections::{HashMap, VecDeque}, vec};
 
-use super::{chip_description::ChipAndPin, Chip, ChipDescription, ChipType, CircuitDescription, Tickable};
+use super::{
+    chip::{Chip, ChipType, Tickable}, 
+    chip_description::{ChipAndPin, ChipDescription}, 
+    circuit_description::CircuitDescription
+};
 
 pub struct Circuit {
     description: CircuitDescription,
@@ -9,9 +13,9 @@ pub struct Circuit {
 }
 
 impl Circuit {
-    pub fn new(description: CircuitDescription) -> Self {
+    pub fn new() -> Self {
         Self {
-            description,
+            description: CircuitDescription::new(),
             chips: HashMap::new(),
             back_links: HashMap::new(),
         }
@@ -24,23 +28,19 @@ impl Circuit {
         return id;
     }
 
-    pub fn get_description(&self) -> &CircuitDescription {
-        &self.description
-    }
-
     pub fn compile_to_chip(&self) -> ChipDescription {
         self.description.compile_to_chip()
     }
 
     pub fn set_input(&mut self, input_chip_id: usize, value: u8) {
-        if self.description.chips.get(&input_chip_id) != Some(&ChipType::Input) {
+        if self.description.chip_types.get(&input_chip_id) != Some(&ChipType::Input) {
             panic!("Invalid chip ID for input.");
         }
         self.chips.get_mut(&input_chip_id).unwrap().set_input(0, value);
     }
 
     pub fn set_supply(&mut self, supply_chip_id: usize, value: u8) {
-        if self.description.chips.get(&supply_chip_id) != Some(&ChipType::Supply) {
+        if self.description.chip_types.get(&supply_chip_id) != Some(&ChipType::Supply) {
             panic!("Invalid chip ID for supply.");
         }
         let supply_chip = self.chips.get_mut(&supply_chip_id).unwrap();
@@ -48,7 +48,7 @@ impl Circuit {
     }
 
     pub fn get_output(&self, output_index: usize) -> u8 {
-        if self.description.chips.get(&output_index) != Some(&ChipType::Output) {
+        if self.description.chip_types.get(&output_index) != Some(&ChipType::Output) {
             panic!("Invalid chip ID for output.");
         }
         self.chips.get(&output_index).unwrap().get_output(0)
@@ -70,7 +70,7 @@ impl Circuit {
 
     fn get_input_ids(&self) -> Vec<usize> {
         self.description
-            .chips
+            .chip_types
             .iter()
             .filter(|(_, chip_type)| chip_type == &&ChipType::Ground || chip_type == &&ChipType::Supply || chip_type == &&ChipType::Input)
             .map(|(&id, _)| id)

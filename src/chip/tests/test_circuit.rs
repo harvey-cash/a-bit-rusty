@@ -3,10 +3,6 @@
 // [ ] Circuits have a 3D integer coordinate space. Z=0 is the "front layer".
 // [ ] Circuits are created with one Ground and one Supply Chip.
 // [ ] Circuits are created with one Input Chip and one Output Chip.
-// [ ] CircuitDescription can be read from a Circuit.
-// [ ] CircuitDescription contains position and rotation of all Chips.
-// [ ] CircuitDescription contains position of all Traces.
-// [ ] CircuitDescription contains state of all Chips, Pins, and Traces.
 // [ ] Chips are placed on the front layer.
 // [ ] Chips occupy a non-zero 2D area of points on the board.
 // [ ] Chips can be rotated in 90 degree increments.
@@ -34,12 +30,19 @@
 // [ ] After a Circuit is ticked, all output Chips have their values set to the value of the connected Traces.
 // [ ] Trace states can be read from a Circuit.
 // [ ] All Chip Pin states can be read from a Circuit.
+// [ ] CircuitDescription can be read from a Circuit.
+// [ ] Circuit can be constructed from a ChipDescription.
 
-use crate::chip::{chip::{InputChip, OutputChip}, chip_description::ChipAndPin, Chip, ChipDescription, Circuit, CircuitDescription, CustomChip, GroundChip, NAndChip, SupplyChip, Tickable};
+use crate::chip::{
+    chip::{Chip, CustomChip, GroundChip, InputChip, NAndChip, OutputChip, SupplyChip, Tickable}, 
+    chip_description::{ChipAndPin, ChipDescription}, 
+    circuit::Circuit
+};
+
 
 #[test]
 fn given_just_output_then_output_is_0() {
-    let mut circuit = Circuit::new(CircuitDescription::new());
+    let mut circuit = Circuit::new();
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 0);
@@ -47,7 +50,7 @@ fn given_just_output_then_output_is_0() {
 
 #[test]
 fn given_supply_connected_then_output_is_1() {
-    let mut circuit = Circuit::new(CircuitDescription::new());
+    let mut circuit = Circuit::new();
     let supply_id = circuit.add_chip(SupplyChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.create_link(ChipAndPin::new(supply_id, 0), ChipAndPin::new(output_id, 0));
@@ -57,7 +60,7 @@ fn given_supply_connected_then_output_is_1() {
 
 #[test]
 fn given_supply_disconnected_then_output_is_0() {
-    let mut circuit = Circuit::new(CircuitDescription::new());
+    let mut circuit = Circuit::new();
     let supply_id = circuit.add_chip(SupplyChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.create_link(ChipAndPin::new(supply_id, 0), ChipAndPin::new(output_id, 0));
@@ -69,7 +72,7 @@ fn given_supply_disconnected_then_output_is_0() {
 
 #[test]
 fn given_supply_off_then_output_is_0() {
-    let mut circuit = Circuit::new(CircuitDescription::new());
+    let mut circuit = Circuit::new();
     let supply_id = circuit.add_chip(SupplyChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.set_supply(supply_id, 0);
@@ -80,7 +83,7 @@ fn given_supply_off_then_output_is_0() {
 
 #[test]
 fn given_ground_connected_then_output_is_0() {
-    let mut circuit = Circuit::new(CircuitDescription::new());
+    let mut circuit = Circuit::new();
     let ground_id = circuit.add_chip(GroundChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.create_link(ChipAndPin::new(ground_id, 0), ChipAndPin::new(output_id, 0));
@@ -90,7 +93,7 @@ fn given_ground_connected_then_output_is_0() {
 
 #[test]
 fn given_input_connected_when_0_then_output_is_0() {
-    let mut circuit = Circuit::new(CircuitDescription::new());
+    let mut circuit = Circuit::new();
     let input_id = circuit.add_chip(InputChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.set_input(input_id, 0);
@@ -101,7 +104,7 @@ fn given_input_connected_when_0_then_output_is_0() {
 
 #[test]
 fn given_input_connected_when_1_then_output_is_1() {
-    let mut circuit = Circuit::new(CircuitDescription::new());
+    let mut circuit = Circuit::new();
     let input_id = circuit.add_chip(InputChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.set_input(input_id, 1);
@@ -112,7 +115,7 @@ fn given_input_connected_when_1_then_output_is_1() {
 
 #[test]
 fn given_not_gate_when_input_1_then_output_0() {
-    let mut circuit = Circuit::new(CircuitDescription::new());
+    let mut circuit = Circuit::new();
     let input_id = circuit.add_chip(InputChip::new());
     let nand_id = circuit.add_chip(NAndChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
@@ -126,7 +129,7 @@ fn given_not_gate_when_input_1_then_output_0() {
 
 #[test]
 fn given_valid_not_gate_can_compile_to_valid_chip_description() {
-    let mut circuit = Circuit::new(CircuitDescription::new());
+    let mut circuit = Circuit::new();
     let input_id = circuit.add_chip(InputChip::new());
     let nand_id = circuit.add_chip(NAndChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
@@ -139,7 +142,7 @@ fn given_valid_not_gate_can_compile_to_valid_chip_description() {
 
 #[test]
 fn given_valid_not_gate_compiled_chip_is_a_not_gate() {
-    let mut circuit = Circuit::new(CircuitDescription::new());
+    let mut circuit = Circuit::new();
     let input_id = circuit.add_chip(InputChip::new());
     let nand_id = circuit.add_chip(NAndChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
@@ -156,11 +159,4 @@ fn given_valid_not_gate_compiled_chip_is_a_not_gate() {
     chip.set_input(0, 1);
     chip.tick();
     assert_eq!(chip.get_output(0), 0);
-}
-
-#[test]
-fn given_invalid_circuit_can_not_compile_chip() {
-    let circuit = Circuit::new(CircuitDescription::new());
-    let description: ChipDescription = circuit.compile_to_chip();
-    assert_eq!(description.is_valid(), false);
 }

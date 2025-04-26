@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 
-use super::{chip_description::{ChipAndPin, Link}, ChipDescription, ChipType};
-
+use super::{
+    chip::ChipType, 
+    chip_description::{ChipAndPin, ChipDescription, Link}
+};
 
 pub struct CircuitDescription {
     pub num_chips: usize,
-    pub chips: HashMap<usize, ChipType>,
+    pub chip_types: HashMap<usize, ChipType>,
     pub forward_links: HashMap<usize, HashMap<ChipAndPin, Vec<ChipAndPin>>>,
 }
 
@@ -13,7 +15,7 @@ impl CircuitDescription {
     pub fn new() -> Self {
         Self {
             num_chips: 0,
-            chips: HashMap::new(),
+            chip_types: HashMap::new(),
             forward_links: HashMap::new(),
         }
     }
@@ -21,14 +23,19 @@ impl CircuitDescription {
     pub fn add_chip(&mut self, chip_type: ChipType) -> usize {
         let id = self.num_chips;
         self.num_chips += 1;
-        self.chips.entry(id).or_insert(chip_type);
+        self.chip_types.entry(id).or_insert(chip_type);
         id
     }
 
+    pub fn is_valid(&self) -> bool {
+        let chip_description = self.compile_to_chip();
+        chip_description.is_valid()
+    }
+
     pub fn compile_to_chip(&self) -> ChipDescription {
-        let num_inputs = self.chips.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Input).count();
-        let num_nands = self.chips.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Custom).count();
-        let num_outputs = self.chips.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Output).count();
+        let num_inputs = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Input).count();
+        let num_nands = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Custom).count();
+        let num_outputs = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Output).count();
         
         let mut links = Vec::new();
         for (source_chip_id, sources) in &self.forward_links {

@@ -8,4 +8,7 @@ mod test_chip;
 mod test_trace;
 
 #[cfg(test)]
+mod test_circuit_description;
+
+#[cfg(test)]
 mod test_circuit;
