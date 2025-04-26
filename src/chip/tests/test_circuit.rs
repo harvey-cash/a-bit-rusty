@@ -3,14 +3,10 @@
 // [ ] Circuits have a 3D integer coordinate space. Z=0 is the "front layer".
 // [ ] Circuits are created with one Ground and one Supply Chip.
 // [ ] Circuits are created with one Input Chip and one Output Chip.
-// [ ] The Supply value on a Circuit can be set to 0 or 1.
-// [ ] The Input Chip values on a Circuit can be set to 0 or 1.
-// [ ] The Output Chip values can be read from a Circuit.
 // [ ] CircuitDescription can be read from a Circuit.
 // [ ] CircuitDescription contains position and rotation of all Chips.
 // [ ] CircuitDescription contains position of all Traces.
 // [ ] CircuitDescription contains state of all Chips, Pins, and Traces.
-// [ ] Chips can be added to a Circuit.
 // [ ] Chips are placed on the front layer.
 // [ ] Chips occupy a non-zero 2D area of points on the board.
 // [ ] Chips can be rotated in 90 degree increments.
@@ -33,7 +29,6 @@
 // [ ] Compilation turns Traces into Links in the ChipDescription.
 // [ ] Circuits can be ticked, even if invalid.
 // [ ] Ticking a Circuit calls tick on all Chips with no Input pins connected to an invalid Trace.
-// [ ] Tick is called on Chips in topological order, starting with the Inputs.
 // [ ] Before a Chip is ticked, its Inputs are set to the values of the connected Traces.
 // [ ] After a Chip is ticked, Traces connected to its Outputs have their value set.
 // [ ] After a Circuit is ticked, all output Chips have their values set to the value of the connected Traces.
@@ -58,6 +53,29 @@ fn given_supply_connected_then_output_is_1() {
     circuit.create_link(ChipAndPin::new(supply_id, 0), ChipAndPin::new(output_id, 0));
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 1);
+}
+
+#[test]
+fn given_supply_disconnected_then_output_is_0() {
+    let mut circuit = Circuit::new(CircuitDescription::new());
+    let supply_id = circuit.add_chip(SupplyChip::new());
+    let output_id = circuit.add_chip(OutputChip::new());
+    circuit.create_link(ChipAndPin::new(supply_id, 0), ChipAndPin::new(output_id, 0));
+    circuit.tick();
+    circuit.delete_link(ChipAndPin::new(supply_id, 0), ChipAndPin::new(output_id, 0));
+    circuit.tick();
+    assert_eq!(circuit.get_output(output_id), 0);
+}
+
+#[test]
+fn given_supply_off_then_output_is_0() {
+    let mut circuit = Circuit::new(CircuitDescription::new());
+    let supply_id = circuit.add_chip(SupplyChip::new());
+    let output_id = circuit.add_chip(OutputChip::new());
+    circuit.set_supply(supply_id, 0);
+    circuit.create_link(ChipAndPin::new(supply_id, 0), ChipAndPin::new(output_id, 0));
+    circuit.tick();
+    assert_eq!(circuit.get_output(output_id), 0);
 }
 
 #[test]

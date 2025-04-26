@@ -69,6 +69,14 @@ impl Circuit {
         self.chips.get_mut(&input_chip_id).unwrap().set_input(0, value);
     }
 
+    pub fn set_supply(&mut self, supply_chip_id: usize, value: u8) {
+        if self.description.chips.get(&supply_chip_id) != Some(&ChipType::Supply) {
+            panic!("Invalid chip ID for supply.");
+        }
+        let supply_chip = self.chips.get_mut(&supply_chip_id).unwrap();
+        supply_chip.set_input(0, value);
+    }
+
     pub fn get_output(&self, output_index: usize) -> u8 {
         if self.description.chips.get(&output_index) != Some(&ChipType::Output) {
             panic!("Invalid chip ID for output.");
@@ -86,6 +94,25 @@ impl Circuit {
             .push(target);
 
         self.back_links.insert(target, source);
+    }
+
+    pub fn delete_link(&mut self, source: ChipAndPin, target: ChipAndPin) {
+        let forward_links = self.forward_links.get_mut(&source.chip_id);
+        if forward_links.is_none() {
+            panic!("No forward links found for chip ID {}.", source.chip_id);
+        }
+        let forward_links = forward_links.unwrap();
+        let targets = forward_links.get_mut(&source);
+        if targets.is_none() {
+            panic!("No targets found for source chip and pin.");
+        }
+        let targets = targets.unwrap();
+        targets.retain(|t| t != &target);
+        
+        if !self.back_links.contains_key(&target) {
+            panic!("No back link found for target chip and pin.");
+        }
+        self.back_links.remove(&target);
     }
 
     fn get_input_ids(&self) -> Vec<usize> {
@@ -153,6 +180,12 @@ impl Tickable for Circuit {
                 for target in targets {
                     queue.push_back(target.chip_id);
                 }
+            }
+        }
+
+        for (chip_id, chip) in self.chips.iter_mut() {
+            if updated_this_tick[*chip_id] == false {
+                chip.tick();
             }
         }
     }
