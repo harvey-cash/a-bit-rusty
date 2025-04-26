@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 ntest = "0.9.3"
+nalgebra = "0.33.2"

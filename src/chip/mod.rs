@@ -1,5 +1,8 @@
+mod chip_description;
 mod chip;
-pub use chip::{Chip, Link};
+mod trace;
+mod circuit_description;
+mod circuit;
 
 #[cfg(test)]
 mod tests;

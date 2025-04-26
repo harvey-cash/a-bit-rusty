@@ -1,228 +1,210 @@
-use std::{collections::{HashMap, VecDeque}, ops::Range};
+use crate::chip::chip_description::{ChipDescription, NodeId, NodeType};
+use std::collections::VecDeque;
 
-type NodeId = usize;
-type LinkMap = HashMap<NodeId, Vec<NodeId>>;
-type NodeTypeMap = HashMap<NodeId, NodeType>;
+use super::chip_description::Link;
 
-#[derive(PartialEq, Debug)]
-enum NodeType {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ChipType {
+    Ground,
+    Supply,
     Input,
     Output,
-    NAnd,
+    Custom,
 }
 
-pub struct Link {
-    pub source: NodeId,
-    pub target: NodeId,
+pub trait Tickable {
+    fn tick(&mut self) {}
 }
 
-impl Link {
-    pub fn new(source: NodeId, target: NodeId) -> Self {
-        Link { source, target }
+pub trait Chip: Tickable {
+    fn get_type(&self) -> ChipType;
+    fn get_num_inputs(&self) -> usize;
+    fn get_num_outputs(&self) -> usize;
+    fn set_input(&mut self, index: usize, value: u8);
+    fn get_output(&self, index: usize) -> u8;
+}
+
+pub struct GroundChip {}
+impl GroundChip {
+    pub fn new() -> Self { Self {} }
+}
+impl Chip for GroundChip {
+    fn get_type(&self) -> ChipType { ChipType::Ground }
+    fn get_num_inputs(&self) -> usize { 0 }
+    fn set_input(&mut self, _index: usize, _value: u8) {}
+    fn get_num_outputs(&self) -> usize { 1 }
+    fn get_output(&self, _index: usize) -> u8 { 0 }
+}
+impl Tickable for GroundChip { }
+
+pub struct SupplyChip {
+    value: u8,
+}
+impl SupplyChip {
+    pub fn new() -> Self { Self { value: 1 } }
+    pub fn turn_on(&mut self) { self.value = 1; }
+    pub fn turn_off(&mut self) { self.value = 0; }
+}
+impl Chip for SupplyChip {
+    fn get_type(&self) -> ChipType { ChipType::Supply }
+    fn get_num_inputs(&self) -> usize { 0 }
+    fn set_input(&mut self, _index: usize, value: u8) {
+        self.value = value;
+    }
+    fn get_num_outputs(&self) -> usize { 1 }
+    fn get_output(&self, _index: usize) -> u8 { self.value }
+}
+impl Tickable for SupplyChip { }
+
+pub struct InputChip {
+    value: u8,
+}
+impl InputChip {
+    pub fn new() -> Self { Self { value: 0 } }
+}
+impl Chip for InputChip {
+    fn get_type(&self) -> ChipType { ChipType::Input }
+    fn get_num_inputs(&self) -> usize { 0 }
+    fn set_input(&mut self, _index: usize, value: u8) { self.value = value; }
+    fn get_num_outputs(&self) -> usize { 1 }
+    fn get_output(&self, _index: usize) -> u8 { self.value }
+}
+impl Tickable for InputChip { }
+
+pub struct OutputChip {
+    input_value: u8,
+    output_value: u8,
+}
+impl OutputChip {
+    pub fn new() -> Self { Self { input_value: 0, output_value: 0 } }
+}
+impl Chip for OutputChip {
+    fn get_type(&self) -> ChipType { ChipType::Output }
+    fn get_num_inputs(&self) -> usize { 1 }
+    fn set_input(&mut self, _index: usize, value: u8) {
+        self.input_value = value;
+    }
+    fn get_num_outputs(&self) -> usize { 1 }
+    fn get_output(&self, _index: usize) -> u8 { self.output_value }
+}
+impl Tickable for OutputChip { 
+    fn tick(&mut self) {
+        self.output_value = self.input_value;
+        self.input_value = 0;
     }
 }
 
-pub struct Chip {
-    num_inputs: usize,
-    num_nands: usize,
-    forward_links: LinkMap,
-    back_links: LinkMap,
-    node_types: NodeTypeMap,
+pub struct NAndChip {}
+impl NAndChip {
+    pub fn new() -> CustomChip {
+        let links = vec![Link::new(0, 2), Link::new(1, 2), Link::new(2, 3)];
+        let description = ChipDescription::new(2, 1, 1, links);
+        CustomChip::new(description)
+    }
+}
+
+pub struct CustomChip {
+    ground: u8,
+    supply: u8,
+    description: ChipDescription,
     values: Vec<u8>,
-    updated_this_tick: Vec<bool>
 }
 
-impl Chip {
-    pub fn new(num_inputs: usize, num_nands: usize, num_outputs: usize, links: Vec<Link>) -> Self {
-        Self::panic_if_insufficient_nodes(num_inputs, num_outputs, &links);
+impl CustomChip {
+    pub fn new(description: ChipDescription) -> Self {
+        if !description.is_valid() {
+            panic!("Chip can not be built from invalid description!");
+        }
 
-        let (input_iter, nand_iter, output_iter) = 
-            Self::create_node_iters(num_inputs, num_nands, num_outputs);
-        let node_types: NodeTypeMap = 
-            Self::construct_node_types(&input_iter, &nand_iter, &output_iter);
-
-        let forward_links = Self::construct_forward_links(&links);
-        let back_links = Self::construct_back_links(&links);
-
-        let num_nodes: usize = num_inputs + num_nands + num_outputs;
-        
-        Self::panic_if_any_link_out_of_range(&links, num_nodes);
-        Self::panic_if_any_link_targets_input(&back_links, &node_types);
-        Self::panic_if_any_link_sources_output(&forward_links, &node_types);
-        Self::panic_if_any_output_targeted_more_than_once(&back_links, &output_iter);
-        Self::panic_if_any_node_unconnected(num_nodes, &forward_links, &back_links);
-        Self::panic_if_any_nand_has_bad_sources(&back_links, &nand_iter);
-        Self::panic_if_any_nand_has_no_targets(&forward_links, &nand_iter);
-
-        let values = vec![0; num_nodes];
-        let updated_this_tick: Vec<bool> = vec![false; num_nodes];
-
-        Chip {
-            num_inputs,
-            num_nands,
-            forward_links,
-            back_links,
-            node_types,
-            values,
-            updated_this_tick
+        let num_nodes = description.num_nodes;
+        Self {
+            ground: 0,
+            supply: 1,
+            description,
+            values: vec![0; num_nodes],
         }
     }
 
-    pub fn set_input(&mut self, index: NodeId, value: u8) {
-        self.values[index] = value;
+    pub fn set_ground(&mut self, value: u8) {
+        self.ground = value;
     }
 
-    pub fn tick(&mut self) {
-        let num_nodes = self.node_types.len();
-        self.updated_this_tick = vec![false; num_nodes];
-
-        let inputs: Vec<NodeId> = (0..self.num_inputs).collect();
-        let mut queue: VecDeque<NodeId> = VecDeque::from(inputs);
-
-        while let Some(index) = queue.pop_front() {
-            if self.updated_this_tick[index] == true {
-                continue;
-            }
-
-            self.update_node(&index);
-            self.updated_this_tick[index] = true;
-
-            if let Some(targets) = self.forward_links.get(&index) {
-                queue.extend(targets.iter().copied());
-            }
-        }
-    }
-
-    pub fn get_output(&self, output_index: NodeId) -> u8 {
-        self.values[self.num_inputs + self.num_nands + output_index]
-    }
-
-    fn construct_forward_links(links: &Vec<Link>) -> LinkMap {
-        let mut forward_links: LinkMap = HashMap::new();
-
-        for link in links {
-            forward_links
-                .entry(link.source)
-                .or_default()
-                .push(link.target);
-        }
-
-        forward_links
-    }
-
-    fn construct_back_links(links: &Vec<Link>) -> LinkMap {
-        let mut back_links: LinkMap = HashMap::new();
-
-        for link in links {
-            let sources = back_links.entry(link.target).or_default();
-            sources.push(link.source);
-        }
-
-        back_links
-    }
-
-    fn construct_node_types(inputs: &Range<usize>, nands: &Range<usize>, outputs: &Range<usize>) -> NodeTypeMap {
-        inputs.clone().map(|i| (i, NodeType::Input))
-            .chain(nands.clone().map(|i| (i, NodeType::NAnd)))
-            .chain(outputs.clone().map(|i| (i, NodeType::Output)))
-            .collect()
-    }
-
-    fn create_node_iters(
-        num_inputs: usize,
-        num_nands: usize,
-        num_outputs: usize
-    ) -> (Range<usize>, Range<usize>, Range<usize>) {
-        let end_nands = num_inputs + num_nands;
-        let end_outputs = end_nands + num_outputs;
-
-        let input_iter = 0..num_inputs;
-        let nand_iter = num_inputs..end_nands;
-        let output_iter = end_nands..end_outputs;
-
-        return (input_iter, nand_iter, output_iter)
-    }
-
-    fn update_node(&mut self, index: &NodeId) {
-        let node_type: &NodeType = self.node_types.get(&index).unwrap();
-        if *node_type == NodeType::NAnd {
-            self.values[*index] = self.nand(&index);
-        } else if *node_type == NodeType::Output {
-            let source = self.back_links[&index][0];
-            self.values[*index] = self.values[source];
-        }
-    }
+    pub fn set_supply(&mut self, value: u8) {
+        self.supply = value;
+    }    
 
     fn nand(&self, index: &NodeId) -> u8 {
-        let a_idx = self.back_links[index][0];
-        let b_idx = self.back_links[index][1];
+        let a_idx = self.description.back_links[index][0];
+        let b_idx = self.description.back_links[index][1];
         let a = self.values[a_idx];
         let b = self.values[b_idx];
 
         if a == 1 && b == 1 { 0 } else { 1 }
     }
-
-    fn panic_if_any_link_out_of_range(links: &Vec<Link>, num_nodes: usize) {
-        let max_node_index: NodeId = num_nodes - 1;
-        
-        for link in links {
-            if link.source > max_node_index || link.target > max_node_index { 
-                panic!("Link {} -> {} out of range!", link.source, link.target) 
-            }
-        }
-    }
-
-    fn panic_if_any_link_targets_input(back_links: &LinkMap, node_types: &NodeTypeMap) {
-        for (index, _) in back_links {
-            if node_types.get(&index).is_none_or(|t| t == &NodeType::Input) {
-                panic!("Link targets input with id {}!", index)
-            }            
-        }
-    }
-
-    fn panic_if_any_link_sources_output(forward_links: &LinkMap, node_types: &NodeTypeMap) {
-        for (index, _) in forward_links {
-            if node_types.get(&index).is_none_or(|t| t == &NodeType::Output) {
-                panic!("Link sources output with id {}!", index)
-            }            
-        }
-    }
-
-    fn panic_if_any_node_unconnected(num_nodes: usize, forward_links: &LinkMap, back_links: &LinkMap) {
-        for index in 0..num_nodes {
-            if !forward_links.contains_key(&index) && !back_links.contains_key(&index) {
-                panic!("Node with id {} not connected!", index)
-            }
-        }
-    }
-
-    fn panic_if_any_nand_has_bad_sources(back_links: &LinkMap, nand_iter: &Range<usize>) {
-        for index in nand_iter.clone() {
-            if back_links.get(&index).unwrap_or(&vec![]).len() != 2 {
-                panic!("NAnd with id {} does not have two sources!", index)
-            }
-        }        
-    }
-
-    fn panic_if_any_nand_has_no_targets(forward_links: &LinkMap, nand_iter: &Range<usize>) {
-        for index in nand_iter.clone() {
-            if forward_links.get(&index).is_none() {
-                panic!("NAnd with id {} does not have any targets!", index)
-            }
-        }
-    }
     
-    fn panic_if_insufficient_nodes(num_inputs: usize, num_outputs: usize, links: &Vec<Link>) {
-        if num_inputs == 0 || num_outputs == 0 || links.len() == 0 {
-            panic!("Chip must have at least one input, one output, and one link!")
+    fn get_num_components(&self) -> usize {
+        self.description.node_types.len()
+    }
+
+    fn get_input_ids(&self) -> Vec<usize> {
+        (0..self.description.num_inputs).collect()
+    }
+
+    fn update_node(&mut self, index: &NodeId) {
+        let node_type: &NodeType = self.description.node_types.get(&index).unwrap();
+        if *node_type == NodeType::NAnd {
+            self.values[*index] = self.nand(&index);
+        } else if *node_type == NodeType::Output {
+            let source = self.description.back_links[&index][0];
+            self.values[*index] = self.values[source];
         }
     }
-    
-    fn panic_if_any_output_targeted_more_than_once(back_links: &HashMap<usize, Vec<usize>>, output_iter: &Range<usize>) {
-        for index in output_iter.clone() {
-            if back_links.get(&index).is_none_or(|links| links.len() != 1) {
-                panic!("Output with id {} must be targeted exactly once!", index)
+
+    fn get_forward_links_for(&mut self, index: &usize) -> Option<&Vec<usize>> {
+        self.description.forward_links.get(&index)
+    }
+}
+
+impl Tickable for CustomChip {
+    fn tick(&mut self) {
+        let mut updated_this_tick = vec![false; self.get_num_components()];
+
+        let inputs: Vec<usize> = self.get_input_ids();
+        let mut queue: VecDeque<usize> = VecDeque::from(inputs);
+
+        while let Some(index) = queue.pop_front() {
+            if updated_this_tick[index] == true {
+                continue;
+            }
+
+            self.update_node(&index);
+            updated_this_tick[index] = true;
+
+            if let Some(targets) = self.get_forward_links_for(&index) {
+                queue.extend(targets.iter().copied());
             }
         }
+    }
+}
+impl Chip for CustomChip {
+    fn get_type(&self) -> ChipType { ChipType::Custom }
+    
+    fn get_num_inputs(&self) -> usize {
+        self.description.num_inputs
+    }
+
+    fn set_input(&mut self, index: NodeId, value: u8) {
+        self.values[index] = value;
+    }
+
+    fn get_num_outputs(&self) -> usize {
+        self.description.num_outputs
+    }
+
+    fn get_output(&self, output_index: NodeId) -> u8 {
+        if self.supply != 1 || self.ground != 0 {
+            return 0;
+        }
+        self.values[self.description.num_inputs + self.description.num_nands + output_index]
     }
 }
