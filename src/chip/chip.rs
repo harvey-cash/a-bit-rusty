@@ -124,6 +124,10 @@ impl CustomChip {
             values: vec![0; num_nodes],
         }
     }
+    
+    pub fn get_description(&self) -> ChipDescription {
+        self.description.clone()
+    }
 
     pub fn set_ground(&mut self, value: u8) {
         self.ground = value;

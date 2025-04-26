@@ -12,7 +12,7 @@ impl ChipAndPin {
     }
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeType {
     Input,
     Output,
@@ -35,6 +35,7 @@ impl Link {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ChipDescription {
     pub num_nodes: usize,
     pub num_inputs: usize,
@@ -46,6 +47,20 @@ pub struct ChipDescription {
 
     is_valid: bool,
 }
+
+impl PartialEq for ChipDescription {
+    fn eq(&self, other: &Self) -> bool {
+        self.num_nodes == other.num_nodes &&
+        self.num_inputs == other.num_inputs &&
+        self.num_nands == other.num_nands &&
+        self.num_outputs == other.num_outputs &&
+        self.is_valid == other.is_valid &&
+        self.node_types == other.node_types &&
+        self.forward_links == other.forward_links &&
+        self.back_links == other.back_links
+    }
+}
+impl Eq for ChipDescription {}
 
 impl ChipDescription {
     pub fn new(num_inputs: usize, num_nands: usize, num_outputs: usize, links: Vec<Link>) -> Self {

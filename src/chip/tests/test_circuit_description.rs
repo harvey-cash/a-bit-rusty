@@ -5,7 +5,7 @@
 // [ ] CircuitDescription contains state of all Chips, Pins, and Traces.
 
 use crate::chip::{
-    chip::{ChipType, CustomChip}, 
+    chip::{ChipType, CustomChip, NAndChip}, 
     chip_description::{ChipAndPin, ChipDescription}, 
     circuit_description::CircuitDescription
 };
@@ -38,4 +38,21 @@ fn given_invalid_circuit_can_not_compile_chip() {
     let circuit_description = CircuitDescription::new();
     let chip_description: ChipDescription = circuit_description.compile_to_chip();
     CustomChip::new(chip_description);
+}
+
+#[test]
+fn given_single_custom_chip_then_compiles_to_identical_description() {
+    let nand_description = NAndChip::new().get_description();
+
+    let mut circuit = CircuitDescription::new();
+    let a = circuit.add_chip(ChipType::Input);
+    let b = circuit.add_chip(ChipType::Input);
+    let n = circuit.add_custom_chip(nand_description.clone());
+    let y = circuit.add_chip(ChipType::Output);
+    circuit.add_forward_link(ChipAndPin::new(a, 0), ChipAndPin::new(n, 0));
+    circuit.add_forward_link(ChipAndPin::new(b, 0), ChipAndPin::new(n, 1));
+    circuit.add_forward_link(ChipAndPin::new(n, 2), ChipAndPin::new(y, 0));
+
+    let chip_description = circuit.compile_to_chip();
+    assert_eq!(chip_description, nand_description);
 }

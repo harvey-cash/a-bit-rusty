@@ -8,7 +8,7 @@ use super::{
 pub struct CircuitDescription {
     pub num_chips: usize,
     pub chip_types: HashMap<usize, ChipType>,
-    pub forward_links: HashMap<usize, HashMap<ChipAndPin, Vec<ChipAndPin>>>,
+    pub forward_links: HashMap<usize, HashMap<usize, Vec<ChipAndPin>>>,
 }
 
 impl CircuitDescription {
@@ -24,6 +24,13 @@ impl CircuitDescription {
         let id = self.num_chips;
         self.num_chips += 1;
         self.chip_types.entry(id).or_insert(chip_type);
+        id
+    }
+    
+    pub fn add_custom_chip(&mut self, description: ChipDescription) -> usize {
+        let id = self.num_chips;
+        self.num_chips += 1;
+        self.chip_types.entry(id).or_insert(ChipType::Custom);
         id
     }
 
@@ -53,7 +60,7 @@ impl CircuitDescription {
         self.forward_links
             .entry(source.chip_id)
             .or_insert_with(HashMap::new)
-            .entry(source)
+            .entry(source.pin_index)
             .or_insert_with(Vec::new)
             .push(target);
     }
@@ -64,7 +71,7 @@ impl CircuitDescription {
             panic!("No forward links found for chip ID {}.", source.chip_id);
         }
         let forward_links = forward_links.unwrap();
-        let targets = forward_links.get_mut(&source);
+        let targets = forward_links.get_mut(&source.pin_index);
         if targets.is_none() {
             panic!("No targets found for source chip and pin.");
         }
