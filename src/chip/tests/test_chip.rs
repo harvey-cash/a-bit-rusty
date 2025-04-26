@@ -7,13 +7,18 @@ use crate::chip::{
 
 // ToDo:
 // [ ] Chips have a Pin for Ground, Supply, each Input and each Output.
-// [ ] Chips have 1 Ground Input Pin and 1 Supply Input Pin.
-// [ ] The fundamental Chips are Ground, Supply, Input, NAnd, and Output.
 
 #[test]
 fn given_ground_then_output_0() {
     let chip = GroundChip::new();
     assert_eq!(chip.get_output(0), 0);
+}
+
+#[test]
+fn given_ground_then_has_1_output_pin() {
+    let layout = GroundChip::new().get_layout();
+    assert_eq!(layout.input_pins.len(), 0);
+    assert_eq!(layout.output_pins.len(), 1);
 }
 
 #[test]
@@ -48,7 +53,7 @@ fn given_bad_description_then_panics() {
 fn given_one_link_when_input_0_then_output_0() {
     let description = ChipDescription::new(1, 0, 1, vec![Link::new(0, 1)]);
     let mut chip = CustomChip::new(description);
-
+    chip.set_supply(1);
     chip.set_input(0, 0);
     chip.tick();
     assert_eq!(chip.get_output(0), 0);
@@ -58,7 +63,7 @@ fn given_one_link_when_input_0_then_output_0() {
 fn given_one_link_when_input_1_then_output_1() {
     let description = ChipDescription::new(1, 0, 1, vec![Link::new(0, 1)]);
     let mut chip = CustomChip::new(description);
-
+    chip.set_supply(1);
     chip.set_input(0, 1);
     chip.tick();
     assert_eq!(chip.get_output(0), 1);
@@ -88,6 +93,7 @@ fn given_ground_1_then_output_0() {
 fn given_one_link_then_output_not_set_before_tick() {
     let description = ChipDescription::new(1, 0, 1, vec![Link::new(0, 1)]);
     let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
     chip.set_input(0, 1);
     assert_eq!(chip.get_output(0), 0);
 }
@@ -97,6 +103,7 @@ fn given_two_separate_links_then_outputs_equal_corresponding_inputs() {
     let links = vec![Link::new(0, 2), Link::new(1, 3)];
     let description = ChipDescription::new(2, 0, 2, links);
     let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
 
     chip.set_input(0, 0);
     chip.set_input(1, 1);
@@ -110,6 +117,7 @@ fn given_two_crossed_links_then_outputs_equal_corresponding_inputs() {
     let links = vec![Link::new(0, 3), Link::new(1, 2)];
     let description = ChipDescription::new(2, 0, 2, links);
     let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
 
     chip.set_input(0, 0);
     chip.set_input(1, 1);
@@ -119,8 +127,21 @@ fn given_two_crossed_links_then_outputs_equal_corresponding_inputs() {
 }
 
 #[test]
+fn given_nand_then_has_ground_pin() {
+    let layout = NAndChip::new().get_layout();
+    assert_eq!(layout.ground_pins.len(), 1);
+}
+
+#[test]
+fn given_nand_then_has_supply_pin() {
+    let layout = NAndChip::new().get_layout();
+    assert_eq!(layout.supply_pins.len(), 1);
+}
+
+#[test]
 fn given_nand_when_inputs_both_0_then_output_is_1() {
     let mut chip = NAndChip::new();
+    chip.set_supply(1);
     chip.set_input(0, 0);
     chip.set_input(1, 0);
     chip.tick();
@@ -130,6 +151,7 @@ fn given_nand_when_inputs_both_0_then_output_is_1() {
 #[test]
 fn given_nand_when_inputs_both_1_then_output_is_0() {
     let mut chip = NAndChip::new();
+    chip.set_supply(1);
     chip.set_input(0, 1);
     chip.set_input(1, 1);
     chip.tick();
@@ -139,6 +161,7 @@ fn given_nand_when_inputs_both_1_then_output_is_0() {
 #[test]
 fn given_nand_when_single_input_1_then_output_is_1() {
     let mut chip = NAndChip::new();
+    chip.set_supply(1);
     chip.set_input(0, 1);
     chip.set_input(1, 0);
     chip.tick();
@@ -151,10 +174,25 @@ fn given_nand_when_single_input_1_then_output_is_1() {
 }
 
 #[test]
+fn given_nand_when_supply_0_then_output_is_0() {
+    let mut chip = NAndChip::new();
+    chip.set_input(0, 1);
+    chip.set_input(1, 0);
+    chip.tick();
+    assert_eq!(chip.get_output(0), 0);
+
+    chip.set_input(0, 0);
+    chip.set_input(1, 1);
+    chip.tick();
+    assert_eq!(chip.get_output(0), 0);
+}
+
+#[test]
 fn given_nand_linked_sources_when_input_0_then_output_1() {
     let links = vec![Link::new(0, 1), Link::new(0, 1), Link::new(1, 2)];
     let description = ChipDescription::new(1, 1, 1, links);
     let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
     chip.set_input(0, 0);
     chip.tick();
     assert_eq!(chip.get_output(0), 1);
@@ -165,6 +203,7 @@ fn given_nand_linked_sources_when_input_1_then_output_0() {
     let links = vec![Link::new(0, 1), Link::new(0, 1), Link::new(1, 2)];
     let description = ChipDescription::new(1, 1, 1, links);
     let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
     chip.set_input(0, 1);
     chip.tick();
     assert_eq!(chip.get_output(0), 0);
@@ -181,6 +220,7 @@ fn given_two_nots_in_series_when_input_0_then_output_0() {
     ];
     let description = ChipDescription::new(1, 2, 1, links);
     let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
 
     chip.set_input(0, 0);
     chip.tick();
@@ -198,6 +238,7 @@ fn given_two_nots_in_series_when_input_1_then_output_1() {
     ];
     let description = ChipDescription::new(1, 2, 1, links);
     let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
 
     chip.set_input(0, 1);
     chip.tick();
@@ -210,6 +251,7 @@ fn given_cycle_when_ticked_then_does_not_loop_forever() {
     let links = vec![Link::new(0, 1), Link::new(1, 1), Link::new(1, 2)];
     let description = ChipDescription::new(1, 1, 1, links);
     let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
     chip.set_input(0, 1);
     chip.tick();
     assert_eq!(chip.get_output(0), 1);
@@ -225,6 +267,7 @@ fn given_cycle_nand_when_ticked_then_output_oscillates() {
         vec![Link::new(0, 1), Link::new(1, 1), Link::new(1, 2)],
     );
     let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
     chip.set_input(0, 1);
 
     chip.tick();
@@ -255,6 +298,7 @@ fn given_three_nand_loop_when_ticked_then_oscillates() {
         ],
     );
     let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
     chip.set_input(0, 1);
 
     chip.tick();

@@ -117,7 +117,11 @@ fn given_input_connected_when_1_then_output_is_1() {
 fn given_not_gate_when_input_1_then_output_0() {
     let mut circuit = Circuit::new();
     let input_id = circuit.add_chip(InputChip::new());
-    let nand_id = circuit.add_chip(NAndChip::new());
+
+    let mut chip = NAndChip::new();
+    chip.set_supply(1);
+    let nand_id = circuit.add_chip(chip);
+    
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.set_input(input_id, 0);
     circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 0));
@@ -151,6 +155,7 @@ fn given_valid_not_gate_compiled_chip_is_a_not_gate() {
     circuit.create_link(ChipAndPin::new(nand_id, 0), ChipAndPin::new(output_id, 0));
     let description: ChipDescription = circuit.compile_to_chip();
     let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
 
     chip.set_input(0, 0);
     chip.tick();

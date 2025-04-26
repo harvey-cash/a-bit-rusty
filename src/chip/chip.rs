@@ -1,7 +1,7 @@
 use crate::chip::chip_description::{ChipDescription, NodeId, NodeType};
 use std::collections::VecDeque;
 
-use super::chip_description::Link;
+use super::chip_description::{Link, PinLayout};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ChipType {
@@ -18,8 +18,9 @@ pub trait Tickable {
 
 pub trait Chip: Tickable {
     fn get_type(&self) -> ChipType;
-    fn get_num_inputs(&self) -> usize;
-    fn get_num_outputs(&self) -> usize;
+    fn get_layout(&self) -> PinLayout;
+    fn get_num_inputs(&self) -> usize { self.get_layout().input_pins.len() }
+    fn get_num_outputs(&self) -> usize { self.get_layout().output_pins.len() }
     fn set_input(&mut self, index: usize, value: u8);
     fn get_output(&self, index: usize) -> u8;
 }
@@ -30,9 +31,8 @@ impl GroundChip {
 }
 impl Chip for GroundChip {
     fn get_type(&self) -> ChipType { ChipType::Ground }
-    fn get_num_inputs(&self) -> usize { 0 }
+    fn get_layout(&self) -> PinLayout { PinLayout::new(0, 0, 0, 1) }
     fn set_input(&mut self, _index: usize, _value: u8) {}
-    fn get_num_outputs(&self) -> usize { 1 }
     fn get_output(&self, _index: usize) -> u8 { 0 }
 }
 impl Tickable for GroundChip { }
@@ -47,11 +47,10 @@ impl SupplyChip {
 }
 impl Chip for SupplyChip {
     fn get_type(&self) -> ChipType { ChipType::Supply }
-    fn get_num_inputs(&self) -> usize { 0 }
+    fn get_layout(&self) -> PinLayout { PinLayout::new(0, 0, 0, 1) }
     fn set_input(&mut self, _index: usize, value: u8) {
         self.value = value;
     }
-    fn get_num_outputs(&self) -> usize { 1 }
     fn get_output(&self, _index: usize) -> u8 { self.value }
 }
 impl Tickable for SupplyChip { }
@@ -64,9 +63,8 @@ impl InputChip {
 }
 impl Chip for InputChip {
     fn get_type(&self) -> ChipType { ChipType::Input }
-    fn get_num_inputs(&self) -> usize { 0 }
+    fn get_layout(&self) -> PinLayout { PinLayout::new(0, 0, 0, 1) }
     fn set_input(&mut self, _index: usize, value: u8) { self.value = value; }
-    fn get_num_outputs(&self) -> usize { 1 }
     fn get_output(&self, _index: usize) -> u8 { self.value }
 }
 impl Tickable for InputChip { }
@@ -80,11 +78,10 @@ impl OutputChip {
 }
 impl Chip for OutputChip {
     fn get_type(&self) -> ChipType { ChipType::Output }
-    fn get_num_inputs(&self) -> usize { 1 }
+    fn get_layout(&self) -> PinLayout { PinLayout::new(0, 0, 1, 1) }
     fn set_input(&mut self, _index: usize, value: u8) {
         self.input_value = value;
     }
-    fn get_num_outputs(&self) -> usize { 1 }
     fn get_output(&self, _index: usize) -> u8 { self.output_value }
 }
 impl Tickable for OutputChip { 
@@ -119,7 +116,7 @@ impl CustomChip {
         let num_nodes = description.num_nodes;
         Self {
             ground: 0,
-            supply: 1,
+            supply: 0,
             description,
             values: vec![0; num_nodes],
         }
@@ -192,17 +189,13 @@ impl Tickable for CustomChip {
 }
 impl Chip for CustomChip {
     fn get_type(&self) -> ChipType { ChipType::Custom }
-    
-    fn get_num_inputs(&self) -> usize {
-        self.description.num_inputs
+
+    fn get_layout(&self) -> PinLayout {
+        self.description.get_layout()
     }
 
     fn set_input(&mut self, index: NodeId, value: u8) {
         self.values[index] = value;
-    }
-
-    fn get_num_outputs(&self) -> usize {
-        self.description.num_outputs
     }
 
     fn get_output(&self, output_index: NodeId) -> u8 {

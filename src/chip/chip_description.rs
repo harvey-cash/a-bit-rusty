@@ -1,5 +1,26 @@
 
-use std::{collections::HashMap, ops::Range};
+use std::{collections::{HashMap, HashSet}, ops::Range};
+
+#[derive(Debug, Clone)]
+pub struct PinLayout {
+    pub ground_pins: Vec<usize>,
+    pub supply_pins: Vec<usize>,
+    pub input_pins: Vec<usize>,
+    pub output_pins: Vec<usize>,
+}
+impl PinLayout {
+    pub fn new(num_ground: usize, num_supply: usize, num_inputs: usize, num_outputs: usize) -> Self
+    {
+        let ground_pins = Vec::from_iter(0.. num_ground);
+        let mut max = num_ground;
+        let supply_pins = Vec::from_iter(max..max+num_supply);
+        max += num_supply;
+        let input_pins = Vec::from_iter(max..max+num_inputs);
+        max += num_inputs;
+        let output_pins = Vec::from_iter(max..max+num_outputs);
+        Self { ground_pins, supply_pins, input_pins, output_pins }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ChipAndPin {
@@ -35,6 +56,32 @@ impl Link {
     }
 }
 
+fn link_maps_equal_ignore_vec_order(map1: &LinkMap, map2: &LinkMap) -> bool {
+    if map1.len() != map2.len() {
+        return false;
+    }
+    for (key, vec1) in map1 {
+        match map2.get(key) {
+            None => return false,
+            Some(vec2) => {
+                if vec1.len() != vec2.len() {
+                    return false;
+                }
+                let mut sorted_vec1 = vec1.clone();
+                let mut sorted_vec2 = vec2.clone();
+                
+                sorted_vec1.sort_unstable();
+                sorted_vec2.sort_unstable();
+                
+                if sorted_vec1 != sorted_vec2 {
+                    return false;
+                }
+            }
+        }
+    }
+    true
+}
+
 #[derive(Debug, Clone)]
 pub struct ChipDescription {
     pub num_nodes: usize,
@@ -44,6 +91,7 @@ pub struct ChipDescription {
     pub node_types: NodeTypeMap,
     pub forward_links: LinkMap,
     pub back_links: LinkMap,
+    pub layout: PinLayout,
 
     is_valid: bool,
 }
@@ -56,8 +104,8 @@ impl PartialEq for ChipDescription {
         self.num_outputs == other.num_outputs &&
         self.is_valid == other.is_valid &&
         self.node_types == other.node_types &&
-        self.forward_links == other.forward_links &&
-        self.back_links == other.back_links
+        link_maps_equal_ignore_vec_order(&self.forward_links, &other.forward_links) &&
+        link_maps_equal_ignore_vec_order(&self.back_links, &other.back_links)
     }
 }
 impl Eq for ChipDescription {}
@@ -84,11 +132,17 @@ impl ChipDescription {
         is_valid &= !Self::any_nand_has_bad_sources(&back_links, &nand_iter);
         is_valid &= !Self::any_nand_has_no_targets(&forward_links, &nand_iter);
 
-        Self { num_nodes, num_inputs, num_nands, num_outputs, node_types, forward_links, back_links, is_valid }
+        let layout = PinLayout::new(1, 1, num_inputs, num_outputs);
+
+        Self { num_nodes, num_inputs, num_nands, num_outputs, node_types, forward_links, back_links, layout, is_valid }
     }
 
     pub fn is_valid(&self) -> bool {
         self.is_valid
+    }
+    
+    pub fn get_layout(&self) -> PinLayout {
+        self.layout.clone()
     }
 
     fn construct_forward_links(links: &Vec<Link>) -> LinkMap {
@@ -226,7 +280,7 @@ impl ChipDescription {
     }
 
     fn any_output_targeted_more_than_once(
-        back_links: &HashMap<usize, Vec<usize>>,
+        back_links: &LinkMap,
         output_iter: &Range<usize>,
     ) -> bool {
         for index in output_iter.clone() {
