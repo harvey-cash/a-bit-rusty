@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use super::{ChipType, Tickable};
+use super::{Chip, ChipType, Tickable};
 
 pub struct CircuitDescription {
     pub num_chips: usize,
@@ -40,7 +40,8 @@ impl Circuit {
         }
     }
 
-    pub fn add_chip(&mut self, chip_type: ChipType) -> usize {
+    pub fn add_chip<C: Chip + 'static>(&mut self, chip: C) -> usize {
+        let chip_type = chip.get_type();
         let id = self.description.add_chip(chip_type);
         let value = match chip_type {
             ChipType::Ground => 0,

@@ -54,6 +54,38 @@ impl Chip for SupplyChip {
 }
 impl Tickable for SupplyChip { }
 
+pub struct InputChip {
+    value: u8,
+}
+impl InputChip {
+    pub fn new() -> Self { Self { value: 0 } }
+}
+impl Chip for InputChip {
+    fn get_type(&self) -> ChipType { ChipType::Input }
+    fn get_num_inputs(&self) -> usize { 1 }
+    fn set_input(&mut self, _index: usize, value: u8) { self.value = value; }
+    fn get_num_outputs(&self) -> usize { 1 }
+    fn get_output(&self, _index: usize) -> u8 { self.value }
+}
+impl Tickable for InputChip { }
+
+pub struct OutputChip {
+    value: u8,
+}
+impl OutputChip {
+    pub fn new() -> Self { Self { value: 0 } }
+}
+impl Chip for OutputChip {
+    fn get_type(&self) -> ChipType { ChipType::Output }
+    fn get_num_inputs(&self) -> usize { 1 }
+    fn set_input(&mut self, _index: usize, value: u8) {
+        self.value = value;
+    }
+    fn get_num_outputs(&self) -> usize { 1 }
+    fn get_output(&self, _index: usize) -> u8 { self.value }
+}
+impl Tickable for OutputChip { }
+
 pub struct NAndChip {}
 impl NAndChip {
     pub fn new() -> CustomChip {

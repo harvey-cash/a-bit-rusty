@@ -40,20 +40,20 @@
 // [ ] Trace states can be read from a Circuit.
 // [ ] All Chip Pin states can be read from a Circuit.
 
-use crate::chip::{ChipType, Circuit, Tickable};
+use crate::chip::{chip::{InputChip, OutputChip}, Circuit, GroundChip, SupplyChip};
 
 #[test]
 fn given_just_output_then_output_is_0() {
     let mut circuit = Circuit::new();
-    circuit.add_chip(ChipType::Output);
+    circuit.add_chip(OutputChip::new());
     assert_eq!(circuit.get_output(0), 0);
 }
 
 #[test]
 fn given_supply_connected_then_output_is_1() {
     let mut circuit = Circuit::new();
-    let supply_id = circuit.add_chip(ChipType::Supply);
-    let output_id = circuit.add_chip(ChipType::Output);
+    let supply_id = circuit.add_chip(SupplyChip::new());
+    let output_id = circuit.add_chip(OutputChip::new());
     circuit.create_link(supply_id, output_id);
     assert_eq!(circuit.get_output(0), 1);
 }
@@ -61,8 +61,8 @@ fn given_supply_connected_then_output_is_1() {
 #[test]
 fn given_ground_connected_then_output_is_0() {
     let mut circuit = Circuit::new();
-    let ground_id = circuit.add_chip(ChipType::Ground);
-    let output_id = circuit.add_chip(ChipType::Output);
+    let ground_id = circuit.add_chip(GroundChip::new());
+    let output_id = circuit.add_chip(OutputChip::new());
     circuit.create_link(ground_id, output_id);
     assert_eq!(circuit.get_output(0), 0);
 }
@@ -70,8 +70,8 @@ fn given_ground_connected_then_output_is_0() {
 #[test]
 fn given_input_connected_when_0_then_output_is_0() {
     let mut circuit = Circuit::new();
-    let input_id = circuit.add_chip(ChipType::Input);
-    let output_id = circuit.add_chip(ChipType::Output);
+    let input_id = circuit.add_chip(InputChip::new());
+    let output_id = circuit.add_chip(OutputChip::new());
     circuit.set_input(input_id, 0);
     circuit.create_link(input_id, output_id);
     assert_eq!(circuit.get_output(0), 0);
@@ -80,8 +80,8 @@ fn given_input_connected_when_0_then_output_is_0() {
 #[test]
 fn given_input_connected_when_1_then_output_is_1() {
     let mut circuit = Circuit::new();
-    let input_id = circuit.add_chip(ChipType::Input);
-    let output_id = circuit.add_chip(ChipType::Output);
+    let input_id = circuit.add_chip(InputChip::new());
+    let output_id = circuit.add_chip(OutputChip::new());
     circuit.set_input(input_id, 1);
     circuit.create_link(input_id, output_id);
     assert_eq!(circuit.get_output(0), 1);
@@ -90,9 +90,9 @@ fn given_input_connected_when_1_then_output_is_1() {
 // #[test]
 // fn given_not_gate_when_input_1_then_output_0() {
 //     let mut circuit = Circuit::new();
-//     let input_id = circuit.add_chip(ChipType::Input);
+//     let input_id = circuit.add_chip(InputChip::new());
 //     let nand_id = circuit.add_chip(ChipType::Nand);
-//     let output_id = circuit.add_chip(ChipType::Output);
+//     let output_id = circuit.add_chip(OutputChip::new());
 //     circuit.set_input(input_id, 0);
 //     circuit.create_link(input_id, nand_id);
 //     circuit.create_link(input_id, nand_id);
