@@ -35,7 +35,7 @@
 // [ ] Trace states can be read from a Circuit.
 // [ ] All Chip Pin states can be read from a Circuit.
 
-use crate::chip::{chip::{InputChip, OutputChip}, circuit::ChipAndPin, Chip, ChipDescription, Circuit, CircuitDescription, CustomChip, GroundChip, NAndChip, SupplyChip, Tickable};
+use crate::chip::{chip::{InputChip, OutputChip}, chip_description::ChipAndPin, Chip, ChipDescription, Circuit, CircuitDescription, CustomChip, GroundChip, NAndChip, SupplyChip, Tickable};
 
 #[test]
 fn given_just_output_then_output_is_0() {

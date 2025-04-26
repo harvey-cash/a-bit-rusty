@@ -1,6 +1,17 @@
 
 use std::{collections::HashMap, ops::Range};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ChipAndPin {
+    pub chip_id: usize,
+    pub pin_index: usize,
+}
+impl ChipAndPin {
+    pub fn new(chip_id: usize, pin_index: usize) -> Self {
+        Self { chip_id, pin_index }
+    }
+}
+
 #[derive(PartialEq, Debug)]
 pub enum NodeType {
     Input,

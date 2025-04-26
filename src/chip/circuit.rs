@@ -1,43 +1,10 @@
-use std::{collections::{HashMap, VecDeque}, hash::Hash, vec};
+use std::{collections::{HashMap, VecDeque}, vec};
 
-use super::{chip_description::Link, Chip, ChipDescription, ChipType, Tickable};
-
-pub struct CircuitDescription {
-    pub num_chips: usize,
-    pub chips: HashMap<usize, ChipType>,
-}
-
-impl CircuitDescription {
-    pub fn new() -> Self {
-        Self {
-            num_chips: 0,
-            chips: HashMap::new(),
-        }
-    }
-
-    pub fn add_chip(&mut self, chip_type: ChipType) -> usize {
-        let id = self.num_chips;
-        self.num_chips += 1;
-        self.chips.entry(id).or_insert(chip_type);
-        id
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ChipAndPin {
-    chip_id: usize,
-    pin_index: usize,
-}
-impl ChipAndPin {
-    pub fn new(chip_id: usize, pin_index: usize) -> Self {
-        Self { chip_id, pin_index }
-    }
-}
+use super::{chip_description::ChipAndPin, Chip, ChipDescription, ChipType, CircuitDescription, Tickable};
 
 pub struct Circuit {
     description: CircuitDescription,
     chips: HashMap<usize, Box<dyn Chip>>,
-    forward_links: HashMap<usize, HashMap<ChipAndPin, Vec<ChipAndPin>>>,
     back_links: HashMap<ChipAndPin, ChipAndPin>,
 }
 
@@ -46,7 +13,6 @@ impl Circuit {
         Self {
             description,
             chips: HashMap::new(),
-            forward_links: HashMap::new(),
             back_links: HashMap::new(),
         }
     }
@@ -63,20 +29,7 @@ impl Circuit {
     }
 
     pub fn compile_to_chip(&self) -> ChipDescription {
-        let num_inputs = self.description.chips.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Input).count();
-        let num_nands = self.description.chips.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Custom).count();
-        let num_outputs = self.description.chips.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Output).count();
-        
-        let mut links = Vec::new();
-        for (source_chip_id, sources) in &self.forward_links {
-            for (_, target_pins) in sources {
-                for target_pin in target_pins {
-                    links.push(Link::new(source_chip_id.clone(), target_pin.chip_id));
-                }
-            }
-        }
-        
-        ChipDescription::new(num_inputs, num_nands, num_outputs, links)
+        self.description.compile_to_chip()
     }
 
     pub fn set_input(&mut self, input_chip_id: usize, value: u8) {
@@ -102,29 +55,12 @@ impl Circuit {
     }
 
     pub fn create_link(&mut self, source: ChipAndPin, target: ChipAndPin) {
-        let chip_id = source.chip_id;
-        self.forward_links
-            .entry(chip_id)
-            .or_insert_with(HashMap::new)
-            .entry(source)
-            .or_insert_with(Vec::new)
-            .push(target);
-
+        self.description.add_forward_link(source, target);
         self.back_links.insert(target, source);
     }
 
     pub fn delete_link(&mut self, source: ChipAndPin, target: ChipAndPin) {
-        let forward_links = self.forward_links.get_mut(&source.chip_id);
-        if forward_links.is_none() {
-            panic!("No forward links found for chip ID {}.", source.chip_id);
-        }
-        let forward_links = forward_links.unwrap();
-        let targets = forward_links.get_mut(&source);
-        if targets.is_none() {
-            panic!("No targets found for source chip and pin.");
-        }
-        let targets = targets.unwrap();
-        targets.retain(|t| t != &target);
+        self.description.delete_link(source, target);
         
         if !self.back_links.contains_key(&target) {
             panic!("No back link found for target chip and pin.");
@@ -188,7 +124,7 @@ impl Tickable for Circuit {
             chip.tick();
             updated_this_tick[index] = true;
 
-            let forward_links = self.forward_links.get(&index);
+            let forward_links = self.description.forward_links.get(&index);
             if forward_links.is_none() {
                 continue;
             }

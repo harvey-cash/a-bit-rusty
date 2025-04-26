@@ -7,8 +7,11 @@ pub use chip::{Chip, Tickable, CustomChip, ChipType, GroundChip, NAndChip, Suppl
 mod trace;
 pub use trace::TraceMap;
 
+mod circuit_description;
+pub use circuit_description::CircuitDescription;
+
 mod circuit;
-pub use circuit::{Circuit, CircuitDescription};
+pub use circuit::Circuit;
 
 #[cfg(test)]
 mod tests;
