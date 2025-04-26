@@ -118,7 +118,7 @@ impl ChipDescription {
     }
 
     fn any_link_out_of_range(links: &Vec<Link>, num_nodes: usize) -> bool {
-        let max_node_index: NodeId = num_nodes - 1;
+        let max_node_index: NodeId = if num_nodes == 0 { 0 } else { num_nodes - 1 };
         for link in links {
             if link.source > max_node_index || link.target > max_node_index {
                 eprintln!("Link {} -> {} out of range!", link.source, link.target);

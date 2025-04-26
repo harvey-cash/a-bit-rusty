@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, VecDeque}, hash::Hash, vec};
 
-use super::{Chip, ChipType, Tickable};
+use super::{chip_description::Link, Chip, ChipDescription, ChipType, Tickable};
 
 pub struct CircuitDescription {
     pub num_chips: usize,
@@ -60,6 +60,23 @@ impl Circuit {
 
     pub fn get_description(&self) -> &CircuitDescription {
         &self.description
+    }
+
+    pub fn compile_to_chip(&self) -> ChipDescription {
+        let num_inputs = self.description.chips.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Input).count();
+        let num_nands = self.description.chips.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Custom).count();
+        let num_outputs = self.description.chips.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Output).count();
+        
+        let mut links = Vec::new();
+        for (source_chip_id, sources) in &self.forward_links {
+            for (_, target_pins) in sources {
+                for target_pin in target_pins {
+                    links.push(Link::new(source_chip_id.clone(), target_pin.chip_id));
+                }
+            }
+        }
+        
+        ChipDescription::new(num_inputs, num_nands, num_outputs, links)
     }
 
     pub fn set_input(&mut self, input_chip_id: usize, value: u8) {

@@ -35,7 +35,7 @@
 // [ ] Trace states can be read from a Circuit.
 // [ ] All Chip Pin states can be read from a Circuit.
 
-use crate::chip::{chip::{InputChip, OutputChip}, circuit::ChipAndPin, Circuit, CircuitDescription, GroundChip, NAndChip, SupplyChip, Tickable};
+use crate::chip::{chip::{InputChip, OutputChip}, circuit::ChipAndPin, Chip, ChipDescription, Circuit, CircuitDescription, CustomChip, GroundChip, NAndChip, SupplyChip, Tickable};
 
 #[test]
 fn given_just_output_then_output_is_0() {
@@ -122,4 +122,45 @@ fn given_not_gate_when_input_1_then_output_0() {
     circuit.create_link(ChipAndPin::new(nand_id, 0), ChipAndPin::new(output_id, 0));
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 1);
+}
+
+#[test]
+fn given_valid_not_gate_can_compile_to_valid_chip_description() {
+    let mut circuit = Circuit::new(CircuitDescription::new());
+    let input_id = circuit.add_chip(InputChip::new());
+    let nand_id = circuit.add_chip(NAndChip::new());
+    let output_id = circuit.add_chip(OutputChip::new());
+    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 0));
+    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 1));
+    circuit.create_link(ChipAndPin::new(nand_id, 0), ChipAndPin::new(output_id, 0));
+    let description: ChipDescription = circuit.compile_to_chip();
+    assert_eq!(description.is_valid(), true);
+}
+
+#[test]
+fn given_valid_not_gate_compiled_chip_is_a_not_gate() {
+    let mut circuit = Circuit::new(CircuitDescription::new());
+    let input_id = circuit.add_chip(InputChip::new());
+    let nand_id = circuit.add_chip(NAndChip::new());
+    let output_id = circuit.add_chip(OutputChip::new());
+    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 0));
+    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 1));
+    circuit.create_link(ChipAndPin::new(nand_id, 0), ChipAndPin::new(output_id, 0));
+    let description: ChipDescription = circuit.compile_to_chip();
+    let mut chip = CustomChip::new(description);
+
+    chip.set_input(0, 0);
+    chip.tick();
+    assert_eq!(chip.get_output(0), 1);
+
+    chip.set_input(0, 1);
+    chip.tick();
+    assert_eq!(chip.get_output(0), 0);
+}
+
+#[test]
+fn given_invalid_circuit_can_not_compile_chip() {
+    let circuit = Circuit::new(CircuitDescription::new());
+    let description: ChipDescription = circuit.compile_to_chip();
+    assert_eq!(description.is_valid(), false);
 }
