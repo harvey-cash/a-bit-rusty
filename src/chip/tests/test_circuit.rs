@@ -120,7 +120,7 @@ fn given_not_gate_when_input_0_then_output_1() {
     let input_id = circuit.add_chip(InputChip::new());
 
     let mut chip = NAndChip::new();
-    chip.set_supply(1);
+    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
     let nand_id = circuit.add_chip(chip);
     
     let output_id = circuit.add_chip(OutputChip::new());
@@ -138,7 +138,7 @@ fn given_not_gate_when_input_1_then_output_0() {
     let input_id = circuit.add_chip(InputChip::new());
 
     let mut chip = NAndChip::new();
-    chip.set_supply(1);
+    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
     let nand_id = circuit.add_chip(chip);
     
     let output_id = circuit.add_chip(OutputChip::new());
@@ -170,19 +170,19 @@ fn given_valid_not_gate_compiled_chip_is_a_not_gate() {
     let nand_id = circuit.add_chip(NAndChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
 
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 0));
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 1));
-    circuit.create_link(ChipAndPin::new(nand_id, 0), ChipAndPin::new(output_id, 0));
+    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 2));
+    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 3));
+    circuit.create_link(ChipAndPin::new(nand_id, 4), ChipAndPin::new(output_id, 0));
     
     let description: ChipDescription = circuit.compile_to_chip();
     let mut chip = CustomChip::new(description);
-    chip.set_supply(1);
+    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
 
-    chip.set_input(2, 0);
+    chip.write_pin(2, 0);
     chip.tick();
-    assert_eq!(chip.get_output(3), 1);
+    assert_eq!(chip.read_pin(3), 1);
 
-    chip.set_input(2, 1);
+    chip.write_pin(2, 1);
     chip.tick();
-    assert_eq!(chip.get_output(3), 0);
+    assert_eq!(chip.read_pin(3), 0);
 }

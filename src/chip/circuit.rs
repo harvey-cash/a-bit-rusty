@@ -37,7 +37,7 @@ impl Circuit {
         if self.description.chip_types.get(&input_chip_id) != Some(&ChipType::Input) {
             panic!("Invalid chip ID for input.");
         }
-        self.chips.get_mut(&input_chip_id).unwrap().set_input(0, value);
+        self.chips.get_mut(&input_chip_id).unwrap().write_pin(0, value);
     }
 
     pub fn set_supply(&mut self, supply_chip_id: usize, value: u8) {
@@ -45,14 +45,14 @@ impl Circuit {
             panic!("Invalid chip ID for supply.");
         }
         let supply_chip = self.chips.get_mut(&supply_chip_id).unwrap();
-        supply_chip.set_input(0, value);
+        supply_chip.write_pin(0, value);
     }
 
     pub fn get_output(&self, output_index: usize) -> u8 {
         if self.description.chip_types.get(&output_index) != Some(&ChipType::Output) {
             panic!("Invalid chip ID for output.");
         }
-        self.chips.get(&output_index).unwrap().get_output(0)
+        self.chips.get(&output_index).unwrap().read_pin(0)
     }
 
     pub fn create_link(&mut self, source: ChipAndPin, target: ChipAndPin) {
@@ -92,7 +92,7 @@ impl Circuit {
             }
             
             let source_pin: ChipAndPin = *back_link_option.unwrap();
-            let value = self.chips.get(&source_pin.chip_id).unwrap().get_output(source_pin.pin_index);
+            let value = self.chips.get(&source_pin.chip_id).unwrap().read_pin(source_pin.pin_index);
             inputs.insert(pin_idx, value);
         }
         inputs
@@ -121,7 +121,7 @@ impl Tickable for Circuit {
 
             let chip = chip_option.unwrap();
             for (pin_idx, value) in input_values {
-                chip.set_input(pin_idx, value);
+                chip.write_pin(pin_idx, value);
             }
             chip.tick();
             updated_this_tick[index] = true;

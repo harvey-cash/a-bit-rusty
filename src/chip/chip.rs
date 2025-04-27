@@ -21,8 +21,8 @@ pub trait Chip: Tickable {
     fn get_layout(&self) -> PinLayout;
     fn get_num_inputs(&self) -> usize { self.get_layout().input_pins.len() }
     fn get_num_outputs(&self) -> usize { self.get_layout().output_pins.len() }
-    fn set_input(&mut self, index: usize, value: u8);
-    fn get_output(&self, index: usize) -> u8;
+    fn write_pin(&mut self, index: usize, value: u8);
+    fn read_pin(&self, index: usize) -> u8;
 }
 
 pub struct GroundChip {}
@@ -32,8 +32,8 @@ impl GroundChip {
 impl Chip for GroundChip {
     fn get_type(&self) -> ChipType { ChipType::Ground }
     fn get_layout(&self) -> PinLayout { PinLayout::new(0, 0, 0, 1) }
-    fn set_input(&mut self, _index: usize, _value: u8) {}
-    fn get_output(&self, _index: usize) -> u8 { 0 }
+    fn write_pin(&mut self, _index: usize, _value: u8) {}
+    fn read_pin(&self, _index: usize) -> u8 { 0 }
 }
 impl Tickable for GroundChip { }
 
@@ -48,10 +48,10 @@ impl SupplyChip {
 impl Chip for SupplyChip {
     fn get_type(&self) -> ChipType { ChipType::Supply }
     fn get_layout(&self) -> PinLayout { PinLayout::new(0, 0, 0, 1) }
-    fn set_input(&mut self, _index: usize, value: u8) {
+    fn write_pin(&mut self, _index: usize, value: u8) {
         self.value = value;
     }
-    fn get_output(&self, _index: usize) -> u8 { self.value }
+    fn read_pin(&self, _index: usize) -> u8 { self.value }
 }
 impl Tickable for SupplyChip { }
 
@@ -64,8 +64,8 @@ impl InputChip {
 impl Chip for InputChip {
     fn get_type(&self) -> ChipType { ChipType::Input }
     fn get_layout(&self) -> PinLayout { PinLayout::new(0, 0, 0, 1) }
-    fn set_input(&mut self, _index: usize, value: u8) { self.value = value; }
-    fn get_output(&self, _index: usize) -> u8 { self.value }
+    fn write_pin(&mut self, _index: usize, value: u8) { self.value = value; }
+    fn read_pin(&self, _index: usize) -> u8 { self.value }
 }
 impl Tickable for InputChip { }
 
@@ -79,10 +79,10 @@ impl OutputChip {
 impl Chip for OutputChip {
     fn get_type(&self) -> ChipType { ChipType::Output }
     fn get_layout(&self) -> PinLayout { PinLayout::new(0, 0, 1, 1) }
-    fn set_input(&mut self, _index: usize, value: u8) {
+    fn write_pin(&mut self, _index: usize, value: u8) {
         self.input_value = value;
     }
-    fn get_output(&self, _index: usize) -> u8 { self.output_value }
+    fn read_pin(&self, _index: usize) -> u8 { self.output_value }
 }
 impl Tickable for OutputChip { 
     fn tick(&mut self) {
@@ -106,6 +106,9 @@ pub struct CustomChip {
 }
 
 impl CustomChip {
+    pub const GROUND_PIN: usize = 0;
+    pub const SUPPLY_PIN: usize = 1;
+
     pub fn new(description: ChipDescription) -> Self {
         if !description.is_valid() {
             panic!("Chip can not be built from invalid description!");
@@ -120,14 +123,6 @@ impl CustomChip {
     
     pub fn get_description(&self) -> ChipDescription {
         self.description.clone()
-    }
-
-    pub fn set_ground(&mut self, value: u8) {
-        self.values[0] = value;
-    }
-
-    pub fn set_supply(&mut self, value: u8) {
-        self.values[1] = value;
     }
 
     fn nand(&self, index: &NodeId) -> u8 {
@@ -206,17 +201,16 @@ impl Chip for CustomChip {
         self.description.get_layout()
     }
 
-    fn set_input(&mut self, index: NodeId, value: u8) {
+    fn write_pin(&mut self, pin_idx: NodeId, value: u8) {
         let num_inputs = self.description.layout.get_num_inputs();
-
-        if index < num_inputs {
-            self.values[index] = value;
+        if pin_idx < num_inputs {
+            self.values[pin_idx] = value;
         } else {
-            panic!("Can't set pin with index {index}!");
+            panic!("Can't set pin with index {pin_idx}!");
         }
     }
 
-    fn get_output(&self, output_index: NodeId) -> u8 {
-        self.values[self.description.num_nands + output_index]
+    fn read_pin(&self, pin_idx: NodeId) -> u8 {
+        self.values[self.description.num_nands + pin_idx]
     }
 }
