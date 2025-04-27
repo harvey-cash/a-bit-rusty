@@ -8,25 +8,51 @@ pub struct PinLayout {
     pub input_pins: Vec<usize>,
     pub output_pins: Vec<usize>,
     pub num_pins: usize,
+
+    id_pin_map: HashMap<usize, usize>,
+    pin_id_map: HashMap<usize, usize>,
 }
 impl PinLayout {
-    pub fn new(num_ground: usize, num_supply: usize, num_inputs: usize, num_outputs: usize) -> Self
+    pub fn new(num_ground: usize, num_supply: usize, id_type_map: NodeTypeMap) -> Self
     {
         let ground_pins = Vec::from_iter(0.. num_ground);
-        let mut max = num_ground;
-        let supply_pins = Vec::from_iter(max..max+num_supply);
-        max += num_supply;
-        let input_pins = Vec::from_iter(max..max+num_inputs);
-        max += num_inputs;
-        let output_pins = Vec::from_iter(max..max+num_outputs);
+        let supply_pins = Vec::from_iter(num_ground..num_ground+num_supply);
         
-        let num_pins = max+num_outputs;
+        let mut num_pins = num_ground+num_supply;
+        let mut input_pins = vec![];
+        let mut output_pins = vec![];
 
-        Self { ground_pins, supply_pins, input_pins, output_pins, num_pins }
+        let mut id_pin_map: HashMap<usize, usize> = HashMap::new();
+        let mut pin_id_map: HashMap<usize, usize> = HashMap::new();
+
+        for (id, node_type) in id_type_map {
+            id_pin_map.insert(id, num_pins);
+            pin_id_map.insert(num_pins, id);
+
+            match node_type {
+                NodeType::Input => input_pins.push(id),
+                NodeType::Output => output_pins.push(id),
+                _ => {},
+            }
+
+            num_pins += 1;
+        }
+
+        Self { ground_pins, supply_pins, input_pins, output_pins, num_pins, id_pin_map, pin_id_map }
     }
     
     pub fn get_num_inputs(&self) -> usize {
         self.ground_pins.len() + self.supply_pins.len() + self.input_pins.len()
+    }
+
+    pub fn get_pin_for(&self, id: usize) -> usize {
+        let extern_pin = self.id_pin_map.get(&id).expect("ID not found in pin map!");
+        *extern_pin
+    }
+
+    pub fn get_id_for(&self, pin: usize) -> usize {
+        let id = self.pin_id_map.get(&pin).expect("Pin not found!");
+        *id
     }
 }
 
@@ -48,8 +74,22 @@ pub enum NodeType {
     NAnd,
 }
 
-pub type LinkMap = HashMap<usize, Vec<usize>>;
 pub type NodeTypeMap = HashMap<usize, NodeType>;
+
+#[macro_export]
+macro_rules! node_type_map {
+    ( $( $key:expr => $value:expr ),* $(,)? ) => {
+        {            
+            let mut map = std::collections::HashMap::new();
+            $(
+                map.insert($key, $value);
+            )*
+            map
+        }
+    };
+}
+
+pub type LinkMap = HashMap<usize, Vec<usize>>;
 
 pub struct Link {
     pub source: usize,
@@ -59,4 +99,11 @@ impl Link {
     pub fn new(source: usize, target: usize) -> Self {
         Link { source, target }
     }
+}
+
+#[macro_export]
+macro_rules! link {
+    ( $source:expr => $target:expr ) => {
+        Link::new($source, $target)
+    };
 }

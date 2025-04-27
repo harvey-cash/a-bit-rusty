@@ -32,11 +32,10 @@ fn link_maps_equal_ignore_vec_order(map1: &LinkMap, map2: &LinkMap) -> bool {
 #[derive(Debug, Clone)]
 pub struct ChipDescription {
     pub layout: PinLayout,
-    pub num_nands: usize,
-    pub node_types: NodeTypeMap,
+    pub id_type_map: NodeTypeMap,
     pub forward_links: LinkMap,
     pub back_links: LinkMap,
-
+    num_nands: usize,
     is_valid: bool,
 }
 
@@ -45,7 +44,7 @@ impl PartialEq for ChipDescription {
         self.layout == other.layout &&
         self.num_nands == other.num_nands &&
         self.is_valid == other.is_valid &&
-        self.node_types == other.node_types &&
+        self.id_type_map == other.id_type_map &&
         link_maps_equal_ignore_vec_order(&self.forward_links, &other.forward_links) &&
         link_maps_equal_ignore_vec_order(&self.back_links, &other.back_links)
     }
@@ -53,32 +52,32 @@ impl PartialEq for ChipDescription {
 impl Eq for ChipDescription {}
 
 impl ChipDescription {
-    pub fn new(num_inputs: usize, num_outputs: usize, num_nands: usize, links: Vec<Link>) -> Self {
-
-        let (input_iter, output_iter, nand_iter) =
-            Self::create_node_iters(num_inputs, num_outputs, num_nands);
-        let node_types: NodeTypeMap =
-            Self::construct_node_types(&input_iter, &output_iter, &nand_iter);
+    pub fn new(id_type_map: NodeTypeMap, links: Vec<Link>) -> Self {
 
         let forward_links = Self::construct_forward_links(&links);
         let back_links = Self::construct_back_links(&links);
 
         let num_ground = 1;
         let num_supply = 1;
-        let num_nodes: usize = num_ground + num_supply + num_inputs + num_outputs + num_nands;
+        let num_nodes: usize = num_ground + num_supply + id_type_map.len();
 
-        let mut is_valid = !Self::has_insufficient_nodes(num_inputs, num_outputs, &links);
+        
+        let num_inputs = &id_type_map.iter().filter(|(_, t)| t == &&NodeType::Input).count();
+        let num_outputs = &id_type_map.iter().filter(|(_, t)| t == &&NodeType::Output).count();
+        let num_nands = &id_type_map.iter().filter(|(_, t)| t == &&NodeType::NAnd).count();
+
+        let mut is_valid = !Self::has_insufficient_nodes(*num_inputs, *num_outputs, &links);
         is_valid &= !Self::any_link_out_of_range(&links, num_nodes);
-        is_valid &= !Self::any_link_targets_input(&back_links, &node_types);
-        is_valid &= !Self::any_link_sources_output(&forward_links, &node_types);
-        is_valid &= !Self::any_output_targeted_more_than_once(&back_links, &output_iter);
+        is_valid &= !Self::any_link_targets_input(&back_links, &id_type_map);
+        is_valid &= !Self::any_link_sources_output(&forward_links, &id_type_map);
+        is_valid &= !Self::any_output_targeted_more_than_once(&back_links, &id_type_map);
         is_valid &= !Self::any_node_unconnected(num_nodes, &forward_links, &back_links);
-        is_valid &= !Self::any_nand_has_bad_sources(&back_links, &nand_iter);
-        is_valid &= !Self::any_nand_has_no_targets(&forward_links, &nand_iter);
+        is_valid &= !Self::any_nand_has_bad_sources(&back_links, &id_type_map);
+        is_valid &= !Self::any_nand_has_no_targets(&forward_links, &id_type_map);
 
-        let layout = PinLayout::new(num_ground, num_supply, num_inputs, num_outputs);
+        let layout = PinLayout::new(num_ground, num_supply, id_type_map.clone());
 
-        Self { layout, num_nands, node_types, forward_links, back_links, is_valid }
+        Self { layout, id_type_map, forward_links, back_links, num_nands: *num_nands, is_valid }
     }
 
     pub fn is_valid(&self) -> bool {
@@ -195,15 +194,19 @@ impl ChipDescription {
         return false;
     }
 
-    fn any_nand_has_bad_sources(back_links: &LinkMap, nand_iter: &Range<usize>) -> bool {
-        for index in nand_iter.clone() {
+    fn any_nand_has_bad_sources(back_links: &LinkMap, node_types: &NodeTypeMap) -> bool {
+        for (index, node_type) in node_types {
+            if node_type != &NodeType::NAnd {
+                continue;
+            }
+
             let empty: Vec<usize> = vec![];
             let sources = back_links.get(&index).unwrap_or(&empty);
             if sources.len() != 2 {
                 eprintln!("NAnd with id {index} does not have two sources!");
                 return true;
             }
-            if sources[0] == index && sources[1] == index {
+            if sources[0] == *index && sources[1] == *index {
                 eprintln!("NAnd with id {index} is unconnected and targeting only itself!");
                 return true;
             }
@@ -211,9 +214,12 @@ impl ChipDescription {
         return false;
     }
 
-    fn any_nand_has_no_targets(forward_links: &LinkMap, nand_iter: &Range<usize>) -> bool {
-        for index in nand_iter.clone() {
-            if forward_links.get(&index).is_none() {
+    fn any_nand_has_no_targets(forward_links: &LinkMap, node_types: &NodeTypeMap) -> bool {
+        for (index, node_type) in node_types {
+            if node_type != &NodeType::NAnd {
+                continue;
+            }
+            if forward_links.get(index).is_none() {
                 eprintln!("NAnd with id {} does not have any targets!", index);
                 return true;
             }
@@ -231,9 +237,13 @@ impl ChipDescription {
 
     fn any_output_targeted_more_than_once(
         back_links: &LinkMap,
-        output_iter: &Range<usize>,
+        node_types: &NodeTypeMap,
     ) -> bool {
-        for index in output_iter.clone() {
+        for (index, node_type) in node_types {
+            if node_type != &NodeType::Output {
+                continue;
+            }
+
             if back_links.get(&index).is_none_or(|links| links.len() != 1) {
                 eprintln!("Output must have exactly one source!");
                 return true;

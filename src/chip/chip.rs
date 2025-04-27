@@ -1,5 +1,5 @@
-use crate::chip::chip_description::ChipDescription;
-use std::collections::VecDeque;
+use crate::{chip::chip_description::ChipDescription, link, node_type_map};
+use std::collections::{HashMap, VecDeque};
 
 use super::types::*;
 
@@ -31,7 +31,9 @@ impl GroundChip {
 }
 impl Chip for GroundChip {
     fn get_type(&self) -> ChipType { ChipType::Ground }
-    fn get_layout(&self) -> PinLayout { PinLayout::new(0, 0, 0, 1) }
+    fn get_layout(&self) -> PinLayout { 
+        PinLayout::new(0, 0, node_type_map!{0 => NodeType::Output}) 
+    }
     fn write_pin(&mut self, _index: usize, _value: u8) {}
     fn read_pin(&self, _index: usize) -> u8 { 0 }
 }
@@ -47,7 +49,9 @@ impl SupplyChip {
 }
 impl Chip for SupplyChip {
     fn get_type(&self) -> ChipType { ChipType::Supply }
-    fn get_layout(&self) -> PinLayout { PinLayout::new(0, 0, 0, 1) }
+    fn get_layout(&self) -> PinLayout {
+        PinLayout::new(0, 0, node_type_map!{0 => NodeType::Output}) 
+    }
     fn write_pin(&mut self, _index: usize, value: u8) {
         self.value = value;
     }
@@ -63,7 +67,9 @@ impl InputChip {
 }
 impl Chip for InputChip {
     fn get_type(&self) -> ChipType { ChipType::Input }
-    fn get_layout(&self) -> PinLayout { PinLayout::new(0, 0, 0, 1) }
+    fn get_layout(&self) -> PinLayout { 
+        PinLayout::new(0, 0, node_type_map!{0 => NodeType::Output}) 
+    }
     fn write_pin(&mut self, _index: usize, value: u8) { self.value = value; }
     fn read_pin(&self, _index: usize) -> u8 { self.value }
 }
@@ -78,7 +84,12 @@ impl OutputChip {
 }
 impl Chip for OutputChip {
     fn get_type(&self) -> ChipType { ChipType::Output }
-    fn get_layout(&self) -> PinLayout { PinLayout::new(0, 0, 1, 1) }
+    fn get_layout(&self) -> PinLayout { 
+        PinLayout::new(0, 0, node_type_map!{
+            0 => NodeType::Input,
+            1 => NodeType::Output
+        })
+    }
     fn write_pin(&mut self, _index: usize, value: u8) {
         self.input_value = value;
     }
@@ -94,8 +105,14 @@ impl Tickable for OutputChip {
 pub struct NAndChip {}
 impl NAndChip {
     pub fn new() -> CustomChip {
-        let links = vec![Link::new(2, 5), Link::new(3, 5), Link::new(5, 4)];
-        let description = ChipDescription::new(2, 1, 1, links);
+        let id_types = node_type_map!{
+            2 => NodeType::Input,
+            3 => NodeType::Input,
+            4 => NodeType::Output,
+            5 => NodeType::NAnd
+        };
+        let links = vec![link!(2 => 5), link!(3 => 5), link!(5 => 4)];
+        let description = ChipDescription::new(id_types, links);
         CustomChip::new(description)
     }
 }
@@ -145,7 +162,7 @@ impl CustomChip {
             return;
         }
 
-        let node_type: &NodeType = self.description.node_types.get(&index).unwrap();
+        let node_type: &NodeType = self.description.id_type_map.get(index).unwrap();
         if *node_type == NodeType::NAnd {
             self.values[*index] = self.nand(&index);
         } else if *node_type == NodeType::Output {
@@ -159,10 +176,10 @@ impl CustomChip {
     }
     
     fn clear_internal_state(&mut self) {
-        let num_values = self.values.len();
-        let num_inputs = self.description.layout.get_num_inputs();
-        for i in num_inputs..num_values {
-            self.values[i] = 0;
+        for (id, node_type) in &self.description.id_type_map {
+            if node_type == &NodeType::NAnd || node_type == &NodeType::Output {
+                self.values[*id] = 0;
+            }
         }
     }
 }

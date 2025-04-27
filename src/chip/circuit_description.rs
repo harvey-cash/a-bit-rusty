@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::node_type_map;
+
 use super::{
     types::*,
     chip::ChipType, 
@@ -82,28 +84,8 @@ impl CircuitDescription {
         targets.retain(|t| t != &target);
     }
 
-    fn compile(&self) -> ChipDescription {
-        let mut num_inputs = 0;
-        let mut num_outputs = 0;        
-        let mut num_nands = 0;
-        let mut links = vec![];
-
-        let mut chip_ids_to_node_id: HashMap<usize, usize> = HashMap::new();
-
-        // for (chip_id, chip_description) in &self.chip_descriptions {
-        //     num_nands += chip_description.num_nands;
-        // }
-
-        for (chip_id, source_pin_and_targets) in &self.forward_links {
-            for (pin, targets) in source_pin_and_targets {
-                let source = ChipAndPin::new(*chip_id, *pin);
-                for target in targets {
-                    
-                }
-            }
-        }
-        
-        ChipDescription::new(num_inputs, num_nands, num_outputs, links)
+    fn compile(&self) -> ChipDescription {        
+        ChipDescription::new(node_type_map!(), vec![])
     }
     
     fn has_custom_chips_but_no_supply(&self) -> bool {

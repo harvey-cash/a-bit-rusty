@@ -1,10 +1,8 @@
 use ntest::timeout;
 
-use crate::chip::{
-    types::*,
-    chip::{Chip, CustomChip, GroundChip, NAndChip, SupplyChip, Tickable}, 
-    chip_description::ChipDescription
-};
+use crate::{chip::{
+    chip::{Chip, CustomChip, GroundChip, NAndChip, SupplyChip, Tickable}, chip_description::ChipDescription, types::*
+}, node_type_map};
 
 #[test]
 fn given_ground_then_output_0() {
@@ -43,13 +41,18 @@ fn given_supply_when_on_then_output_1() {
 #[test]
 #[should_panic]
 fn given_bad_description_then_panics() {
-    let description = ChipDescription::new(0, 1, 0, vec![Link::new(0, 0)]);
+    let id_types = node_type_map!{};
+	let description = ChipDescription::new(id_types, vec![Link::new(0, 0)]);
     CustomChip::new(description);
 }
 
 #[test]
 fn given_one_link_when_input_0_then_output_0() {
-    let description = ChipDescription::new(1, 1, 0, vec![Link::new(2, 3)]);
+    let id_types = node_type_map!{
+        2 => NodeType::Input,
+        3 => NodeType::Output
+    };
+	let description = ChipDescription::new(id_types, vec![Link::new(2, 3)]);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
     chip.write_pin(2, 0);
@@ -59,7 +62,11 @@ fn given_one_link_when_input_0_then_output_0() {
 
 #[test]
 fn given_one_link_when_input_1_then_output_1() {
-    let description = ChipDescription::new(1, 1, 0, vec![Link::new(2, 3)]);
+    let id_types = node_type_map!{
+        2 => NodeType::Input,
+        3 => NodeType::Output
+    };
+	let description = ChipDescription::new(id_types, vec![Link::new(2, 3)]);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
     chip.write_pin(2, 1);
@@ -69,7 +76,11 @@ fn given_one_link_when_input_1_then_output_1() {
 
 #[test]
 fn given_supply_0_then_output_0() {
-    let description = ChipDescription::new(1, 1, 0, vec![Link::new(2, 3)]);
+    let id_types = node_type_map!{
+        2 => NodeType::Input,
+        3 => NodeType::Output
+    };
+	let description = ChipDescription::new(id_types, vec![Link::new(2, 3)]);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 0);
     chip.write_pin(2, 1);
@@ -79,7 +90,11 @@ fn given_supply_0_then_output_0() {
 
 #[test]
 fn given_ground_1_then_output_0() {
-    let description = ChipDescription::new(1, 1, 0, vec![Link::new(2, 3)]);
+    let id_types = node_type_map!{
+        2 => NodeType::Input,
+        3 => NodeType::Output
+    };
+	let description = ChipDescription::new(id_types, vec![Link::new(2, 3)]);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::GROUND_PIN, 1);
     chip.write_pin(2, 1);
@@ -89,7 +104,11 @@ fn given_ground_1_then_output_0() {
 
 #[test]
 fn given_one_link_then_output_not_set_before_tick() {
-    let description = ChipDescription::new(1, 1, 0, vec![Link::new(2, 3)]);
+    let id_types = node_type_map!{
+        2 => NodeType::Input,
+        3 => NodeType::Output
+    };
+	let description = ChipDescription::new(id_types, vec![Link::new(2, 3)]);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
     chip.write_pin(2, 1);
@@ -99,7 +118,13 @@ fn given_one_link_then_output_not_set_before_tick() {
 #[test]
 fn given_two_separate_links_then_outputs_equal_corresponding_inputs() {
     let links = vec![Link::new(2, 4), Link::new(3, 5)];
-    let description = ChipDescription::new(2, 2, 0, links);
+    let id_types = node_type_map!{
+        2 => NodeType::Input,
+        3 => NodeType::Input,
+        4 => NodeType::Output,
+        5 => NodeType::Output,
+    };
+	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
 
@@ -113,7 +138,13 @@ fn given_two_separate_links_then_outputs_equal_corresponding_inputs() {
 #[test]
 fn given_two_crossed_links_then_outputs_equal_corresponding_inputs() {
     let links = vec![Link::new(2, 5), Link::new(3, 4)];
-    let description = ChipDescription::new(2, 2, 0, links);
+    let id_types = node_type_map!{
+        2 => NodeType::Input,
+        3 => NodeType::Input,
+        4 => NodeType::Output,
+        5 => NodeType::Output,
+    };
+	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
 
@@ -189,7 +220,12 @@ fn given_nand_when_supply_0_then_output_is_0() {
 fn given_nand_linked_sources_when_input_0_then_output_1() {
     let (input, output, nand) = (2, 3, 4);
     let links = vec![Link::new(input, nand), Link::new(input, nand), Link::new(nand, output)];
-    let description = ChipDescription::new(1, 1, 1, links);
+    let id_types = node_type_map!{
+        input => NodeType::Input,
+        output => NodeType::Output,
+        nand => NodeType::NAnd
+    };
+	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
     chip.write_pin(input, 0);
@@ -201,7 +237,12 @@ fn given_nand_linked_sources_when_input_0_then_output_1() {
 fn given_nand_linked_sources_when_input_1_then_output_0() {
     let (input, output, nand) = (2, 3, 4);
     let links = vec![Link::new(input, nand), Link::new(input, nand), Link::new(nand, output)];
-    let description = ChipDescription::new(1, 1, 1, links);
+    let id_types = node_type_map!{
+        input => NodeType::Input,
+        output => NodeType::Output,
+        nand => NodeType::NAnd
+    };
+	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
     chip.write_pin(input, 1);
@@ -219,7 +260,13 @@ fn given_two_nots_in_series_when_input_0_then_output_0() {
         Link::new(nand_1, nand_2),
         Link::new(nand_2, output),
     ];
-    let description = ChipDescription::new(1, 1, 2, links);
+    let id_types = node_type_map!{
+        input => NodeType::Input,
+        output => NodeType::Output,
+        nand_1 => NodeType::NAnd,
+        nand_2 => NodeType::NAnd,
+    };
+	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
 
@@ -238,7 +285,13 @@ fn given_two_nots_in_series_when_input_1_then_output_1() {
         Link::new(nand_1, nand_2),
         Link::new(nand_2, output),
     ];
-    let description = ChipDescription::new(1, 1, 2, links);
+    let id_types = node_type_map!{
+        input => NodeType::Input,
+        output => NodeType::Output,
+        nand_1 => NodeType::NAnd,
+        nand_2 => NodeType::NAnd,
+    };
+	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
 
@@ -252,7 +305,12 @@ fn given_two_nots_in_series_when_input_1_then_output_1() {
 fn given_cycle_when_ticked_then_does_not_loop_forever() {
     let (input, output, nand) = (2, 3, 4);
     let links = vec![Link::new(input, nand), Link::new(nand, nand), Link::new(nand, output)];
-    let description = ChipDescription::new(1, 1, 1, links);
+    let id_types = node_type_map!{
+        input => NodeType::Input,
+        output => NodeType::Output,
+        nand => NodeType::NAnd,
+    };
+	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
     chip.write_pin(input, 1);
@@ -265,7 +323,12 @@ fn given_cycle_when_ticked_then_does_not_loop_forever() {
 fn given_cycle_nand_when_ticked_then_output_oscillates() {
     let (input, output, nand) = (2, 3, 4);
     let links = vec![Link::new(input, nand), Link::new(nand, nand), Link::new(nand, output)];
-    let description = ChipDescription::new(1, 1, 1, links);
+    let id_types = node_type_map!{
+        input => NodeType::Input,
+        output => NodeType::Output,
+        nand => NodeType::NAnd,
+    };
+	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
     chip.write_pin(input, 1);
@@ -293,7 +356,14 @@ fn given_three_nand_loop_when_ticked_then_oscillates() {
         Link::new(nand_3, nand_1),
         Link::new(nand_3, output),
     ];
-    let description = ChipDescription::new(1, 1, 3, links);
+    let id_types = node_type_map!{
+        input => NodeType::Input,
+        output => NodeType::Output,
+        nand_1 => NodeType::NAnd,
+        nand_2 => NodeType::NAnd,
+        nand_3 => NodeType::NAnd,
+    };
+	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
     chip.write_pin(input, 1);
@@ -314,7 +384,14 @@ fn given_latch_when_set_does_not_reset() {
     let links = vec![
         Link::new(set, n1), Link::new(reset, n2), Link::new(n1, n2), Link::new(n2, n1), Link::new(n1, q)
     ];
-    let description = ChipDescription::new(2, 1, 2, links);
+    let id_types = node_type_map!{
+        set => NodeType::Input,
+        reset => NodeType::Input,
+        q => NodeType::Output,
+        n1 => NodeType::NAnd,
+        n2 => NodeType::NAnd
+    };
+	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
 
@@ -333,7 +410,14 @@ fn given_latch_when_reset_then_output_is_0() {
     let links = vec![
         Link::new(set, n1), Link::new(reset, n2), Link::new(n1, n2), Link::new(n2, n1), Link::new(n1, q)
     ];
-    let description = ChipDescription::new(2, 1, 2, links);
+    let id_types = node_type_map!{
+        set => NodeType::Input,
+        reset => NodeType::Input,
+        q => NodeType::Output,
+        n1 => NodeType::NAnd,
+        n2 => NodeType::NAnd
+    };
+	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
 
@@ -352,7 +436,14 @@ fn given_supply_0_when_ticked_internal_state_clears() {
     let links = vec![
         Link::new(set, n1), Link::new(reset, n2), Link::new(n1, n2), Link::new(n2, n1), Link::new(n1, q)
     ];
-    let description = ChipDescription::new(2, 1, 2, links);
+    let id_types = node_type_map!{
+        set => NodeType::Input,
+        reset => NodeType::Input,
+        q => NodeType::Output,
+        n1 => NodeType::NAnd,
+        n2 => NodeType::NAnd
+    };
+	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
 
