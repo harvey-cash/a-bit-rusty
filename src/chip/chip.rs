@@ -138,10 +138,6 @@ impl CustomChip {
 
         if a == 1 && b == 1 { 0 } else { 1 }
     }
-    
-    fn get_num_components(&self) -> usize {
-        self.description.node_types.len()
-    }
 
     fn get_input_ids(&self) -> Vec<usize> {
         let layout = self.description.layout.clone();
@@ -149,7 +145,8 @@ impl CustomChip {
     }
 
     fn update_node(&mut self, index: &NodeId) {
-        if *index < 2 {
+        let layout = &self.description.layout;
+        if *index < layout.ground_pins.len() + layout.supply_pins.len() {
             return;
         }
 
@@ -165,11 +162,25 @@ impl CustomChip {
     fn get_forward_links_for(&mut self, index: &usize) -> Option<&Vec<usize>> {
         self.description.forward_links.get(&index)
     }
+    
+    fn clear_internal_state(&mut self) {
+        let num_values = self.values.len();
+        let num_inputs = self.description.layout.get_num_inputs();
+        for i in num_inputs..num_values {
+            self.values[i] = 0;
+        }
+    }
 }
 
 impl Tickable for CustomChip {
     fn tick(&mut self) {
-        let mut updated_this_tick = vec![false; 2+self.get_num_components()];
+        
+        if self.values[0] != 0 || self.values[1] != 1 {
+            self.clear_internal_state();
+            return;
+        }
+
+        let mut updated_this_tick = vec![false; self.description.get_num_nodes()];
 
         let inputs: Vec<usize> = self.get_input_ids();
         let mut queue: VecDeque<usize> = VecDeque::from(inputs);
@@ -197,7 +208,7 @@ impl Chip for CustomChip {
 
     fn set_input(&mut self, index: NodeId, value: u8) {
         let num_inputs = self.description.layout.get_num_inputs();
-        
+
         if index < num_inputs {
             self.values[index] = value;
         } else {
@@ -206,9 +217,6 @@ impl Chip for CustomChip {
     }
 
     fn get_output(&self, output_index: NodeId) -> u8 {
-        if self.values[0] != 0 || self.values[1] != 1 {
-            return 0;
-        }
         self.values[self.description.num_nands + output_index]
     }
 }

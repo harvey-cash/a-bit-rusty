@@ -311,3 +311,69 @@ fn given_three_nand_loop_when_ticked_then_oscillates() {
     chip.tick();
     assert_eq!(chip.get_output(3), 1);
 }
+
+#[test]
+fn given_latch_when_set_does_not_reset() {
+    let (_ground, _supply, set, reset, n1, n2, q) = (0, 1, 2, 3, 4, 5, 6);
+    let q_pin = 4;
+
+    let links = vec![
+        Link::new(set, n1), Link::new(reset, n2), Link::new(n1, n2), Link::new(n2, n1), Link::new(n1, q)
+    ];
+    let description = ChipDescription::new(2, 2, 1, links);
+    let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
+
+    chip.set_input(set, 1);
+    chip.tick();
+    assert_eq!(chip.get_output(q_pin), 1);
+
+    chip.set_input(set, 0);
+    chip.tick();    
+    assert_eq!(chip.get_output(q_pin), 1);
+}
+
+#[test]
+fn given_latch_when_reset_then_output_is_0() {
+    let (_ground, _supply, set, reset, n1, n2, q) = (0, 1, 2, 3, 4, 5, 6);
+    let q_pin = 4;
+
+    let links = vec![
+        Link::new(set, n1), Link::new(reset, n2), Link::new(n1, n2), Link::new(n2, n1), Link::new(n1, q)
+    ];
+    let description = ChipDescription::new(2, 2, 1, links);
+    let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
+
+    chip.set_input(set, 1);
+    chip.tick();
+    assert_eq!(chip.get_output(q_pin), 1);
+
+    chip.set_input(reset, 1);
+    chip.tick();    
+    assert_eq!(chip.get_output(q_pin), 0);
+}
+
+#[test]
+fn given_supply_0_when_ticked_internal_state_clears() {
+    let (_ground, _supply, set, reset, n1, n2, q) = (0, 1, 2, 3, 4, 5, 6);
+    let q_pin = 4;
+
+    let links = vec![
+        Link::new(set, n1), Link::new(reset, n2), Link::new(n1, n2), Link::new(n2, n1), Link::new(n1, q)
+    ];
+    let description = ChipDescription::new(2, 2, 1, links);
+    let mut chip = CustomChip::new(description);
+    chip.set_supply(1);
+
+    chip.set_input(set, 1);
+    chip.tick();
+    assert_eq!(chip.get_output(q_pin), 1);
+
+    chip.set_supply(0);
+    chip.set_input(set, 0);
+    chip.tick();
+
+    chip.set_supply(1);
+    assert_eq!(chip.get_output(q_pin), 0);
+}

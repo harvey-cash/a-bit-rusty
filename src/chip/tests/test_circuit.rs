@@ -169,18 +169,20 @@ fn given_valid_not_gate_compiled_chip_is_a_not_gate() {
     let input_id = circuit.add_chip(InputChip::new());
     let nand_id = circuit.add_chip(NAndChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
+
     circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 0));
     circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 1));
     circuit.create_link(ChipAndPin::new(nand_id, 0), ChipAndPin::new(output_id, 0));
+    
     let description: ChipDescription = circuit.compile_to_chip();
     let mut chip = CustomChip::new(description);
     chip.set_supply(1);
 
-    chip.set_input(0, 0);
+    chip.set_input(2, 0);
     chip.tick();
-    assert_eq!(chip.get_output(0), 1);
+    assert_eq!(chip.get_output(3), 1);
 
-    chip.set_input(0, 1);
+    chip.set_input(2, 1);
     chip.tick();
-    assert_eq!(chip.get_output(0), 0);
+    assert_eq!(chip.get_output(3), 0);
 }
