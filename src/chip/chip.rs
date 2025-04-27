@@ -94,7 +94,7 @@ impl Tickable for OutputChip {
 pub struct NAndChip {}
 impl NAndChip {
     pub fn new() -> CustomChip {
-        let links = vec![Link::new(2, 4), Link::new(3, 4), Link::new(4, 5)];
+        let links = vec![Link::new(2, 5), Link::new(3, 5), Link::new(5, 4)];
         let description = ChipDescription::new(2, 1, 1, links);
         CustomChip::new(description)
     }
@@ -170,7 +170,7 @@ impl CustomChip {
 impl Tickable for CustomChip {
     fn tick(&mut self) {
         
-        if self.values[0] != 0 || self.values[1] != 1 {
+        if self.values[CustomChip::GROUND_PIN] != 0 || self.values[CustomChip::SUPPLY_PIN] != 1 {
             self.clear_internal_state();
             return;
         }
@@ -211,6 +211,12 @@ impl Chip for CustomChip {
     }
 
     fn read_pin(&self, pin_idx: NodeId) -> u8 {
-        self.values[self.description.num_nands + pin_idx]
+        let layout = &self.description.layout;
+        let num_pins = layout.get_num_inputs() + layout.output_pins.len();
+        if pin_idx >= num_pins {
+            panic!("Can't read an internal (NAnd) node with index {pin_idx}!")
+        }
+
+        self.values[pin_idx]
     }
 }

@@ -53,17 +53,19 @@ impl PartialEq for ChipDescription {
 impl Eq for ChipDescription {}
 
 impl ChipDescription {
-    pub fn new(num_inputs: usize, num_nands: usize, num_outputs: usize, links: Vec<Link>) -> Self {
+    pub fn new(num_inputs: usize, num_outputs: usize, num_nands: usize, links: Vec<Link>) -> Self {
 
-        let (input_iter, nand_iter, output_iter) =
-            Self::create_node_iters(num_inputs, num_nands, num_outputs);
+        let (input_iter, output_iter, nand_iter) =
+            Self::create_node_iters(num_inputs, num_outputs, num_nands);
         let node_types: NodeTypeMap =
-            Self::construct_node_types(&input_iter, &nand_iter, &output_iter);
+            Self::construct_node_types(&input_iter, &output_iter, &nand_iter);
 
         let forward_links = Self::construct_forward_links(&links);
         let back_links = Self::construct_back_links(&links);
 
-        let num_nodes: usize = 2 + num_inputs + num_nands + num_outputs;
+        let num_ground = 1;
+        let num_supply = 1;
+        let num_nodes: usize = num_ground + num_supply + num_inputs + num_outputs + num_nands;
 
         let mut is_valid = !Self::has_insufficient_nodes(num_inputs, num_outputs, &links);
         is_valid &= !Self::any_link_out_of_range(&links, num_nodes);
@@ -74,7 +76,7 @@ impl ChipDescription {
         is_valid &= !Self::any_nand_has_bad_sources(&back_links, &nand_iter);
         is_valid &= !Self::any_nand_has_no_targets(&forward_links, &nand_iter);
 
-        let layout = PinLayout::new(1, 1, num_inputs, num_outputs);
+        let layout = PinLayout::new(num_ground, num_supply, num_inputs, num_outputs);
 
         Self { layout, num_nands, node_types, forward_links, back_links, is_valid }
     }
@@ -117,32 +119,32 @@ impl ChipDescription {
 
     fn construct_node_types(
         inputs: &Range<usize>,
-        nands: &Range<usize>,
         outputs: &Range<usize>,
+        nands: &Range<usize>,
     ) -> NodeTypeMap {
         inputs
             .clone()
             .map(|i| (i, NodeType::Input))
-            .chain(nands.clone().map(|i| (i, NodeType::NAnd)))
             .chain(outputs.clone().map(|i| (i, NodeType::Output)))
+            .chain(nands.clone().map(|i| (i, NodeType::NAnd)))
             .collect()
     }
 
     fn create_node_iters(
         num_inputs: usize,
-        num_nands: usize,
         num_outputs: usize,
+        num_nands: usize,
     ) -> (Range<usize>, Range<usize>, Range<usize>) {
         let num_ground_and_supply: usize = 2;
         let end_inputs = num_ground_and_supply + num_inputs;
-        let end_nands = end_inputs + num_nands;
-        let end_outputs = end_nands + num_outputs;
+        let end_outputs = end_inputs + num_outputs;
+        let end_nands = end_outputs + num_nands;
 
         let input_iter = num_ground_and_supply..end_inputs;
-        let nand_iter = end_inputs..end_nands;
-        let output_iter = end_nands..end_outputs;
+        let output_iter = end_inputs..end_outputs;
+        let nand_iter = end_outputs..end_nands;
 
-        return (input_iter, nand_iter, output_iter);
+        return (input_iter, output_iter, nand_iter);
     }
 
     fn any_link_out_of_range(links: &Vec<Link>, num_nodes: usize) -> bool {

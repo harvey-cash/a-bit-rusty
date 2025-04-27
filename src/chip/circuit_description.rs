@@ -9,6 +9,7 @@ use super::{
 pub struct CircuitDescription {
     pub num_chips: usize,
     pub chip_types: HashMap<usize, ChipType>,
+    pub chip_descriptions: HashMap<usize, ChipDescription>,
     pub forward_links: HashMap<usize, HashMap<usize, Vec<ChipAndPin>>>,
 }
 
@@ -17,6 +18,7 @@ impl CircuitDescription {
         Self {
             num_chips: 0,
             chip_types: HashMap::new(),
+            chip_descriptions: HashMap::new(),
             forward_links: HashMap::new(),
         }
     }
@@ -32,29 +34,29 @@ impl CircuitDescription {
         let id = self.num_chips;
         self.num_chips += 1;
         self.chip_types.entry(id).or_insert(ChipType::Custom);
+        self.chip_descriptions.entry(id).or_insert(description);
         id
     }
 
     pub fn is_valid(&self) -> bool {
-        let chip_description = self.compile_to_chip();
+        if self.has_custom_chips_but_no_supply() {
+            return false;
+        }
+
+        let chip_description = self.compile();
         chip_description.is_valid()
     }
 
     pub fn compile_to_chip(&self) -> ChipDescription {
-        let num_inputs = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Input).count();
-        let num_nands = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Custom).count();
-        let num_outputs = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Output).count();
-        
-        let mut links = Vec::new();
-        for (source_chip_id, sources) in &self.forward_links {
-            for (_, target_pins) in sources {
-                for target_pin in target_pins {
-                    links.push(Link::new(source_chip_id+2, target_pin.chip_id+2));
-                }
-            }
+        if self.has_custom_chips_but_no_supply() {
+            panic!("Can not compile an invalid circuit!");
         }
         
-        ChipDescription::new(num_inputs, num_nands, num_outputs, links)
+        let chip_description = self.compile();
+        if !chip_description.is_valid() {
+            panic!("Can not compile an invalid circuit!");
+        }
+        chip_description
     }
     
     pub fn add_forward_link(&mut self, source: ChipAndPin, target: ChipAndPin) {
@@ -78,5 +80,35 @@ impl CircuitDescription {
         }
         let targets = targets.unwrap();
         targets.retain(|t| t != &target);
+    }
+
+    fn compile(&self) -> ChipDescription {
+        let mut num_inputs = 0;
+        let mut num_outputs = 0;        
+        let mut num_nands = 0;
+        let mut links = vec![];
+
+        let mut chip_ids_to_node_id: HashMap<usize, usize> = HashMap::new();
+
+        // for (chip_id, chip_description) in &self.chip_descriptions {
+        //     num_nands += chip_description.num_nands;
+        // }
+
+        for (chip_id, source_pin_and_targets) in &self.forward_links {
+            for (pin, targets) in source_pin_and_targets {
+                let source = ChipAndPin::new(*chip_id, *pin);
+                for target in targets {
+                    
+                }
+            }
+        }
+        
+        ChipDescription::new(num_inputs, num_nands, num_outputs, links)
+    }
+    
+    fn has_custom_chips_but_no_supply(&self) -> bool {
+        let num_custom = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Custom).count();
+        let num_supply = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Supply).count();
+        return num_custom > 0 && num_supply == 0;
     }
 }
