@@ -159,8 +159,8 @@ impl CustomChip {
     }
     
     fn get_input_queue(&self) -> VecDeque<usize> {
-        let mut queue: VecDeque<usize> = VecDeque::new();
         let input_ids: Vec<usize> = self.get_input_ids();
+        let mut queue: VecDeque<usize> = VecDeque::with_capacity(input_ids.len());
         for id in input_ids {
             match self.changed_since_last_tick.contains(&id) {
                 true => queue.push_front(id),
