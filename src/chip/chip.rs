@@ -111,7 +111,7 @@ impl CustomChip {
             panic!("Chip can not be built from invalid description!");
         }
 
-        let num_nodes = description.num_nodes;
+        let num_nodes = description.get_num_nodes();
         Self {
             description,
             values: vec![0; num_nodes],
@@ -144,8 +144,8 @@ impl CustomChip {
     }
 
     fn get_input_ids(&self) -> Vec<usize> {
-        // ground and supply are input pins like any other
-        (0..2+self.description.num_inputs).collect()
+        let layout = self.description.layout.clone();
+        [layout.ground_pins, layout.supply_pins, layout.input_pins].concat()
     }
 
     fn update_node(&mut self, index: &NodeId) {
@@ -196,9 +196,9 @@ impl Chip for CustomChip {
     }
 
     fn set_input(&mut self, index: NodeId, value: u8) {
-        let input_max: usize = 2 + self.description.num_inputs;
-
-        if index < input_max {
+        let num_inputs = self.description.layout.get_num_inputs();
+        
+        if index < num_inputs {
             self.values[index] = value;
         } else {
             panic!("Can't set pin with index {index}!");

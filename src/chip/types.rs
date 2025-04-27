@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PinLayout {
     pub ground_pins: Vec<usize>,
     pub supply_pins: Vec<usize>,
     pub input_pins: Vec<usize>,
     pub output_pins: Vec<usize>,
+    pub num_pins: usize,
 }
 impl PinLayout {
     pub fn new(num_ground: usize, num_supply: usize, num_inputs: usize, num_outputs: usize) -> Self
@@ -18,7 +19,14 @@ impl PinLayout {
         let input_pins = Vec::from_iter(max..max+num_inputs);
         max += num_inputs;
         let output_pins = Vec::from_iter(max..max+num_outputs);
-        Self { ground_pins, supply_pins, input_pins, output_pins }
+        
+        let num_pins = max+num_outputs;
+
+        Self { ground_pins, supply_pins, input_pins, output_pins, num_pins }
+    }
+    
+    pub fn get_num_inputs(&self) -> usize {
+        self.ground_pins.len() + self.supply_pins.len() + self.input_pins.len()
     }
 }
 

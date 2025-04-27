@@ -31,24 +31,19 @@ fn link_maps_equal_ignore_vec_order(map1: &LinkMap, map2: &LinkMap) -> bool {
 
 #[derive(Debug, Clone)]
 pub struct ChipDescription {
-    pub num_nodes: usize,
-    pub num_inputs: usize,
+    pub layout: PinLayout,
     pub num_nands: usize,
-    pub num_outputs: usize,
     pub node_types: NodeTypeMap,
     pub forward_links: LinkMap,
     pub back_links: LinkMap,
-    pub layout: PinLayout,
 
     is_valid: bool,
 }
 
 impl PartialEq for ChipDescription {
     fn eq(&self, other: &Self) -> bool {
-        self.num_nodes == other.num_nodes &&
-        self.num_inputs == other.num_inputs &&
+        self.layout == other.layout &&
         self.num_nands == other.num_nands &&
-        self.num_outputs == other.num_outputs &&
         self.is_valid == other.is_valid &&
         self.node_types == other.node_types &&
         link_maps_equal_ignore_vec_order(&self.forward_links, &other.forward_links) &&
@@ -81,7 +76,7 @@ impl ChipDescription {
 
         let layout = PinLayout::new(1, 1, num_inputs, num_outputs);
 
-        Self { num_nodes, num_inputs, num_nands, num_outputs, node_types, forward_links, back_links, layout, is_valid }
+        Self { layout, num_nands, node_types, forward_links, back_links, is_valid }
     }
 
     pub fn is_valid(&self) -> bool {
@@ -90,6 +85,10 @@ impl ChipDescription {
     
     pub fn get_layout(&self) -> PinLayout {
         self.layout.clone()
+    }
+
+    pub fn get_num_nodes(&self) -> usize {
+        self.layout.num_pins + self.num_nands
     }
 
     fn construct_forward_links(links: &Vec<Link>) -> LinkMap {
