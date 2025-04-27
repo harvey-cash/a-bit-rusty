@@ -48,18 +48,15 @@ pub enum NodeType {
     NAnd,
 }
 
-pub type NodeId = usize;
-pub type LinkMap = HashMap<NodeId, Vec<NodeId>>;
-pub type NodeTypeMap = HashMap<NodeId, NodeType>;
+pub type LinkMap = HashMap<usize, Vec<usize>>;
+pub type NodeTypeMap = HashMap<usize, NodeType>;
 
 pub struct Link {
-    pub source: NodeId,
-    pub target: NodeId,
+    pub source: usize,
+    pub target: usize,
 }
-
-
 impl Link {
-    pub fn new(source: NodeId, target: NodeId) -> Self {
+    pub fn new(source: usize, target: usize) -> Self {
         Link { source, target }
     }
 }

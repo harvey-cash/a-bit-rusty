@@ -125,7 +125,7 @@ impl CustomChip {
         self.description.clone()
     }
 
-    fn nand(&self, index: &NodeId) -> u8 {
+    fn nand(&self, index: &usize) -> u8 {
         let a_idx = self.description.back_links[index][0];
         let b_idx = self.description.back_links[index][1];
         let a = self.values[a_idx];
@@ -139,7 +139,7 @@ impl CustomChip {
         [layout.ground_pins, layout.supply_pins, layout.input_pins].concat()
     }
 
-    fn update_node(&mut self, index: &NodeId) {
+    fn update_node(&mut self, index: &usize) {
         let layout = &self.description.layout;
         if *index < layout.ground_pins.len() + layout.supply_pins.len() {
             return;
@@ -201,7 +201,7 @@ impl Chip for CustomChip {
         self.description.get_layout()
     }
 
-    fn write_pin(&mut self, pin_idx: NodeId, value: u8) {
+    fn write_pin(&mut self, pin_idx: usize, value: u8) {
         let num_inputs = self.description.layout.get_num_inputs();
         if pin_idx < num_inputs {
             self.values[pin_idx] = value;
@@ -210,7 +210,7 @@ impl Chip for CustomChip {
         }
     }
 
-    fn read_pin(&self, pin_idx: NodeId) -> u8 {
+    fn read_pin(&self, pin_idx: usize) -> u8 {
         let layout = &self.description.layout;
         let num_pins = layout.get_num_inputs() + layout.output_pins.len();
         if pin_idx >= num_pins {
