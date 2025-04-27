@@ -156,9 +156,9 @@ fn given_valid_not_gate_can_compile_to_valid_chip_description() {
     let input_id = circuit.add_chip(InputChip::new());
     let nand_id = circuit.add_chip(NAndChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 0));
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 1));
-    circuit.create_link(ChipAndPin::new(nand_id, 0), ChipAndPin::new(output_id, 0));
+    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 2));
+    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 3));
+    circuit.create_link(ChipAndPin::new(nand_id, 4), ChipAndPin::new(output_id, 0));
     let description: ChipDescription = circuit.compile_to_chip();
     assert_eq!(description.is_valid(), true);
 }

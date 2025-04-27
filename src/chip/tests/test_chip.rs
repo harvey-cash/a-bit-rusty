@@ -6,9 +6,6 @@ use crate::chip::{
     chip_description::ChipDescription
 };
 
-// ToDo:
-// [ ] Chips have a Pin for Ground, Supply, each Input and each Output.
-
 #[test]
 fn given_ground_then_output_0() {
     let chip = GroundChip::new();

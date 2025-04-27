@@ -1,9 +1,6 @@
 use crate::chip::{chip_description::ChipDescription, types::*};
 
 // ToDo:
-// [X] If a ChipDescription is valid, it can be used to create a new Chip.
-// [X] ChipDescriptions are invalid if multiple sources have the same target.
-// [X] ChipDescriptions are invalid if any Chip is unconnected.
 // [ ] ChipDescriptions define the XY size of a new Chip.
 // [ ] ChipDescriptions define the co-ordinates of Pins adjacent the the size bounds.
 // [ ] ChipDescriptions are invalid if any Chip's Ground Pin is not connected to a Ground Chip.
