@@ -1,7 +1,7 @@
-use crate::chip::chip_description::{ChipDescription, NodeId, NodeType};
+use crate::chip::chip_description::ChipDescription;
 use std::collections::VecDeque;
 
-use super::chip_description::{Link, PinLayout};
+use super::types::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ChipType {
@@ -94,15 +94,13 @@ impl Tickable for OutputChip {
 pub struct NAndChip {}
 impl NAndChip {
     pub fn new() -> CustomChip {
-        let links = vec![Link::new(0, 2), Link::new(1, 2), Link::new(2, 3)];
+        let links = vec![Link::new(2, 4), Link::new(3, 4), Link::new(4, 5)];
         let description = ChipDescription::new(2, 1, 1, links);
         CustomChip::new(description)
     }
 }
 
 pub struct CustomChip {
-    ground: u8,
-    supply: u8,
     description: ChipDescription,
     values: Vec<u8>,
 }
@@ -115,8 +113,6 @@ impl CustomChip {
 
         let num_nodes = description.num_nodes;
         Self {
-            ground: 0,
-            supply: 0,
             description,
             values: vec![0; num_nodes],
         }
@@ -127,12 +123,12 @@ impl CustomChip {
     }
 
     pub fn set_ground(&mut self, value: u8) {
-        self.ground = value;
+        self.values[0] = value;
     }
 
     pub fn set_supply(&mut self, value: u8) {
-        self.supply = value;
-    }    
+        self.values[1] = value;
+    }
 
     fn nand(&self, index: &NodeId) -> u8 {
         let a_idx = self.description.back_links[index][0];
@@ -148,10 +144,15 @@ impl CustomChip {
     }
 
     fn get_input_ids(&self) -> Vec<usize> {
-        (0..self.description.num_inputs).collect()
+        // ground and supply are input pins like any other
+        (0..2+self.description.num_inputs).collect()
     }
 
     fn update_node(&mut self, index: &NodeId) {
+        if *index < 2 {
+            return;
+        }
+
         let node_type: &NodeType = self.description.node_types.get(&index).unwrap();
         if *node_type == NodeType::NAnd {
             self.values[*index] = self.nand(&index);
@@ -168,7 +169,7 @@ impl CustomChip {
 
 impl Tickable for CustomChip {
     fn tick(&mut self) {
-        let mut updated_this_tick = vec![false; self.get_num_components()];
+        let mut updated_this_tick = vec![false; 2+self.get_num_components()];
 
         let inputs: Vec<usize> = self.get_input_ids();
         let mut queue: VecDeque<usize> = VecDeque::from(inputs);
@@ -195,13 +196,19 @@ impl Chip for CustomChip {
     }
 
     fn set_input(&mut self, index: NodeId, value: u8) {
-        self.values[index] = value;
+        let input_max: usize = 2 + self.description.num_inputs;
+
+        if index < input_max {
+            self.values[index] = value;
+        } else {
+            panic!("Can't set pin with index {index}!");
+        }
     }
 
     fn get_output(&self, output_index: NodeId) -> u8 {
-        if self.supply != 1 || self.ground != 0 {
+        if self.values[0] != 0 || self.values[1] != 1 {
             return 0;
         }
-        self.values[self.description.num_inputs + self.description.num_nands + output_index]
+        self.values[self.description.num_nands + output_index]
     }
 }

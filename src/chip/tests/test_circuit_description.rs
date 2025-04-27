@@ -5,8 +5,9 @@
 // [ ] CircuitDescription contains state of all Chips, Pins, and Traces.
 
 use crate::chip::{
+    types::*,
     chip::{ChipType, CustomChip, NAndChip}, 
-    chip_description::{ChipAndPin, ChipDescription}, 
+    chip_description::ChipDescription, 
     circuit_description::CircuitDescription
 };
 

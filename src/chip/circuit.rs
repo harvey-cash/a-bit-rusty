@@ -1,8 +1,9 @@
 use std::{collections::{HashMap, VecDeque}, vec};
 
 use super::{
+    types::*,
     chip::{Chip, ChipType, Tickable}, 
-    chip_description::{ChipAndPin, ChipDescription}, 
+    chip_description::ChipDescription, 
     circuit_description::CircuitDescription
 };
 
@@ -77,21 +78,22 @@ impl Circuit {
             .collect()
     }
     
-    fn get_input_values_for_chip(&self, index: &usize) -> Vec<u8> {
-        let num_inputs = self.chips.get(index).unwrap().get_num_inputs();
-        let mut inputs = vec![0; num_inputs];
+    fn get_input_values_for_chip(&self, index: &usize) -> HashMap<usize, u8> {
+        let input_pins = self.chips.get(index).unwrap().get_layout().input_pins;
+        let mut inputs = HashMap::new();
         
-        for pin_idx in 0..num_inputs {
+        for pin_idx in input_pins {
             let pin = ChipAndPin::new(*index, pin_idx);
             let back_link_option = self.back_links.get(&pin);
 
             if back_link_option.is_none() {
-                inputs[pin_idx] = 0;
+                inputs.insert(pin_idx, 0);
                 continue;
             }
             
             let source_pin: ChipAndPin = *back_link_option.unwrap();
-            inputs[pin_idx] = self.chips.get(&source_pin.chip_id).unwrap().get_output(source_pin.pin_index);
+            let value = self.chips.get(&source_pin.chip_id).unwrap().get_output(source_pin.pin_index);
+            inputs.insert(pin_idx, value);
         }
         inputs
         
@@ -110,7 +112,7 @@ impl Tickable for Circuit {
                 continue;
             }
 
-            let input_values = self.get_input_values_for_chip(&index);
+            let input_values: HashMap<usize, u8> = self.get_input_values_for_chip(&index);
 
             let chip_option = self.chips.get_mut(&index);
             if chip_option.is_none() {
@@ -118,8 +120,8 @@ impl Tickable for Circuit {
             }
 
             let chip = chip_option.unwrap();
-            for (i, value) in input_values.iter().enumerate() {
-                chip.set_input(i, *value);
+            for (pin_idx, value) in input_values {
+                chip.set_input(pin_idx, value);
             }
             chip.tick();
             updated_this_tick[index] = true;

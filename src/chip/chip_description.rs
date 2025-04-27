@@ -1,60 +1,7 @@
 
-use std::{collections::{HashMap, HashSet}, ops::Range};
+use std::{collections::HashMap, ops::Range};
 
-#[derive(Debug, Clone)]
-pub struct PinLayout {
-    pub ground_pins: Vec<usize>,
-    pub supply_pins: Vec<usize>,
-    pub input_pins: Vec<usize>,
-    pub output_pins: Vec<usize>,
-}
-impl PinLayout {
-    pub fn new(num_ground: usize, num_supply: usize, num_inputs: usize, num_outputs: usize) -> Self
-    {
-        let ground_pins = Vec::from_iter(0.. num_ground);
-        let mut max = num_ground;
-        let supply_pins = Vec::from_iter(max..max+num_supply);
-        max += num_supply;
-        let input_pins = Vec::from_iter(max..max+num_inputs);
-        max += num_inputs;
-        let output_pins = Vec::from_iter(max..max+num_outputs);
-        Self { ground_pins, supply_pins, input_pins, output_pins }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ChipAndPin {
-    pub chip_id: usize,
-    pub pin_index: usize,
-}
-impl ChipAndPin {
-    pub fn new(chip_id: usize, pin_index: usize) -> Self {
-        Self { chip_id, pin_index }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum NodeType {
-    Input,
-    Output,
-    NAnd,
-}
-
-pub type NodeId = usize;
-pub type LinkMap = HashMap<NodeId, Vec<NodeId>>;
-pub type NodeTypeMap = HashMap<NodeId, NodeType>;
-
-pub struct Link {
-    pub source: NodeId,
-    pub target: NodeId,
-}
-
-
-impl Link {
-    pub fn new(source: NodeId, target: NodeId) -> Self {
-        Link { source, target }
-    }
-}
+use super::types::*;
 
 fn link_maps_equal_ignore_vec_order(map1: &LinkMap, map2: &LinkMap) -> bool {
     if map1.len() != map2.len() {
@@ -121,7 +68,7 @@ impl ChipDescription {
         let forward_links = Self::construct_forward_links(&links);
         let back_links = Self::construct_back_links(&links);
 
-        let num_nodes: usize = num_inputs + num_nands + num_outputs;
+        let num_nodes: usize = 2 + num_inputs + num_nands + num_outputs;
 
         let mut is_valid = !Self::has_insufficient_nodes(num_inputs, num_outputs, &links);
         is_valid &= !Self::any_link_out_of_range(&links, num_nodes);
@@ -187,11 +134,13 @@ impl ChipDescription {
         num_nands: usize,
         num_outputs: usize,
     ) -> (Range<usize>, Range<usize>, Range<usize>) {
-        let end_nands = num_inputs + num_nands;
+        let num_ground_and_supply: usize = 2;
+        let end_inputs = num_ground_and_supply + num_inputs;
+        let end_nands = end_inputs + num_nands;
         let end_outputs = end_nands + num_outputs;
 
-        let input_iter = 0..num_inputs;
-        let nand_iter = num_inputs..end_nands;
+        let input_iter = num_ground_and_supply..end_inputs;
+        let nand_iter = end_inputs..end_nands;
         let output_iter = end_nands..end_outputs;
 
         return (input_iter, nand_iter, output_iter);
@@ -236,7 +185,7 @@ impl ChipDescription {
         forward_links: &LinkMap,
         back_links: &LinkMap,
     ) -> bool {
-        for index in 0..num_nodes {
+        for index in 2..num_nodes {
             if !forward_links.contains_key(&index) && !back_links.contains_key(&index) {
                 eprintln!("Node with id {index} not connected!");
                 return true;

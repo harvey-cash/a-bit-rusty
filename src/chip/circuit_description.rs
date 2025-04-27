@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use super::{
+    types::*,
     chip::ChipType, 
-    chip_description::{ChipAndPin, ChipDescription, Link}
+    chip_description::ChipDescription
 };
 
 pub struct CircuitDescription {
@@ -48,7 +49,7 @@ impl CircuitDescription {
         for (source_chip_id, sources) in &self.forward_links {
             for (_, target_pins) in sources {
                 for target_pin in target_pins {
-                    links.push(Link::new(source_chip_id.clone(), target_pin.chip_id));
+                    links.push(Link::new(source_chip_id+2, target_pin.chip_id+2));
                 }
             }
         }

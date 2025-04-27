@@ -34,8 +34,9 @@
 // [ ] Circuit can be constructed from a ChipDescription.
 
 use crate::chip::{
+    types::*,
     chip::{Chip, CustomChip, GroundChip, InputChip, NAndChip, OutputChip, SupplyChip, Tickable}, 
-    chip_description::{ChipAndPin, ChipDescription}, 
+    chip_description::ChipDescription, 
     circuit::Circuit
 };
 
@@ -114,7 +115,7 @@ fn given_input_connected_when_1_then_output_is_1() {
 }
 
 #[test]
-fn given_not_gate_when_input_1_then_output_0() {
+fn given_not_gate_when_input_0_then_output_1() {
     let mut circuit = Circuit::new();
     let input_id = circuit.add_chip(InputChip::new());
 
@@ -124,11 +125,29 @@ fn given_not_gate_when_input_1_then_output_0() {
     
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.set_input(input_id, 0);
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 0));
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 1));
-    circuit.create_link(ChipAndPin::new(nand_id, 0), ChipAndPin::new(output_id, 0));
+    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 2));
+    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 3));
+    circuit.create_link(ChipAndPin::new(nand_id, 4), ChipAndPin::new(output_id, 0));
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 1);
+}
+
+#[test]
+fn given_not_gate_when_input_1_then_output_0() {
+    let mut circuit = Circuit::new();
+    let input_id = circuit.add_chip(InputChip::new());
+
+    let mut chip = NAndChip::new();
+    chip.set_supply(1);
+    let nand_id = circuit.add_chip(chip);
+    
+    let output_id = circuit.add_chip(OutputChip::new());
+    circuit.set_input(input_id, 1);
+    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 2));
+    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 3));
+    circuit.create_link(ChipAndPin::new(nand_id, 4), ChipAndPin::new(output_id, 0));
+    circuit.tick();
+    assert_eq!(circuit.get_output(output_id), 0);
 }
 
 #[test]
