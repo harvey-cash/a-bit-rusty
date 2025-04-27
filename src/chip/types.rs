@@ -26,6 +26,10 @@ impl PinLayout {
         let mut pin_id_map: HashMap<usize, usize> = HashMap::new();
 
         for (id, node_type) in id_type_map {
+            if node_type == NodeType::NAnd {
+                continue;
+            }
+
             id_pin_map.insert(id, num_pins);
             pin_id_map.insert(num_pins, id);
 
@@ -34,7 +38,7 @@ impl PinLayout {
                 NodeType::Output => output_pins.push(id),
                 _ => {},
             }
-
+            
             num_pins += 1;
         }
 

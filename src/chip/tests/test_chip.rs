@@ -395,12 +395,23 @@ fn given_latch_when_set_does_not_reset() {
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
 
+    // S = 1, R = 1 stable state
     chip.write_pin(set, 1);
+    chip.write_pin(reset, 1);
+    chip.tick();
+
+    // pulse set low to set the latch
+    chip.write_pin(set, 0);
     chip.tick();
     assert_eq!(chip.read_pin(q), 1);
 
-    chip.write_pin(set, 0);
-    chip.tick();    
+    // return high - output stays high
+    chip.write_pin(set, 1);
+    chip.tick();
+    assert_eq!(chip.read_pin(q), 1);
+    chip.tick();
+    assert_eq!(chip.read_pin(q), 1);
+    chip.tick();
     assert_eq!(chip.read_pin(q), 1);
 }
 
@@ -421,12 +432,25 @@ fn given_latch_when_reset_then_output_is_0() {
     let mut chip = CustomChip::new(description);
     chip.write_pin(CustomChip::SUPPLY_PIN, 1);
 
+    // S = 1, R = 1 stable state
+    chip.write_pin(set, 1);
+    chip.write_pin(reset, 1);
+    chip.tick();
+
+    // pulse set low to set the latch
+    chip.write_pin(set, 0);
+    chip.tick();
     chip.write_pin(set, 1);
     chip.tick();
-    assert_eq!(chip.read_pin(q), 1);
+    
+    // pulse reset low to reset the latch
+    chip.write_pin(reset, 0);
+    chip.tick();
+    assert_eq!(chip.read_pin(q), 0);
 
+    // return reset high - output stays low
     chip.write_pin(reset, 1);
-    chip.tick();    
+    chip.tick();
     assert_eq!(chip.read_pin(q), 0);
 }
 

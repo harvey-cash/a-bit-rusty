@@ -1,5 +1,5 @@
 use crate::{chip::chip_description::ChipDescription, link, node_type_map};
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use super::types::*;
 
@@ -120,6 +120,7 @@ impl NAndChip {
 pub struct CustomChip {
     description: ChipDescription,
     values: Vec<u8>,
+    changed_since_last_tick: HashSet<usize>
 }
 
 impl CustomChip {
@@ -135,6 +136,7 @@ impl CustomChip {
         Self {
             description,
             values: vec![0; num_nodes],
+            changed_since_last_tick: HashSet::new()
         }
     }
     
@@ -154,6 +156,18 @@ impl CustomChip {
     fn get_input_ids(&self) -> Vec<usize> {
         let layout = self.description.layout.clone();
         [layout.ground_pins, layout.supply_pins, layout.input_pins].concat()
+    }
+    
+    fn get_input_queue(&self) -> VecDeque<usize> {
+        let mut queue: VecDeque<usize> = VecDeque::new();
+        let input_ids: Vec<usize> = self.get_input_ids();
+        for id in input_ids {
+            match self.changed_since_last_tick.contains(&id) {
+                true => queue.push_front(id),
+                false => queue.push_back(id),
+            }
+        }
+        queue
     }
 
     fn update_node(&mut self, index: &usize) {
@@ -193,9 +207,7 @@ impl Tickable for CustomChip {
         }
 
         let mut updated_this_tick = vec![false; self.description.get_num_nodes()];
-
-        let inputs: Vec<usize> = self.get_input_ids();
-        let mut queue: VecDeque<usize> = VecDeque::from(inputs);
+        let mut queue: VecDeque<usize> = self.get_input_queue();
 
         while let Some(index) = queue.pop_front() {
             if updated_this_tick[index] == true {
@@ -209,6 +221,8 @@ impl Tickable for CustomChip {
                 queue.extend(targets.iter().copied());
             }
         }
+
+        self.changed_since_last_tick.clear();
     }
 }
 impl Chip for CustomChip {
@@ -222,6 +236,7 @@ impl Chip for CustomChip {
         let num_inputs = self.description.layout.get_num_inputs();
         if pin_idx < num_inputs {
             self.values[pin_idx] = value;
+            self.changed_since_last_tick.insert(pin_idx);
         } else {
             panic!("Can't set pin with index {pin_idx}!");
         }
