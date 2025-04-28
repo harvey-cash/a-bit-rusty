@@ -119,7 +119,7 @@ impl NAndChip {
 
 pub struct CustomChip {
     description: ChipDescription,
-    values: Vec<u8>,
+    values: HashMap<usize, u8>,
     changed_since_last_tick: HashSet<usize>
 }
 
@@ -132,10 +132,11 @@ impl CustomChip {
             panic!("Chip can not be built from invalid description!");
         }
 
-        let num_nodes = description.get_num_nodes();
+        let values = Self::create_id_value_map(&description);
+
         Self {
             description,
-            values: vec![0; num_nodes],
+            values,
             changed_since_last_tick: HashSet::new()
         }
     }
@@ -147,10 +148,10 @@ impl CustomChip {
     fn nand(&self, index: &usize) -> u8 {
         let a_idx = self.description.back_links[index][0];
         let b_idx = self.description.back_links[index][1];
-        let a = self.values[a_idx];
-        let b = self.values[b_idx];
+        let a = self.values.get(&a_idx).unwrap();
+        let b = self.values.get(&b_idx).unwrap();
 
-        if a == 1 && b == 1 { 0 } else { 1 }
+        if *a == 1 && *b == 1 { 0 } else { 1 }
     }
 
     fn get_input_ids(&self) -> Vec<usize> {
@@ -178,10 +179,12 @@ impl CustomChip {
 
         let node_type: &NodeType = self.description.id_type_map.get(index).unwrap();
         if *node_type == NodeType::NAnd {
-            self.values[*index] = self.nand(&index);
+            let value =  self.nand(&index);
+            self.values.insert(*index, value);
         } else if *node_type == NodeType::Output {
             let source = self.description.back_links[&index][0];
-            self.values[*index] = self.values[source];
+            let value = self.values.get(&source).unwrap();
+            self.values.insert(*index, *value);
         }
     }
 
@@ -192,16 +195,28 @@ impl CustomChip {
     fn clear_internal_state(&mut self) {
         for (id, node_type) in &self.description.id_type_map {
             if node_type == &NodeType::NAnd || node_type == &NodeType::Output {
-                self.values[*id] = 0;
+                self.values.insert(*id, 0);
             }
         }
+    }
+    
+    fn create_id_value_map(description: &ChipDescription) -> HashMap<usize, u8> {
+        let num_nodes = description.get_num_nodes();
+        let mut values: HashMap<usize, u8> = HashMap::with_capacity(num_nodes);
+        values.insert(CustomChip::GROUND_PIN, 0);
+        values.insert(CustomChip::SUPPLY_PIN, 0);
+        for (id, _) in &description.id_type_map {
+            values.insert(*id, 0);
+        }
+        values
     }
 }
 
 impl Tickable for CustomChip {
     fn tick(&mut self) {
-        
-        if self.values[CustomChip::GROUND_PIN] != 0 || self.values[CustomChip::SUPPLY_PIN] != 1 {
+        let ground = self.values.get(&CustomChip::GROUND_PIN).unwrap();
+        let supply = self.values.get(&CustomChip::SUPPLY_PIN).unwrap();
+        if *ground != 0 || *supply != 1 {
             self.clear_internal_state();
             return;
         }
@@ -235,7 +250,7 @@ impl Chip for CustomChip {
     fn write_pin(&mut self, pin_idx: usize, value: u8) {
         let num_inputs = self.description.layout.get_num_inputs();
         if pin_idx < num_inputs {
-            self.values[pin_idx] = value;
+            self.values.insert(pin_idx, value);
             self.changed_since_last_tick.insert(pin_idx);
         } else {
             panic!("Can't set pin with index {pin_idx}!");
@@ -249,6 +264,6 @@ impl Chip for CustomChip {
             panic!("Can't read an internal (NAnd) node with index {pin_idx}!")
         }
 
-        self.values[pin_idx]
+        *self.values.get(&pin_idx).unwrap()
     }
 }
