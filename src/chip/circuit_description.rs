@@ -84,8 +84,15 @@ impl CircuitDescription {
         targets.retain(|t| t != &target);
     }
 
-    fn compile(&self) -> ChipDescription {        
-        ChipDescription::new(node_type_map!(), vec![])
+    fn compile(&self) -> ChipDescription {
+        let id_types: HashMap<usize, NodeType> = node_type_map!{
+            0 => NodeType::Ground,
+            1 => NodeType::Supply,
+        };
+
+        let links = vec![];
+
+        ChipDescription::new(id_types, links)
     }
     
     fn has_custom_chips_but_no_supply(&self) -> bool {
