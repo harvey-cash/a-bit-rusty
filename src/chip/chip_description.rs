@@ -57,16 +57,15 @@ impl ChipDescription {
         let forward_links = Self::construct_forward_links(&links);
         let back_links = Self::construct_back_links(&links);
 
-        let num_ground = 1;
-        let num_supply = 1;
-        let num_nodes: usize = num_ground + num_supply + id_type_map.len();
+        let num_nodes: usize = id_type_map.len();
 
-        
         let num_inputs = &id_type_map.iter().filter(|(_, t)| t == &&NodeType::Input).count();
         let num_outputs = &id_type_map.iter().filter(|(_, t)| t == &&NodeType::Output).count();
         let num_nands = &id_type_map.iter().filter(|(_, t)| t == &&NodeType::NAnd).count();
 
-        let mut is_valid = !Self::has_insufficient_nodes(*num_inputs, *num_outputs, &links);
+        let mut is_valid = !Self::has_no_ground_nodes(&id_type_map);
+        is_valid &= !Self::has_no_supply_nodes(&id_type_map);
+        is_valid &= !Self::has_insufficient_nodes(*num_inputs, *num_outputs, &links);
         is_valid &= !Self::any_link_out_of_range(&links, num_nodes);
         is_valid &= !Self::any_link_targets_input(&back_links, &id_type_map);
         is_valid &= !Self::any_link_sources_output(&forward_links, &id_type_map);
@@ -75,7 +74,7 @@ impl ChipDescription {
         is_valid &= !Self::any_nand_has_bad_sources(&back_links, &id_type_map);
         is_valid &= !Self::any_nand_has_no_targets(&forward_links, &id_type_map);
 
-        let layout = PinLayout::new(num_ground, num_supply, id_type_map.clone());
+        let layout = PinLayout::new(id_type_map.clone());
 
         Self { layout, id_type_map, forward_links, back_links, num_nands: *num_nands, is_valid }
     }
@@ -144,6 +143,26 @@ impl ChipDescription {
         let nand_iter = end_outputs..end_nands;
 
         return (input_iter, output_iter, nand_iter);
+    }
+    
+    fn has_no_ground_nodes(id_type_map: &HashMap<usize, NodeType>) -> bool {
+        for (_, node_type) in id_type_map {
+            if node_type == &NodeType::Ground {
+                return false;
+            }
+        }
+        eprintln!("Has no ground nodes!");
+        return true;
+    }
+    
+    fn has_no_supply_nodes(id_type_map: &HashMap<usize, NodeType>) -> bool {
+        for (_, node_type) in id_type_map {
+            if node_type == &NodeType::Supply {
+                return false;
+            }
+        }
+        eprintln!("Has no supply nodes!");
+        return true;
     }
 
     fn any_link_out_of_range(links: &Vec<Link>, num_nodes: usize) -> bool {

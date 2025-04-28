@@ -78,7 +78,7 @@ fn given_ground_not_added_then_invalid() {
 //     let n = circuit.add_custom_chip(NAndChip::new().get_description());
 //     let y = circuit.add_chip(ChipType::Output);
 //     circuit.add_forward_link(ChipAndPin::new(ground, 0), ChipAndPin::new(n, CustomChip::GROUND_PIN));
-//     circuit.add_forward_link(ChipAndPin::new(supply, 0), ChipAndPin::new(n, CustomChip::SUPPLY_PIN));
+//     circuit.add_forward_link(ChipAndPin::new(supply, 0), ChipAndPin::new(n, chip.get_supply_pin()));
 //     circuit.add_forward_link(ChipAndPin::new(a, 0), ChipAndPin::new(n, 2));
 //     circuit.add_forward_link(ChipAndPin::new(b, 0), ChipAndPin::new(n, 3));
 //     circuit.add_forward_link(ChipAndPin::new(n, 4), ChipAndPin::new(y, 0));

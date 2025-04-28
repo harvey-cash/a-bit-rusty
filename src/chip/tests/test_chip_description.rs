@@ -8,29 +8,52 @@ use crate::{chip::{chip_description::ChipDescription, types::*}, node_type_map};
 // [ ] ChipDescriptions are invalid if there is not >=1 Ground, >=1 Supply, >=1 Input and >=1 Output.
 
 #[test]
+fn given_no_ground_then_invalid() {
+    let id_types = node_type_map!{1 => NodeType::Supply, 2 => NodeType::Input, 3 => NodeType::Input};
+    let links = vec![Link::new(2, 3)];
+    let description = ChipDescription::new(id_types, links);
+    assert_eq!(description.is_valid(), false);
+}
+#[test]
+fn given_no_supply_then_invalid() {
+    let id_types = node_type_map!{0 => NodeType::Ground, 2 => NodeType::Input, 3 => NodeType::Input};
+    let links = vec![Link::new(2, 3)];
+    let description = ChipDescription::new(id_types, links);
+    assert_eq!(description.is_valid(), false);
+}
+
+#[test]
 fn given_no_inputs_then_invalid() {
-    let id_types = node_type_map!{2 => NodeType::Output};
+    let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 2 => NodeType::Output
+    };
     let description = ChipDescription::new(id_types, vec![Link::new(2, 2)]);
     assert_eq!(description.is_valid(), false);
 }
 
 #[test]
 fn given_no_outputs_then_invalid() {
-    let id_types = node_type_map!{2 => NodeType::Input};
+    let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 2 => NodeType::Input
+    };
 	let description = ChipDescription::new(id_types, vec![Link::new(2, 2)]);
 	assert_eq!(description.is_valid(), false);
 }
 
 #[test]
 fn given_no_links_then_invalid() {
-    let id_types = node_type_map!{2 => NodeType::Input, 3 => NodeType::Output};
+    let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 2 => NodeType::Input, 3 => NodeType::Output
+    };
 	let description = ChipDescription::new(id_types, vec![]);
 	assert_eq!(description.is_valid(), false);
 }
 
 #[test]
 fn given_no_nands_then_still_valid() {
-    let id_types = node_type_map!{2 => NodeType::Input, 3 => NodeType::Output};
+    let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 2 => NodeType::Input, 3 => NodeType::Output
+    };
 	let description = ChipDescription::new(id_types, vec![Link::new(2, 3)]);
 	assert_eq!(description.is_valid(), true);
 }
@@ -39,6 +62,8 @@ fn given_no_nands_then_still_valid() {
 fn given_single_wired_up_nand_then_valid() {
     let (input_1, input_2, output, nand) = (2, 3, 4, 5);
     let id_types = node_type_map!{
+        0 => NodeType::Ground,
+        1 => NodeType::Supply,
         input_1 => NodeType::Input,
         input_2 => NodeType::Input,
         output => NodeType::Output,
@@ -52,12 +77,16 @@ fn given_single_wired_up_nand_then_valid() {
 
 #[test]
 fn given_link_source_out_of_range_then_invalid() {
-    let id_types = node_type_map!{2 => NodeType::Input, 3 => NodeType::Output};
+    let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 2 => NodeType::Input, 3 => NodeType::Output
+    };
 	let description = ChipDescription::new(id_types, vec![Link::new(7, 2)]);
     assert_eq!(description.is_valid(), false);
 
     let links = vec![Link::new(2, 2), Link::new(7, 2)];
-    let id_types = node_type_map!{};
+    let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 2 => NodeType::Input, 3 => NodeType::Output
+    };
 	let description = ChipDescription::new(id_types, links);
     assert_eq!(description.is_valid(), false);
 }
@@ -66,6 +95,7 @@ fn given_link_source_out_of_range_then_invalid() {
 fn given_link_targets_input_then_invalid() {
     let (input_1, input_2, output) = (2, 3, 4);
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input_1 => NodeType::Input,
         input_2 => NodeType::Input,
         output => NodeType::Output
@@ -81,6 +111,7 @@ fn given_link_targets_input_then_invalid() {
 fn given_link_sources_output_then_invalid() {
     let (input_1, output_1, output_2) = (2, 3, 4);
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input_1 => NodeType::Input,
         output_1 => NodeType::Output,
         output_2 => NodeType::Output
@@ -97,6 +128,7 @@ fn given_output_targeted_by_two_links_then_invalid() {
     let (input_1, input_2, output) = (2, 3, 4);
     let links = vec![Link::new(input_1, output), Link::new(input_2, output)];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input_1 => NodeType::Input,
         input_2 => NodeType::Input,
         output => NodeType::Output
@@ -109,6 +141,7 @@ fn given_output_targeted_by_two_links_then_invalid() {
 fn given_any_node_unconnected_then_invalid() {
     let (input, output, nand) = (2, 3, 4);
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input => NodeType::Input,
         output => NodeType::Output,
         nand => NodeType::NAnd,
@@ -128,6 +161,7 @@ fn given_nand_with_no_targets_then_invalid() {
     let (input, output, nand) = (2, 3, 4);
     let links = vec![Link::new(input, nand), Link::new(input, nand), Link::new(input, output)];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input => NodeType::Input,
         output => NodeType::Output,
         nand => NodeType::NAnd,
@@ -140,6 +174,7 @@ fn given_nand_with_no_targets_then_invalid() {
 fn given_nand_no_sources_then_invalid() {
     let (input, output_1, output_2, nand) = (2, 3, 4, 5);
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input => NodeType::Input,
         output_1 => NodeType::Output,
         output_2 => NodeType::Output,
@@ -159,6 +194,7 @@ fn given_nand_three_sources_then_invalid() {
         Link::new(nand, output),
     ];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input_1 => NodeType::Input,
         input_2 => NodeType::Input,
         input_3 => NodeType::Input,
@@ -179,6 +215,7 @@ fn given_nand_same_source_three_times_then_invalid() {
         Link::new(nand, output),
     ];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input => NodeType::Input,
         output => NodeType::Output,
         nand => NodeType::NAnd,

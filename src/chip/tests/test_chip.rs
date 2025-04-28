@@ -49,12 +49,13 @@ fn given_bad_description_then_panics() {
 #[test]
 fn given_one_link_when_input_0_then_output_0() {
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         2 => NodeType::Input,
         3 => NodeType::Output
     };
 	let description = ChipDescription::new(id_types, vec![Link::new(2, 3)]);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
     chip.write_pin(2, 0);
     chip.tick();
     assert_eq!(chip.read_pin(3), 0);
@@ -63,12 +64,13 @@ fn given_one_link_when_input_0_then_output_0() {
 #[test]
 fn given_one_link_when_input_1_then_output_1() {
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         2 => NodeType::Input,
         3 => NodeType::Output
     };
 	let description = ChipDescription::new(id_types, vec![Link::new(2, 3)]);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
     chip.write_pin(2, 1);
     chip.tick();
     assert_eq!(chip.read_pin(3), 1);
@@ -77,12 +79,13 @@ fn given_one_link_when_input_1_then_output_1() {
 #[test]
 fn given_supply_0_then_output_0() {
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         2 => NodeType::Input,
         3 => NodeType::Output
     };
 	let description = ChipDescription::new(id_types, vec![Link::new(2, 3)]);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 0);
+    chip.write_pin(chip.get_supply_pin(), 0);
     chip.write_pin(2, 1);
     chip.tick();
     assert_eq!(chip.read_pin(3), 0);
@@ -91,12 +94,13 @@ fn given_supply_0_then_output_0() {
 #[test]
 fn given_ground_1_then_output_0() {
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         2 => NodeType::Input,
         3 => NodeType::Output
     };
 	let description = ChipDescription::new(id_types, vec![Link::new(2, 3)]);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::GROUND_PIN, 1);
+    chip.write_pin(chip.get_ground_pin(), 1);
     chip.write_pin(2, 1);
     chip.tick();
     assert_eq!(chip.read_pin(3), 0);
@@ -105,12 +109,13 @@ fn given_ground_1_then_output_0() {
 #[test]
 fn given_one_link_then_output_not_set_before_tick() {
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         2 => NodeType::Input,
         3 => NodeType::Output
     };
 	let description = ChipDescription::new(id_types, vec![Link::new(2, 3)]);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
     chip.write_pin(2, 1);
     assert_eq!(chip.read_pin(3), 0);
 }
@@ -119,6 +124,7 @@ fn given_one_link_then_output_not_set_before_tick() {
 fn given_two_separate_links_then_outputs_equal_corresponding_inputs() {
     let links = vec![Link::new(2, 4), Link::new(3, 5)];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         2 => NodeType::Input,
         3 => NodeType::Input,
         4 => NodeType::Output,
@@ -126,7 +132,7 @@ fn given_two_separate_links_then_outputs_equal_corresponding_inputs() {
     };
 	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
 
     chip.write_pin(2, 0);
     chip.write_pin(3, 1);
@@ -139,6 +145,7 @@ fn given_two_separate_links_then_outputs_equal_corresponding_inputs() {
 fn given_two_crossed_links_then_outputs_equal_corresponding_inputs() {
     let links = vec![Link::new(2, 5), Link::new(3, 4)];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         2 => NodeType::Input,
         3 => NodeType::Input,
         4 => NodeType::Output,
@@ -146,7 +153,7 @@ fn given_two_crossed_links_then_outputs_equal_corresponding_inputs() {
     };
 	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
 
     chip.write_pin(2, 0);
     chip.write_pin(3, 1);
@@ -170,7 +177,7 @@ fn given_nand_then_has_supply_pin() {
 #[test]
 fn given_nand_when_inputs_both_0_then_output_is_1() {
     let mut chip = NAndChip::new();
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
     chip.write_pin(2, 0);
     chip.write_pin(3, 0);
     chip.tick();
@@ -180,7 +187,7 @@ fn given_nand_when_inputs_both_0_then_output_is_1() {
 #[test]
 fn given_nand_when_inputs_both_1_then_output_is_0() {
     let mut chip = NAndChip::new();
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
     chip.write_pin(2, 1);
     chip.write_pin(3, 1);
     chip.tick();
@@ -190,7 +197,7 @@ fn given_nand_when_inputs_both_1_then_output_is_0() {
 #[test]
 fn given_nand_when_single_input_1_then_output_is_1() {
     let mut chip = NAndChip::new();
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
     chip.write_pin(2, 1);
     chip.write_pin(3, 0);
     chip.tick();
@@ -221,13 +228,14 @@ fn given_nand_linked_sources_when_input_0_then_output_1() {
     let (input, output, nand) = (2, 3, 4);
     let links = vec![Link::new(input, nand), Link::new(input, nand), Link::new(nand, output)];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input => NodeType::Input,
         output => NodeType::Output,
         nand => NodeType::NAnd
     };
 	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
     chip.write_pin(input, 0);
     chip.tick();
     assert_eq!(chip.read_pin(output), 1);
@@ -238,13 +246,14 @@ fn given_nand_linked_sources_when_input_1_then_output_0() {
     let (input, output, nand) = (2, 3, 4);
     let links = vec![Link::new(input, nand), Link::new(input, nand), Link::new(nand, output)];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input => NodeType::Input,
         output => NodeType::Output,
         nand => NodeType::NAnd
     };
 	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
     chip.write_pin(input, 1);
     chip.tick();
     assert_eq!(chip.read_pin(output), 0);
@@ -261,6 +270,7 @@ fn given_two_nots_in_series_when_input_0_then_output_0() {
         Link::new(nand_2, output),
     ];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input => NodeType::Input,
         output => NodeType::Output,
         nand_1 => NodeType::NAnd,
@@ -268,7 +278,7 @@ fn given_two_nots_in_series_when_input_0_then_output_0() {
     };
 	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
 
     chip.write_pin(input, 0);
     chip.tick();
@@ -286,6 +296,7 @@ fn given_two_nots_in_series_when_input_1_then_output_1() {
         Link::new(nand_2, output),
     ];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input => NodeType::Input,
         output => NodeType::Output,
         nand_1 => NodeType::NAnd,
@@ -293,7 +304,7 @@ fn given_two_nots_in_series_when_input_1_then_output_1() {
     };
 	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
 
     chip.write_pin(input, 1);
     chip.tick();
@@ -306,13 +317,14 @@ fn given_cycle_when_ticked_then_does_not_loop_forever() {
     let (input, output, nand) = (2, 3, 4);
     let links = vec![Link::new(input, nand), Link::new(nand, nand), Link::new(nand, output)];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input => NodeType::Input,
         output => NodeType::Output,
         nand => NodeType::NAnd,
     };
 	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
     chip.write_pin(input, 1);
     chip.tick();
     assert_eq!(chip.read_pin(output), 1);
@@ -324,13 +336,14 @@ fn given_cycle_nand_when_ticked_then_output_oscillates() {
     let (input, output, nand) = (2, 3, 4);
     let links = vec![Link::new(input, nand), Link::new(nand, nand), Link::new(nand, output)];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input => NodeType::Input,
         output => NodeType::Output,
         nand => NodeType::NAnd,
     };
 	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
     chip.write_pin(input, 1);
 
     chip.tick();
@@ -357,6 +370,7 @@ fn given_three_nand_loop_when_ticked_then_oscillates() {
         Link::new(nand_3, output),
     ];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         input => NodeType::Input,
         output => NodeType::Output,
         nand_1 => NodeType::NAnd,
@@ -365,7 +379,7 @@ fn given_three_nand_loop_when_ticked_then_oscillates() {
     };
 	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
     chip.write_pin(input, 1);
 
     chip.tick();
@@ -385,6 +399,7 @@ fn given_latch_when_set_does_not_reset() {
         Link::new(set, n1), Link::new(reset, n2), Link::new(n1, n2), Link::new(n2, n1), Link::new(n1, q)
     ];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         set => NodeType::Input,
         reset => NodeType::Input,
         q => NodeType::Output,
@@ -393,7 +408,7 @@ fn given_latch_when_set_does_not_reset() {
     };
 	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
 
     // S = 1, R = 1 stable state
     chip.write_pin(set, 1);
@@ -422,6 +437,7 @@ fn given_latch_when_reset_then_output_is_0() {
         Link::new(set, n1), Link::new(reset, n2), Link::new(n1, n2), Link::new(n2, n1), Link::new(n1, q)
     ];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         set => NodeType::Input,
         reset => NodeType::Input,
         q => NodeType::Output,
@@ -430,7 +446,7 @@ fn given_latch_when_reset_then_output_is_0() {
     };
 	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
 
     // S = 1, R = 1 stable state
     chip.write_pin(set, 1);
@@ -461,6 +477,7 @@ fn given_supply_0_when_ticked_internal_state_clears() {
         Link::new(set, n1), Link::new(reset, n2), Link::new(n1, n2), Link::new(n2, n1), Link::new(n1, q)
     ];
     let id_types = node_type_map!{
+        0 => NodeType::Ground, 1 => NodeType::Supply, 
         set => NodeType::Input,
         reset => NodeType::Input,
         q => NodeType::Output,
@@ -469,16 +486,16 @@ fn given_supply_0_when_ticked_internal_state_clears() {
     };
 	let description = ChipDescription::new(id_types, links);
     let mut chip = CustomChip::new(description);
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
 
     chip.write_pin(set, 1);
     chip.tick();
     assert_eq!(chip.read_pin(q), 1);
 
-    chip.write_pin(CustomChip::SUPPLY_PIN, 0);
+    chip.write_pin(chip.get_supply_pin(), 0);
     chip.write_pin(set, 0);
     chip.tick();
 
-    chip.write_pin(CustomChip::SUPPLY_PIN, 1);
+    chip.write_pin(chip.get_supply_pin(), 1);
     assert_eq!(chip.read_pin(q), 0);
 }

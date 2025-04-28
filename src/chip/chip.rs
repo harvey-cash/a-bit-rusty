@@ -32,7 +32,7 @@ impl GroundChip {
 impl Chip for GroundChip {
     fn get_type(&self) -> ChipType { ChipType::Ground }
     fn get_layout(&self) -> PinLayout { 
-        PinLayout::new(0, 0, node_type_map!{0 => NodeType::Output}) 
+        PinLayout::new(node_type_map!{0 => NodeType::Output}) 
     }
     fn write_pin(&mut self, _index: usize, _value: u8) {}
     fn read_pin(&self, _index: usize) -> u8 { 0 }
@@ -50,7 +50,7 @@ impl SupplyChip {
 impl Chip for SupplyChip {
     fn get_type(&self) -> ChipType { ChipType::Supply }
     fn get_layout(&self) -> PinLayout {
-        PinLayout::new(0, 0, node_type_map!{0 => NodeType::Output}) 
+        PinLayout::new(node_type_map!{0 => NodeType::Output}) 
     }
     fn write_pin(&mut self, _index: usize, value: u8) {
         self.value = value;
@@ -68,7 +68,7 @@ impl InputChip {
 impl Chip for InputChip {
     fn get_type(&self) -> ChipType { ChipType::Input }
     fn get_layout(&self) -> PinLayout { 
-        PinLayout::new(0, 0, node_type_map!{0 => NodeType::Output}) 
+        PinLayout::new(node_type_map!{0 => NodeType::Output}) 
     }
     fn write_pin(&mut self, _index: usize, value: u8) { self.value = value; }
     fn read_pin(&self, _index: usize) -> u8 { self.value }
@@ -85,7 +85,7 @@ impl OutputChip {
 impl Chip for OutputChip {
     fn get_type(&self) -> ChipType { ChipType::Output }
     fn get_layout(&self) -> PinLayout { 
-        PinLayout::new(0, 0, node_type_map!{
+        PinLayout::new(node_type_map!{
             0 => NodeType::Input,
             1 => NodeType::Output
         })
@@ -106,6 +106,8 @@ pub struct NAndChip {}
 impl NAndChip {
     pub fn new() -> CustomChip {
         let id_types = node_type_map!{
+            0 => NodeType::Ground,
+            1 => NodeType::Supply,
             2 => NodeType::Input,
             3 => NodeType::Input,
             4 => NodeType::Output,
@@ -124,9 +126,6 @@ pub struct CustomChip {
 }
 
 impl CustomChip {
-    pub const GROUND_PIN: usize = 0;
-    pub const SUPPLY_PIN: usize = 1;
-
     pub fn new(description: ChipDescription) -> Self {
         if !description.is_valid() {
             panic!("Chip can not be built from invalid description!");
@@ -143,6 +142,29 @@ impl CustomChip {
     
     pub fn get_description(&self) -> ChipDescription {
         self.description.clone()
+    }
+
+    pub fn get_ground_pin(&self) -> usize {
+        let ground_ids: Vec<&usize> = self.description.id_type_map.iter()
+            .filter_map(|(id, node_type)| { if node_type == &NodeType::Ground { Some(id) } else { None } })
+            .collect();
+        *ground_ids[0]
+    }
+
+    pub fn get_supply_pin(&self) -> usize {
+        let supply_ids: Vec<&usize> = self.description.id_type_map.iter()
+            .filter_map(|(id, node_type)| { if node_type == &NodeType::Supply { Some(id) } else { None } })
+            .collect();
+        *supply_ids[0]
+    }
+    
+    fn create_id_value_map(description: &ChipDescription) -> HashMap<usize, u8> {
+        let num_nodes = description.get_num_nodes();
+        let mut values: HashMap<usize, u8> = HashMap::with_capacity(num_nodes);
+        for (id, _) in &description.id_type_map {
+            values.insert(*id, 0);
+        }
+        values
     }
 
     fn nand(&self, index: &usize) -> u8 {
@@ -200,23 +222,21 @@ impl CustomChip {
         }
     }
     
-    fn create_id_value_map(description: &ChipDescription) -> HashMap<usize, u8> {
-        let num_nodes = description.get_num_nodes();
-        let mut values: HashMap<usize, u8> = HashMap::with_capacity(num_nodes);
-        values.insert(CustomChip::GROUND_PIN, 0);
-        values.insert(CustomChip::SUPPLY_PIN, 0);
-        for (id, _) in &description.id_type_map {
-            values.insert(*id, 0);
-        }
-        values
+    fn get_power_input_values(&self) -> (u8, u8) {
+        let ground_pin = &self.get_ground_pin();
+        let ground = self.values.get(ground_pin).unwrap();
+
+        let supply_pin = &self.get_supply_pin();
+        let supply = self.values.get(supply_pin).unwrap();
+        
+        (*ground, *supply)
     }
 }
 
 impl Tickable for CustomChip {
     fn tick(&mut self) {
-        let ground = self.values.get(&CustomChip::GROUND_PIN).unwrap();
-        let supply = self.values.get(&CustomChip::SUPPLY_PIN).unwrap();
-        if *ground != 0 || *supply != 1 {
+        let (ground, supply) = self.get_power_input_values();
+        if ground != 0 || supply != 1 {
             self.clear_internal_state();
             return;
         }

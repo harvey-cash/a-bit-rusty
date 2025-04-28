@@ -13,12 +13,11 @@ pub struct PinLayout {
     pin_id_map: HashMap<usize, usize>,
 }
 impl PinLayout {
-    pub fn new(num_ground: usize, num_supply: usize, id_type_map: NodeTypeMap) -> Self
-    {
-        let ground_pins = Vec::from_iter(0.. num_ground);
-        let supply_pins = Vec::from_iter(num_ground..num_ground+num_supply);
-        
-        let mut num_pins = num_ground+num_supply;
+    pub fn new(id_type_map: NodeTypeMap) -> Self
+    {        
+        let mut num_pins = 0;
+        let mut ground_pins = vec![];
+        let mut supply_pins = vec![];
         let mut input_pins = vec![];
         let mut output_pins = vec![];
 
@@ -34,6 +33,8 @@ impl PinLayout {
             pin_id_map.insert(num_pins, id);
 
             match node_type {
+                NodeType::Ground => ground_pins.push(id),
+                NodeType::Supply => supply_pins.push(id),
                 NodeType::Input => input_pins.push(id),
                 NodeType::Output => output_pins.push(id),
                 _ => {},
@@ -73,6 +74,8 @@ impl ChipAndPin {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeType {
+    Ground,
+    Supply,
     Input,
     Output,
     NAnd,
