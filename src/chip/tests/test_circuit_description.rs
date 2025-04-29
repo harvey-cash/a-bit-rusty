@@ -58,27 +58,27 @@ fn given_ground_not_added_then_invalid() {
     assert_eq!(circuit.is_valid(), false);
 }
 
-// #[test]
-// fn given_single_nand_chip_then_compiles_to_identical_description() {
-//     let nand = NAndChip::new().get_description();
-//     let layout = nand.get_layout();
-//     let ground = layout.get_pin_for(layout.ground_pins[0]);
-//     let supply = layout.get_pin_for(layout.supply_pins[0]);
+#[test]
+fn given_single_nand_chip_then_compiles_to_identical_description() {
+    let nand = NAndChip::new().get_description();
+    let layout = nand.get_layout();
+    let ground = layout.get_pin_for(layout.ground_pins[0]);
+    let supply = layout.get_pin_for(layout.supply_pins[0]);
 
-//     let mut circuit = CircuitDescription::new();
-//     let g = circuit.add_chip(ChipType::Ground);
-//     let s = circuit.add_chip(ChipType::Supply);
-//     let a = circuit.add_chip(ChipType::Input);
-//     let b = circuit.add_chip(ChipType::Input);
-//     let n = circuit.add_custom_chip(nand.clone());
-//     let y = circuit.add_chip(ChipType::Output);
+    let mut circuit = CircuitDescription::new();
+    let g = circuit.add_chip(ChipType::Ground);
+    let s = circuit.add_chip(ChipType::Supply);
+    let a = circuit.add_chip(ChipType::Input);
+    let b = circuit.add_chip(ChipType::Input);
+    let n = circuit.add_custom_chip(nand.clone());
+    let y = circuit.add_chip(ChipType::Output);
 
-//     circuit.add_forward_link(ChipAndPin::new(g, 0), ChipAndPin::new(n, ground));
-//     circuit.add_forward_link(ChipAndPin::new(s, 0), ChipAndPin::new(n, supply));
-//     circuit.add_forward_link(ChipAndPin::new(a, 0), ChipAndPin::new(n, layout.input_pins[0]));
-//     circuit.add_forward_link(ChipAndPin::new(b, 0), ChipAndPin::new(n, layout.input_pins[1]));
-//     circuit.add_forward_link(ChipAndPin::new(n, layout.output_pins[0]), ChipAndPin::new(y, 0));
+    circuit.add_forward_link(ChipAndPin::new(g, 0), ChipAndPin::new(n, ground));
+    circuit.add_forward_link(ChipAndPin::new(s, 0), ChipAndPin::new(n, supply));
+    circuit.add_forward_link(ChipAndPin::new(a, 0), ChipAndPin::new(n, layout.input_pins[0]));
+    circuit.add_forward_link(ChipAndPin::new(b, 0), ChipAndPin::new(n, layout.input_pins[1]));
+    circuit.add_forward_link(ChipAndPin::new(n, layout.output_pins[0]), ChipAndPin::new(y, 0));
 
-//     let chip_description = circuit.compile_to_chip();
-//     assert_eq!(chip_description, nand);
-// }
+    let chip_description = circuit.compile_to_chip();
+    assert_eq!(chip_description, nand);
+}

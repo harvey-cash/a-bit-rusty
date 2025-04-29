@@ -79,6 +79,7 @@ pub enum NodeType {
     Input,
     Output,
     NAnd,
+    Buffer,
 }
 
 pub type NodeTypeMap = HashMap<usize, NodeType>;
