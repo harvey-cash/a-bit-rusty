@@ -36,29 +36,34 @@ impl ChipCompiler {
     
     // Add nodes for each circuit ground, supply, input and output
     fn add_inputs_and_outputs(chip_pin_to_id_node: &mut HashMap<ChipAndPin, IDNode>, circuit: &CircuitDescription) -> usize {
-        let mut node_id: usize = 0;
+        let mut new_node_id = 0;
+
         for (id, chip_type) in &circuit.chip_types {
-            match chip_type {
-                ChipType::Ground => {
-                    chip_pin_to_id_node.insert(ChipAndPin::new(*id, 0), (node_id, NodeType::Ground));
-                    node_id += 1;
-                },
-                ChipType::Supply => {
-                    chip_pin_to_id_node.insert(ChipAndPin::new(*id, 0), (node_id, NodeType::Supply));
-                    node_id += 1;
-                },
-                ChipType::Input => {
-                    chip_pin_to_id_node.insert(ChipAndPin::new(*id, 0), (node_id, NodeType::Input));
-                    node_id += 1;
-                },
-                ChipType::Output => {
-                    chip_pin_to_id_node.insert(ChipAndPin::new(*id, 0), (node_id, NodeType::Output));
-                    node_id += 1;
-                }
-                _ => {}
-            };
+            if chip_type == &ChipType::Ground {
+                chip_pin_to_id_node.insert(ChipAndPin::new(*id, 0), (new_node_id, NodeType::Ground));
+                new_node_id += 1;
+            }
         }
-        return node_id;
+        for (id, chip_type) in &circuit.chip_types {
+            if chip_type == &ChipType::Supply {
+                chip_pin_to_id_node.insert(ChipAndPin::new(*id, 0), (new_node_id, NodeType::Supply));
+                new_node_id += 1;
+            }
+        }
+        for (id, chip_type) in &circuit.chip_types {
+            if chip_type == &ChipType::Input {
+                chip_pin_to_id_node.insert(ChipAndPin::new(*id, 0), (new_node_id, NodeType::Input));
+                new_node_id += 1;
+            }
+        }
+        for (id, chip_type) in &circuit.chip_types {
+            if chip_type == &ChipType::Output {
+                chip_pin_to_id_node.insert(ChipAndPin::new(*id, 0), (new_node_id, NodeType::Output));
+                new_node_id += 1;
+            }
+        }
+
+        new_node_id
     }
     
     // "explode" all chips: add nand nodes for each nand in each chip
@@ -271,8 +276,8 @@ impl ChipCompiler {
         }
 
         // Optional: Post-processing cleanup - Remove empty entries from maps
-        // forward_links.retain(|_, v| !v.is_empty());
-        // back_links.retain(|_, v| !v.is_empty());
+        forward_links.retain(|_, v| !v.is_empty());
+        back_links.retain(|_, v| !v.is_empty());
         // Note: id_types doesn't need this cleanup based on link emptiness.
 
         // Optional: If duplicate links were added and need removal, clean them up now.
