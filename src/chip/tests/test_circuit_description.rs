@@ -5,7 +5,7 @@
 // [ ] CircuitDescription contains state of all Chips, Pins, and Traces.
 
 use crate::chip::{
-    chip::{ChipType, CustomChip, NAndChip}, circuit_description::CircuitDescription, types::*
+    chip::{ChipType, CustomChip, NAndChip}, circuit_description::CircuitDescription, compiler::ChipCompiler, types::*
 };
 
 #[test]
@@ -79,6 +79,6 @@ fn given_single_nand_chip_then_compiles_to_identical_description() {
     circuit.add_forward_link(ChipAndPin::new(b, 0), ChipAndPin::new(n, layout.input_pins[1]));
     circuit.add_forward_link(ChipAndPin::new(n, layout.output_pins[0]), ChipAndPin::new(y, 0));
 
-    let chip_description = circuit.compile_to_chip();
+    let chip_description = ChipCompiler::compile(circuit);
     assert_eq!(chip_description, nand);
 }

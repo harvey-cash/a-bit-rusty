@@ -1,15 +1,13 @@
 use std::collections::HashMap;
 
-use crate::node_type_map;
-
-use super::{chip::ChipType, chip_description::ChipDescription, circuit_description::CircuitDescription, types::{ChipAndPin, NodeType}};
+use super::{chip::ChipType, chip_description::ChipDescription, circuit_description::CircuitDescription, types::{ChipAndPin, Link, NodeType, NodeTypeMap}};
 
 pub struct ChipCompiler {}
 
 type IDNode = (usize, NodeType);
 
 impl ChipCompiler {
-    pub fn compiler(circuit: CircuitDescription) -> ChipDescription {
+    pub fn compile(circuit: CircuitDescription) -> ChipDescription {
         
         let mut chip_pin_to_id_node: HashMap<ChipAndPin, IDNode> = HashMap::new();
 
@@ -28,11 +26,15 @@ impl ChipCompiler {
             chip_pin_to_id_node.remove(&chip_and_pin);
         }
         
-        Self::explode_buffers(&mut forward_links, &mut back_links, &chip_pin_to_id_node);
-        
-        // delete all buffer nodes and all links sourcing or targeting them
+        let buffer_chip_pins: Vec<ChipAndPin> = Self::explode_buffers(&mut forward_links, &mut back_links, &mut chip_pin_to_id_node);
+        for chip_and_pin in buffer_chip_pins {
+            chip_pin_to_id_node.remove(&chip_and_pin);
+        }
 
-        ChipDescription::new(node_type_map!{}, vec![])
+        let node_types: NodeTypeMap = Self::construct_type_map(&chip_pin_to_id_node);
+        let links: Vec<Link> = Self::construct_links(&forward_links);
+
+        ChipDescription::new(node_types, links)
     }
     
     // Add nodes for each circuit ground, supply, input and output
@@ -189,12 +191,100 @@ impl ChipCompiler {
     
     // "explode" the remaining buffer nodes: for each source, add a link to each target
     // where a source is a buffer node, replace with the buffer node's source
-    // where a target is a buffer node, add links instead for each of *its* targets recursively
+    // where a target is a buffer node, add links instead for each of *its* targets
     fn explode_buffers(
         forward_links: &mut HashMap<usize, Vec<usize>>, 
         back_links: &mut HashMap<usize, usize>, 
-        chip_pin_to_id_node: &HashMap<ChipAndPin, IDNode>)
-    {
-        todo!()
+        chip_pin_to_id_node: &mut HashMap<ChipAndPin, IDNode>)
+    -> Vec<ChipAndPin> {
+        let id_types: HashMap<usize, NodeType> = chip_pin_to_id_node.iter()
+            .map(|(_, (id, node_type))| (*id, *node_type))
+            .collect();
+
+        loop
+        {
+            let target_ids_with_buffer_source: Vec<(usize, usize)> = back_links.iter()
+                .filter(|(_, source)| id_types.get(*source).unwrap() == &NodeType::Buffer)
+                .map(|(target, source)| (*target, *source))
+                .collect();
+
+            if target_ids_with_buffer_source.len() == 0 {
+                break;
+            }
+            
+            for (target, buffer_source) in &target_ids_with_buffer_source {
+                let ancestor: usize = *back_links.get(&buffer_source).expect("source not found in backlinks!");
+                
+                back_links.insert(*target, ancestor);
+            }
+
+            for (_, buffer_id) in &target_ids_with_buffer_source {
+                back_links.remove(buffer_id);
+            }
+        }
+
+        // now reconstruct forward links from the remaining back links
+        forward_links.clear();
+        for (target, source) in back_links.iter() {
+            forward_links.entry(*source).or_insert(vec![]).push(*target);
+        }
+        
+        // purge buffers from the chip_pin_node_id map
+        let buffer_chip_pins: Vec<ChipAndPin> = chip_pin_to_id_node.iter()
+            .filter(|(_, (_, node_type))| node_type == &NodeType::Buffer)
+            .map(|(chip_pin, _)| *chip_pin)
+            .collect();
+
+        buffer_chip_pins
+    }    
+
+    fn construct_type_map(chip_pin_to_id_node: &HashMap<ChipAndPin, IDNode>) -> HashMap<usize, NodeType> {
+        chip_pin_to_id_node.iter()
+            .map(|(_, (id, node_type))| (*id, *node_type))
+            .collect()
+    }
+    
+    fn construct_links(forward_links: &HashMap<usize, Vec<usize>>) -> Vec<Link> {
+        let mut links: Vec<Link> = vec![];
+        for (source, targets) in forward_links {
+            for target in targets {
+                links.push(Link::new(*source, *target));
+            }
+        }
+        links
     }
 }
+
+/*
+left: ChipDescription { 
+    layout: PinLayout { 
+        ground_pins: [1], 
+        supply_pins: [0], 
+        input_pins: [3, 2], 
+        output_pins: [4], 
+        num_pins: 5, 
+        id_pin_map: {4: 1, 1: 4, 2: 2, 0: 3, 3: 0}, 
+        pin_id_map: {3: 0, 0: 3, 2: 2, 4: 1, 1: 4} 
+    }, 
+    id_type_map: {3: Input, 4: Output, 5: NAnd, 2: Input, 0: Supply, 1: Ground}, 
+    forward_links: {5: [4], 2: [9], 3: [5]}, back_links: {5: [3], 4: [5], 9: [2]}, 
+    num_nands: 1, 
+    is_valid: false 
+}
+right: ChipDescription { 
+    layout: PinLayout { 
+        ground_pins: [0], 
+        supply_pins: [1], 
+        input_pins: [2, 3], 
+        output_pins: [4], 
+        num_pins: 5, 
+        id_pin_map: {1: 2, 4: 1, 3: 4, 0: 0, 2: 3}, 
+        pin_id_map: {1: 4, 0: 0, 4: 3, 2: 1, 3: 2} 
+    }, 
+    id_type_map: {0: Ground, 4: Output, 1: Supply, 5: NAnd, 2: Input, 3: Input}, 
+    forward_links: {2: [5], 3: [5], 5: [4]}, 
+    back_links: {4: [5], 5: [2, 3]}, 
+    num_nands: 1, 
+    is_valid: true 
+}
+ */
