@@ -18,8 +18,15 @@ fn given_ground_then_has_1_output_pin() {
 }
 
 #[test]
-fn given_supply_then_output_1() {
+fn given_supply_when_new_then_output_0() {
     let chip = SupplyChip::new();
+    assert_eq!(chip.read_pin(0), 0);
+}
+
+#[test]
+fn given_supply_when_on_then_output_1() {
+    let mut chip = SupplyChip::new();
+    chip.turn_on();
     assert_eq!(chip.read_pin(0), 1);
 }
 
@@ -28,14 +35,6 @@ fn given_supply_when_off_then_output_0() {
     let mut chip = SupplyChip::new();
     chip.turn_off();
     assert_eq!(chip.read_pin(0), 0);
-}
-
-#[test]
-fn given_supply_when_on_then_output_1() {
-    let mut chip = SupplyChip::new();
-    chip.turn_off();
-    chip.turn_on();
-    assert_eq!(chip.read_pin(0), 1);
 }
 
 #[test]

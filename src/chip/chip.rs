@@ -43,7 +43,7 @@ pub struct SupplyChip {
     value: u8,
 }
 impl SupplyChip {
-    pub fn new() -> Self { Self { value: 1 } }
+    pub fn new() -> Self { Self { value: 0 } }
     pub fn turn_on(&mut self) { self.value = 1; }
     pub fn turn_off(&mut self) { self.value = 0; }
 }
