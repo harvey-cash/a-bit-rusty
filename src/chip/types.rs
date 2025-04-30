@@ -118,6 +118,13 @@ impl ChipAndPin {
     }
 }
 
+#[macro_export]
+macro_rules! cap {
+    ( $id:expr => $pin:expr ) => {
+        ChipAndPin::new($id, $pin)
+    };
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum NodeType {
     Ground,

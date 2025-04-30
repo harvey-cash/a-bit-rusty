@@ -147,7 +147,7 @@ fn given_not_gate_when_input_1_then_output_0() {
 }
 
 #[test]
-fn given_valid_not_gate_compiled_chip_is_a_not_gate() {
+fn given_compiled_not_circuit_then_functions_as_not_chip() {
     let mut circuit = Circuit::new();
     let ground_id = circuit.add_chip(GroundChip::new());
     let supply_id = circuit.add_chip(SupplyChip::new());
@@ -172,4 +172,87 @@ fn given_valid_not_gate_compiled_chip_is_a_not_gate() {
     chip.write_pin(2, 1);
     chip.tick();
     assert_eq!(chip.read_pin(3), 0);
+}
+
+
+fn compile_xor_chip() -> CustomChip {
+    let mut circuit = Circuit::new();
+    let ground = circuit.add_chip(GroundChip::new());
+    let supply = circuit.add_chip(SupplyChip::new());
+    let in_a = circuit.add_chip(InputChip::new());
+    let in_b = circuit.add_chip(InputChip::new());
+    let nand_1 = circuit.add_custom_chip(NAndChip::new());
+    let nand_2 = circuit.add_custom_chip(NAndChip::new());
+    let nand_3 = circuit.add_custom_chip(NAndChip::new());
+    let nand_4 = circuit.add_custom_chip(NAndChip::new());
+    let output = circuit.add_chip(OutputChip::new());
+
+    circuit.create_link(ChipAndPin::new(ground, 0), ChipAndPin::new(nand_1, 0));
+    circuit.create_link(ChipAndPin::new(ground, 0), ChipAndPin::new(nand_2, 0));
+    circuit.create_link(ChipAndPin::new(ground, 0), ChipAndPin::new(nand_3, 0));
+    circuit.create_link(ChipAndPin::new(ground, 0), ChipAndPin::new(nand_4, 0));
+    circuit.create_link(ChipAndPin::new(supply, 0), ChipAndPin::new(nand_1, 1));
+    circuit.create_link(ChipAndPin::new(supply, 0), ChipAndPin::new(nand_2, 1));
+    circuit.create_link(ChipAndPin::new(supply, 0), ChipAndPin::new(nand_3, 1));
+    circuit.create_link(ChipAndPin::new(supply, 0), ChipAndPin::new(nand_4, 1));
+
+    circuit.create_link(ChipAndPin::new(in_a, 0), ChipAndPin::new(nand_1, 2));
+    circuit.create_link(ChipAndPin::new(in_a, 0), ChipAndPin::new(nand_2, 2));
+
+    circuit.create_link(ChipAndPin::new(in_b, 0), ChipAndPin::new(nand_1, 3));
+    circuit.create_link(ChipAndPin::new(in_b, 0), ChipAndPin::new(nand_3, 2));
+
+    circuit.create_link(ChipAndPin::new(nand_1, 4), ChipAndPin::new(nand_2, 3));
+    circuit.create_link(ChipAndPin::new(nand_1, 4), ChipAndPin::new(nand_3, 3));
+
+    circuit.create_link(ChipAndPin::new(nand_2, 4), ChipAndPin::new(nand_4, 2));
+    circuit.create_link(ChipAndPin::new(nand_3, 4), ChipAndPin::new(nand_4, 3));
+
+    circuit.create_link(ChipAndPin::new(nand_4, 4), ChipAndPin::new(output, 0));
+    
+    let description: ChipDescription = ChipCompiler::compile(circuit.get_description());
+
+    CustomChip::new(description)
+}
+
+
+#[test]
+fn given_compiled_xor_when_both_inputs_0_then_output_0() {
+    let mut xor = compile_xor_chip();
+    let layout = xor.get_description().get_layout();
+    xor.write_pin(xor.get_supply_pin(), 1);
+
+    xor.write_pin(layout.input_pins[0], 0);
+    xor.write_pin(layout.input_pins[1], 0);
+    xor.tick();
+    assert_eq!(xor.read_pin(layout.output_pins[0]), 0);
+}
+
+#[test]
+fn given_compiled_xor_when_inputs_differ_then_output_1() {
+    let mut xor = compile_xor_chip();
+    let layout = xor.get_description().get_layout();
+    xor.write_pin(xor.get_supply_pin(), 1);
+
+    xor.write_pin(layout.input_pins[0], 0);
+    xor.write_pin(layout.input_pins[1], 1);
+    xor.tick();
+    assert_eq!(xor.read_pin(layout.output_pins[0]), 1);
+
+    xor.write_pin(layout.input_pins[0], 1);
+    xor.write_pin(layout.input_pins[1], 0);
+    xor.tick();
+    assert_eq!(xor.read_pin(layout.output_pins[0]), 1);
+}
+
+#[test]
+fn given_compiled_xor_when_both_inputs_1_then_output_0() {
+    let mut xor = compile_xor_chip();
+    let layout = xor.get_description().get_layout();
+    xor.write_pin(xor.get_supply_pin(), 1);
+
+    xor.write_pin(layout.input_pins[0], 1);
+    xor.write_pin(layout.input_pins[1], 1);
+    xor.tick();
+    assert_eq!(xor.read_pin(layout.output_pins[0]), 0);
 }
