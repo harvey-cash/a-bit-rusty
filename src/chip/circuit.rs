@@ -1,7 +1,9 @@
 use std::{collections::{HashMap, VecDeque}, vec};
 
+use crate::chip_pin;
+
 use super::{
-    chip::{Chip, ChipType, CustomChip, Tickable}, chip_description::ChipDescription, circuit_description::CircuitDescription, types::*
+    chip::{Chip, ChipType, CustomChip, Tickable}, circuit_description::CircuitDescription, types::*
 };
 
 pub struct Circuit {
@@ -89,7 +91,7 @@ impl Circuit {
         let mut inputs = HashMap::new();
         
         for pin_idx in input_pins {
-            let pin = ChipAndPin::new(*index, pin_idx);
+            let pin = chip_pin!(*index, pin_idx);
             let back_link_option = self.back_links.get(&pin);
 
             if back_link_option.is_none() {

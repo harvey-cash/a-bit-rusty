@@ -119,8 +119,8 @@ impl ChipAndPin {
 }
 
 #[macro_export]
-macro_rules! cap {
-    ( $id:expr => $pin:expr ) => {
+macro_rules! chip_pin {
+    ( $id:expr, $pin:expr ) => {
         ChipAndPin::new($id, $pin)
     };
 }

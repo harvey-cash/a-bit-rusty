@@ -32,9 +32,9 @@
 // [ ] CircuitDescription can be read from a Circuit.
 // [ ] Circuit can be constructed from a ChipDescription.
 
-use crate::chip::{
+use crate::{chip::{
     chip::{Chip, CustomChip, GroundChip, InputChip, NAndChip, OutputChip, SupplyChip, Tickable}, chip_description::ChipDescription, circuit::Circuit, compiler::ChipCompiler, types::*
-};
+}, chip_pin};
 
 
 #[test]
@@ -50,7 +50,7 @@ fn given_supply_connected_then_output_is_1() {
     let mut circuit = Circuit::new();
     let supply_id = circuit.add_chip(SupplyChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
-    circuit.create_link(ChipAndPin::new(supply_id, 0), ChipAndPin::new(output_id, 0));
+    circuit.create_link(chip_pin!(supply_id, 0), chip_pin!(output_id, 0));
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 1);
 }
@@ -60,9 +60,9 @@ fn given_supply_disconnected_then_output_is_0() {
     let mut circuit = Circuit::new();
     let supply_id = circuit.add_chip(SupplyChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
-    circuit.create_link(ChipAndPin::new(supply_id, 0), ChipAndPin::new(output_id, 0));
+    circuit.create_link(chip_pin!(supply_id, 0), chip_pin!(output_id, 0));
     circuit.tick();
-    circuit.delete_link(ChipAndPin::new(supply_id, 0), ChipAndPin::new(output_id, 0));
+    circuit.delete_link(chip_pin!(supply_id, 0), chip_pin!(output_id, 0));
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 0);
 }
@@ -73,7 +73,7 @@ fn given_supply_off_then_output_is_0() {
     let supply_id = circuit.add_chip(SupplyChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.set_supply(supply_id, 0);
-    circuit.create_link(ChipAndPin::new(supply_id, 0), ChipAndPin::new(output_id, 0));
+    circuit.create_link(chip_pin!(supply_id, 0), chip_pin!(output_id, 0));
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 0);
 }
@@ -83,7 +83,7 @@ fn given_ground_connected_then_output_is_0() {
     let mut circuit = Circuit::new();
     let ground_id = circuit.add_chip(GroundChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
-    circuit.create_link(ChipAndPin::new(ground_id, 0), ChipAndPin::new(output_id, 0));
+    circuit.create_link(chip_pin!(ground_id, 0), chip_pin!(output_id, 0));
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 0);
 }
@@ -94,7 +94,7 @@ fn given_input_connected_when_0_then_output_is_0() {
     let input_id = circuit.add_chip(InputChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.set_input(input_id, 0);
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(output_id, 0));
+    circuit.create_link(chip_pin!(input_id, 0), chip_pin!(output_id, 0));
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 0);
 }
@@ -105,7 +105,7 @@ fn given_input_connected_when_1_then_output_is_1() {
     let input_id = circuit.add_chip(InputChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.set_input(input_id, 1);
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(output_id, 0));
+    circuit.create_link(chip_pin!(input_id, 0), chip_pin!(output_id, 0));
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 1);
 }
@@ -121,9 +121,9 @@ fn given_not_gate_when_input_0_then_output_1() {
     
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.set_input(input_id, 0);
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 2));
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 3));
-    circuit.create_link(ChipAndPin::new(nand_id, 4), ChipAndPin::new(output_id, 0));
+    circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 2));
+    circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 3));
+    circuit.create_link(chip_pin!(nand_id, 4), chip_pin!(output_id, 0));
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 1);
 }
@@ -139,9 +139,9 @@ fn given_not_gate_when_input_1_then_output_0() {
     
     let output_id = circuit.add_chip(OutputChip::new());
     circuit.set_input(input_id, 1);
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 2));
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 3));
-    circuit.create_link(ChipAndPin::new(nand_id, 4), ChipAndPin::new(output_id, 0));
+    circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 2));
+    circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 3));
+    circuit.create_link(chip_pin!(nand_id, 4), chip_pin!(output_id, 0));
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 0);
 }
@@ -154,11 +154,11 @@ fn given_compiled_not_circuit_then_functions_as_not_chip() {
     let input_id = circuit.add_chip(InputChip::new());
     let nand_id = circuit.add_custom_chip(NAndChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
-    circuit.create_link(ChipAndPin::new(ground_id, 0), ChipAndPin::new(nand_id, 0));
-    circuit.create_link(ChipAndPin::new(supply_id, 0), ChipAndPin::new(nand_id, 1));
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 2));
-    circuit.create_link(ChipAndPin::new(input_id, 0), ChipAndPin::new(nand_id, 3));
-    circuit.create_link(ChipAndPin::new(nand_id, 4), ChipAndPin::new(output_id, 0));
+    circuit.create_link(chip_pin!(ground_id, 0), chip_pin!(nand_id, 0));
+    circuit.create_link(chip_pin!(supply_id, 0), chip_pin!(nand_id, 1));
+    circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 2));
+    circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 3));
+    circuit.create_link(chip_pin!(nand_id, 4), chip_pin!(output_id, 0));
     
     let description: ChipDescription = ChipCompiler::compile(circuit.get_description());
 
@@ -187,28 +187,28 @@ fn compile_xor_chip() -> CustomChip {
     let nand_4 = circuit.add_custom_chip(NAndChip::new());
     let output = circuit.add_chip(OutputChip::new());
 
-    circuit.create_link(ChipAndPin::new(ground, 0), ChipAndPin::new(nand_1, 0));
-    circuit.create_link(ChipAndPin::new(ground, 0), ChipAndPin::new(nand_2, 0));
-    circuit.create_link(ChipAndPin::new(ground, 0), ChipAndPin::new(nand_3, 0));
-    circuit.create_link(ChipAndPin::new(ground, 0), ChipAndPin::new(nand_4, 0));
-    circuit.create_link(ChipAndPin::new(supply, 0), ChipAndPin::new(nand_1, 1));
-    circuit.create_link(ChipAndPin::new(supply, 0), ChipAndPin::new(nand_2, 1));
-    circuit.create_link(ChipAndPin::new(supply, 0), ChipAndPin::new(nand_3, 1));
-    circuit.create_link(ChipAndPin::new(supply, 0), ChipAndPin::new(nand_4, 1));
+    circuit.create_link(chip_pin!(ground, 0), chip_pin!(nand_1, 0));
+    circuit.create_link(chip_pin!(ground, 0), chip_pin!(nand_2, 0));
+    circuit.create_link(chip_pin!(ground, 0), chip_pin!(nand_3, 0));
+    circuit.create_link(chip_pin!(ground, 0), chip_pin!(nand_4, 0));
+    circuit.create_link(chip_pin!(supply, 0), chip_pin!(nand_1, 1));
+    circuit.create_link(chip_pin!(supply, 0), chip_pin!(nand_2, 1));
+    circuit.create_link(chip_pin!(supply, 0), chip_pin!(nand_3, 1));
+    circuit.create_link(chip_pin!(supply, 0), chip_pin!(nand_4, 1));
 
-    circuit.create_link(ChipAndPin::new(in_a, 0), ChipAndPin::new(nand_1, 2));
-    circuit.create_link(ChipAndPin::new(in_a, 0), ChipAndPin::new(nand_2, 2));
+    circuit.create_link(chip_pin!(in_a, 0), chip_pin!(nand_1, 2));
+    circuit.create_link(chip_pin!(in_a, 0), chip_pin!(nand_2, 2));
 
-    circuit.create_link(ChipAndPin::new(in_b, 0), ChipAndPin::new(nand_1, 3));
-    circuit.create_link(ChipAndPin::new(in_b, 0), ChipAndPin::new(nand_3, 2));
+    circuit.create_link(chip_pin!(in_b, 0), chip_pin!(nand_1, 3));
+    circuit.create_link(chip_pin!(in_b, 0), chip_pin!(nand_3, 2));
 
-    circuit.create_link(ChipAndPin::new(nand_1, 4), ChipAndPin::new(nand_2, 3));
-    circuit.create_link(ChipAndPin::new(nand_1, 4), ChipAndPin::new(nand_3, 3));
+    circuit.create_link(chip_pin!(nand_1, 4), chip_pin!(nand_2, 3));
+    circuit.create_link(chip_pin!(nand_1, 4), chip_pin!(nand_3, 3));
 
-    circuit.create_link(ChipAndPin::new(nand_2, 4), ChipAndPin::new(nand_4, 2));
-    circuit.create_link(ChipAndPin::new(nand_3, 4), ChipAndPin::new(nand_4, 3));
+    circuit.create_link(chip_pin!(nand_2, 4), chip_pin!(nand_4, 2));
+    circuit.create_link(chip_pin!(nand_3, 4), chip_pin!(nand_4, 3));
 
-    circuit.create_link(ChipAndPin::new(nand_4, 4), ChipAndPin::new(output, 0));
+    circuit.create_link(chip_pin!(nand_4, 4), chip_pin!(output, 0));
     
     let description: ChipDescription = ChipCompiler::compile(circuit.get_description());
 
@@ -225,6 +225,7 @@ fn given_compiled_xor_when_both_inputs_0_then_output_0() {
     xor.write_pin(layout.input_pins[0], 0);
     xor.write_pin(layout.input_pins[1], 0);
     xor.tick();
+    xor.tick();
     assert_eq!(xor.read_pin(layout.output_pins[0]), 0);
 }
 
@@ -237,10 +238,12 @@ fn given_compiled_xor_when_inputs_differ_then_output_1() {
     xor.write_pin(layout.input_pins[0], 0);
     xor.write_pin(layout.input_pins[1], 1);
     xor.tick();
+    xor.tick();
     assert_eq!(xor.read_pin(layout.output_pins[0]), 1);
 
     xor.write_pin(layout.input_pins[0], 1);
     xor.write_pin(layout.input_pins[1], 0);
+    xor.tick();
     xor.tick();
     assert_eq!(xor.read_pin(layout.output_pins[0]), 1);
 }
@@ -253,6 +256,7 @@ fn given_compiled_xor_when_both_inputs_1_then_output_0() {
 
     xor.write_pin(layout.input_pins[0], 1);
     xor.write_pin(layout.input_pins[1], 1);
+    xor.tick();
     xor.tick();
     assert_eq!(xor.read_pin(layout.output_pins[0]), 0);
 }

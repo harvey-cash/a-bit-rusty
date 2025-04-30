@@ -4,9 +4,9 @@
 // [ ] CircuitDescription contains position of all Traces.
 // [ ] CircuitDescription contains state of all Chips, Pins, and Traces.
 
-use crate::chip::{
+use crate::{chip::{
     chip::{ChipType, CustomChip, NAndChip}, circuit_description::CircuitDescription, compiler::ChipCompiler, types::*
-};
+}, chip_pin};
 
 #[test]
 fn given_wrapped_nand_then_compiled_description_is_valid() {
@@ -23,11 +23,11 @@ fn given_wrapped_nand_then_compiled_description_is_valid() {
     let n = circuit.add_custom_chip(nand.clone());
     let y = circuit.add_chip(ChipType::Output);
 
-    circuit.add_forward_link(ChipAndPin::new(g, 0), ChipAndPin::new(n, ground));
-    circuit.add_forward_link(ChipAndPin::new(s, 0), ChipAndPin::new(n, supply));
-    circuit.add_forward_link(ChipAndPin::new(a, 0), ChipAndPin::new(n, layout.input_pins[0]));
-    circuit.add_forward_link(ChipAndPin::new(b, 0), ChipAndPin::new(n, layout.input_pins[1]));
-    circuit.add_forward_link(ChipAndPin::new(n, layout.output_pins[0]), ChipAndPin::new(y, 0));
+    circuit.add_forward_link(chip_pin!(g, 0), chip_pin!(n, ground));
+    circuit.add_forward_link(chip_pin!(s, 0), chip_pin!(n, supply));
+    circuit.add_forward_link(chip_pin!(a, 0), chip_pin!(n, layout.input_pins[0]));
+    circuit.add_forward_link(chip_pin!(b, 0), chip_pin!(n, layout.input_pins[1]));
+    circuit.add_forward_link(chip_pin!(n, layout.output_pins[0]), chip_pin!(y, 0));
 
     let chip_description = ChipCompiler::compile(circuit);
     assert_eq!(chip_description.is_valid(), true);
@@ -48,11 +48,11 @@ fn given_wrapped_nand_then_compiled_description_is_identical() {
     let n = circuit.add_custom_chip(nand.clone());
     let y = circuit.add_chip(ChipType::Output);
 
-    circuit.add_forward_link(ChipAndPin::new(g, 0), ChipAndPin::new(n, ground));
-    circuit.add_forward_link(ChipAndPin::new(s, 0), ChipAndPin::new(n, supply));
-    circuit.add_forward_link(ChipAndPin::new(a, 0), ChipAndPin::new(n, layout.input_pins[0]));
-    circuit.add_forward_link(ChipAndPin::new(b, 0), ChipAndPin::new(n, layout.input_pins[1]));
-    circuit.add_forward_link(ChipAndPin::new(n, layout.output_pins[0]), ChipAndPin::new(y, 0));
+    circuit.add_forward_link(chip_pin!(g, 0), chip_pin!(n, ground));
+    circuit.add_forward_link(chip_pin!(s, 0), chip_pin!(n, supply));
+    circuit.add_forward_link(chip_pin!(a, 0), chip_pin!(n, layout.input_pins[0]));
+    circuit.add_forward_link(chip_pin!(b, 0), chip_pin!(n, layout.input_pins[1]));
+    circuit.add_forward_link(chip_pin!(n, layout.output_pins[0]), chip_pin!(y, 0));
 
     let chip_description = ChipCompiler::compile(circuit);
     assert_eq!(chip_description, nand);
@@ -72,11 +72,11 @@ fn given_not_chip_then_compiled_description_is_valid() {
     let n = circuit.add_custom_chip(nand.clone());
     let y = circuit.add_chip(ChipType::Output);
 
-    circuit.add_forward_link(ChipAndPin::new(g, 0), ChipAndPin::new(n, ground));
-    circuit.add_forward_link(ChipAndPin::new(s, 0), ChipAndPin::new(n, supply));
-    circuit.add_forward_link(ChipAndPin::new(i, 0), ChipAndPin::new(n, layout.input_pins[0]));
-    circuit.add_forward_link(ChipAndPin::new(i, 0), ChipAndPin::new(n, layout.input_pins[1]));
-    circuit.add_forward_link(ChipAndPin::new(n, layout.output_pins[0]), ChipAndPin::new(y, 0));
+    circuit.add_forward_link(chip_pin!(g, 0), chip_pin!(n, ground));
+    circuit.add_forward_link(chip_pin!(s, 0), chip_pin!(n, supply));
+    circuit.add_forward_link(chip_pin!(i, 0), chip_pin!(n, layout.input_pins[0]));
+    circuit.add_forward_link(chip_pin!(i, 0), chip_pin!(n, layout.input_pins[1]));
+    circuit.add_forward_link(chip_pin!(n, layout.output_pins[0]), chip_pin!(y, 0));
 
     let not_description = ChipCompiler::compile(circuit);
     assert_eq!(not_description.is_valid(), true);
@@ -96,11 +96,11 @@ fn given_wrapped_not_then_compiled_description_is_identical() {
     let n = circuit.add_custom_chip(nand.clone());
     let y = circuit.add_chip(ChipType::Output);
 
-    circuit.add_forward_link(ChipAndPin::new(g, 0), ChipAndPin::new(n, ground));
-    circuit.add_forward_link(ChipAndPin::new(s, 0), ChipAndPin::new(n, supply));
-    circuit.add_forward_link(ChipAndPin::new(i, 0), ChipAndPin::new(n, layout.input_pins[0]));
-    circuit.add_forward_link(ChipAndPin::new(i, 0), ChipAndPin::new(n, layout.input_pins[1]));
-    circuit.add_forward_link(ChipAndPin::new(n, layout.output_pins[0]), ChipAndPin::new(y, 0));
+    circuit.add_forward_link(chip_pin!(g, 0), chip_pin!(n, ground));
+    circuit.add_forward_link(chip_pin!(s, 0), chip_pin!(n, supply));
+    circuit.add_forward_link(chip_pin!(i, 0), chip_pin!(n, layout.input_pins[0]));
+    circuit.add_forward_link(chip_pin!(i, 0), chip_pin!(n, layout.input_pins[1]));
+    circuit.add_forward_link(chip_pin!(n, layout.output_pins[0]), chip_pin!(y, 0));
 
     let not_description = ChipCompiler::compile(circuit);
     let layout2 = not_description.get_layout();
@@ -112,15 +112,11 @@ fn given_wrapped_not_then_compiled_description_is_identical() {
     let n = circuit2.add_custom_chip(not_description.clone());
     let y = circuit2.add_chip(ChipType::Output);
 
-    circuit2.add_forward_link(ChipAndPin::new(g, 0), ChipAndPin::new(n, ground));
-    circuit2.add_forward_link(ChipAndPin::new(s, 0), ChipAndPin::new(n, supply));
-    circuit2.add_forward_link(ChipAndPin::new(i, 0), ChipAndPin::new(n, layout2.input_pins[0]));
-    circuit2.add_forward_link(ChipAndPin::new(n, layout2.output_pins[0]), ChipAndPin::new(y, 0));
+    circuit2.add_forward_link(chip_pin!(g, 0), chip_pin!(n, ground));
+    circuit2.add_forward_link(chip_pin!(s, 0), chip_pin!(n, supply));
+    circuit2.add_forward_link(chip_pin!(i, 0), chip_pin!(n, layout2.input_pins[0]));
+    circuit2.add_forward_link(chip_pin!(n, layout2.output_pins[0]), chip_pin!(y, 0));
 
     let wrapped_not_description = ChipCompiler::compile(circuit2);
-
-    println!("{:?}", not_description);
-    println!("{:?}", wrapped_not_description);
-
     assert_eq!(wrapped_not_description, not_description);
 }

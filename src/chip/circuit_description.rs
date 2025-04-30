@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use crate::node_type_map;
-
 use super::{
     types::*,
     chip::ChipType, 

@@ -1,5 +1,7 @@
 use std::{collections::{HashMap, HashSet}, vec};
 
+use crate::chip_pin;
+
 use super::{chip::ChipType, chip_description::ChipDescription, circuit_description::CircuitDescription, types::{ChipAndPin, Link, NodeType, NodeTypeMap}};
 
 pub struct ChipCompiler {}
@@ -41,25 +43,25 @@ impl ChipCompiler {
 
         for (id, chip_type) in &circuit.chip_types {
             if chip_type == &ChipType::Ground {
-                chip_pin_to_id_node.insert(ChipAndPin::new(*id, 0), (new_node_id, NodeType::Ground));
+                chip_pin_to_id_node.insert(chip_pin!(*id, 0), (new_node_id, NodeType::Ground));
                 new_node_id += 1;
             }
         }
         for (id, chip_type) in &circuit.chip_types {
             if chip_type == &ChipType::Supply {
-                chip_pin_to_id_node.insert(ChipAndPin::new(*id, 0), (new_node_id, NodeType::Supply));
+                chip_pin_to_id_node.insert(chip_pin!(*id, 0), (new_node_id, NodeType::Supply));
                 new_node_id += 1;
             }
         }
         for (id, chip_type) in &circuit.chip_types {
             if chip_type == &ChipType::Input {
-                chip_pin_to_id_node.insert(ChipAndPin::new(*id, 0), (new_node_id, NodeType::Input));
+                chip_pin_to_id_node.insert(chip_pin!(*id, 0), (new_node_id, NodeType::Input));
                 new_node_id += 1;
             }
         }
         for (id, chip_type) in &circuit.chip_types {
             if chip_type == &ChipType::Output {
-                chip_pin_to_id_node.insert(ChipAndPin::new(*id, 0), (new_node_id, NodeType::Output));
+                chip_pin_to_id_node.insert(chip_pin!(*id, 0), (new_node_id, NodeType::Output));
                 new_node_id += 1;
             }
         }
@@ -74,7 +76,7 @@ impl ChipCompiler {
         for (chip_id, description) in &circuit.chip_descriptions {
             for (old_node_id, node_type) in &description.id_type_map {
                 if node_type == &NodeType::NAnd {
-                    let chip_and_pin = ChipAndPin::new(*chip_id, *old_node_id);
+                    let chip_and_pin = chip_pin!(*chip_id, *old_node_id);
                     chip_pin_to_id_node.insert(chip_and_pin, (new_node_id, NodeType::NAnd));
                     new_node_id += 1;
                 }
@@ -90,7 +92,7 @@ impl ChipCompiler {
 
         for (chip_id, description) in &circuit.chip_descriptions {
             for (old_node_id, node_type) in &description.id_type_map {
-                let chip_and_pin = ChipAndPin::new(*chip_id, *old_node_id);
+                let chip_and_pin = chip_pin!(*chip_id, *old_node_id);
                 
                 if chip_pin_to_id_node.contains_key(&chip_and_pin) && node_type != &NodeType::NAnd
                 {
@@ -132,11 +134,11 @@ impl ChipCompiler {
     {
         for (chip_id, description) in &circuit.chip_descriptions {
             for (old_source_node_id, old_target_ids) in &description.forward_links {
-                let source_chip_pin = ChipAndPin::new(*chip_id, *old_source_node_id);
+                let source_chip_pin = chip_pin!(*chip_id, *old_source_node_id);
                 let (new_source_id, _) = chip_pin_to_id_node.get(&source_chip_pin).expect("Old node not found!");
 
                 let new_target_ids: Vec<usize> = old_target_ids.iter()
-                    .map(|old| ChipAndPin::new(*chip_id, *old))
+                    .map(|old| chip_pin!(*chip_id, *old))
                     .map(|cp| chip_pin_to_id_node.get(&cp))
                     .map(|id_node_type| id_node_type.expect("chip and pin missing!"))
                     .map(|id_node_type| id_node_type.0)
@@ -159,7 +161,7 @@ impl ChipCompiler {
     {
         for (chip_id, pin_links) in &circuit.forward_links {
             for (pin, old_targets) in pin_links {
-                let chip_pin = ChipAndPin::new(*chip_id, *pin);
+                let chip_pin = chip_pin!(*chip_id, *pin);
                 let (new_source_id, _) = chip_pin_to_id_node.get(&chip_pin).expect("Old node not found!");
 
                 let new_target_ids: Vec<usize> = old_targets.iter()
