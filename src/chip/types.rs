@@ -24,22 +24,28 @@ impl PinLayout {
         let mut id_pin_map: HashMap<usize, usize> = HashMap::new();
         let mut pin_id_map: HashMap<usize, usize> = HashMap::new();
 
-        for (id, node_type) in id_type_map {
-            if node_type == NodeType::NAnd {
-                continue;
-            }
-
-            id_pin_map.insert(id, num_pins);
-            pin_id_map.insert(num_pins, id);
-
-            match node_type {
-                NodeType::Ground => ground_pins.push(id),
-                NodeType::Supply => supply_pins.push(id),
-                NodeType::Input => input_pins.push(id),
-                NodeType::Output => output_pins.push(id),
-                _ => {},
-            }
-            
+        for (id, _) in id_type_map.iter().filter(|(_, node_type)| node_type == &&NodeType::Ground) {
+            id_pin_map.insert(*id, num_pins);
+            pin_id_map.insert(num_pins, *id);
+            ground_pins.push(*id);
+            num_pins += 1;
+        }
+        for (id, _) in id_type_map.iter().filter(|(_, node_type)| node_type == &&NodeType::Supply) {
+            id_pin_map.insert(*id, num_pins);
+            pin_id_map.insert(num_pins, *id);
+            supply_pins.push(*id);
+            num_pins += 1;
+        }
+        for (id, _) in id_type_map.iter().filter(|(_, node_type)| node_type == &&NodeType::Input) {
+            id_pin_map.insert(*id, num_pins);
+            pin_id_map.insert(num_pins, *id);
+            input_pins.push(*id);
+            num_pins += 1;
+        }
+        for (id, _) in id_type_map.iter().filter(|(_, node_type)| node_type == &&NodeType::Output) {
+            id_pin_map.insert(*id, num_pins);
+            pin_id_map.insert(num_pins, *id);
+            output_pins.push(*id);
             num_pins += 1;
         }
 
@@ -99,6 +105,7 @@ macro_rules! node_type_map {
 
 pub type LinkMap = HashMap<usize, Vec<usize>>;
 
+#[derive(Debug)]
 pub struct Link {
     pub source: usize,
     pub target: usize,

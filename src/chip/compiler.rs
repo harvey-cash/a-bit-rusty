@@ -14,22 +14,53 @@ impl ChipCompiler {
         let mut num_nodes = Self::add_inputs_and_outputs(&mut chip_pin_to_id_node, &circuit);
         num_nodes = Self::add_all_nands(&mut chip_pin_to_id_node, &circuit, num_nodes);        
         Self::add_buffer_nodes(&mut chip_pin_to_id_node, &circuit, num_nodes);
+        
+        let mut id_type_map: HashMap<usize, NodeType> = chip_pin_to_id_node.iter()
+            .map(|(_, (id, node_type))| (*id, *node_type))
+            .collect();
+        println!("\nID => NodeType:");
+        println!("{:?}", id_type_map);
 
         let mut forward_links: HashMap<usize, Vec<usize>> = HashMap::new();
         let mut back_links: HashMap<usize, Vec<usize>> = HashMap::new();
 
         Self::add_internal_links(&mut forward_links, &mut back_links, &circuit, &chip_pin_to_id_node);
+
+        println!("\nInternal Links:");
+        println!("{:?}", forward_links);
+
         Self::add_external_links(&mut forward_links, &mut back_links, &circuit, &chip_pin_to_id_node);
+        
+        println!("\nExternal Links:");
+        println!("{:?}", forward_links);
 
         let mut id_type_map: HashMap<usize, NodeType> = chip_pin_to_id_node.iter()
             .map(|(_, (id, node_type))| (*id, *node_type))
             .collect();
 
+        println!("\nID => NodeType:");
+        println!("{:?}", id_type_map);
+
         Self::prune_unused_buffer_nodes(&mut forward_links, &mut back_links, &mut id_type_map);
+
+        println!("\nPrune Buffers:");
+        println!("ID => NodeType:");
+        println!("{:?}", id_type_map);
+        println!("Links:");
+        println!("{:?}", forward_links);
         
         Self::explode_buffers(&mut forward_links, &mut back_links, &mut id_type_map);
 
+        println!("\nExplode Buffers:");
+        println!("ID => NodeType:");
+        println!("{:?}", id_type_map);
+        println!("Links:");
+        println!("{:?}", forward_links);
+
         let links: Vec<Link> = Self::construct_links(&forward_links);
+        
+        println!("\nLinks:");
+        println!("{:?}", links);
 
         ChipDescription::new(id_type_map, links)
     }
@@ -90,6 +121,13 @@ impl ChipCompiler {
         for (chip_id, description) in &circuit.chip_descriptions {
             for (old_node_id, node_type) in &description.id_type_map {
                 let chip_and_pin = ChipAndPin::new(*chip_id, *old_node_id);
+                
+                if chip_pin_to_id_node.contains_key(&chip_and_pin) && node_type != &NodeType::NAnd
+                {
+                    eprintln!("{:?}, {:?}, {:?}", chip_and_pin, node_type, chip_pin_to_id_node.get(&chip_and_pin).unwrap());
+                    panic!("Duplicate chip and pin!?")
+                }
+
                 match node_type {
                     NodeType::Ground => {
                         chip_pin_to_id_node.insert(chip_and_pin, (new_node_id, NodeType::Buffer));
@@ -149,6 +187,9 @@ impl ChipCompiler {
         circuit: &CircuitDescription, 
         chip_pin_to_id_node: &HashMap<ChipAndPin, IDNode>)
     {
+        println!("\nCircuit Forward Links: ");
+        println!("{:?}", &circuit.forward_links);
+
         for (chip_id, pin_links) in &circuit.forward_links {
             for (pin, old_targets) in pin_links {
                 let chip_pin = ChipAndPin::new(*chip_id, *pin);
@@ -189,10 +230,21 @@ impl ChipCompiler {
         let unused_buffers = unsourced_buffers.union(&untargeted_buffers);
 
         for buffer_id in unused_buffers {
-            forward_links.remove(&buffer_id);
-            back_links.remove(&buffer_id);
-            id_types.remove(&buffer_id);
+            for links in forward_links.values_mut() {
+                links.retain(|target| target != buffer_id);
+            }
+            forward_links.remove(buffer_id);
+
+            back_links.remove(buffer_id);
+            for links in back_links.values_mut() {
+                links.retain(|source| source != buffer_id);
+            }
+
+            id_types.remove(buffer_id);
         }
+
+        forward_links.retain(|_, v| !v.is_empty());
+        back_links.retain(|_, v| !v.is_empty());
     }
     
     // "explode" the remaining buffer nodes: for each buffer source,

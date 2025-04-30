@@ -73,6 +73,11 @@ fn given_single_nand_chip_then_compiles_to_identical_description() {
     let n = circuit.add_custom_chip(nand.clone());
     let y = circuit.add_chip(ChipType::Output);
 
+    println!("Chip IDs:");
+    println!("Ground: {}, Supply: {}, Input: {}, Input: {}, NAnd: {}, Output: {}", g, s, a, b, n, y);
+    println!("NAND Layout:");
+    println!("{:?}", layout);
+
     circuit.add_forward_link(ChipAndPin::new(g, 0), ChipAndPin::new(n, ground));
     circuit.add_forward_link(ChipAndPin::new(s, 0), ChipAndPin::new(n, supply));
     circuit.add_forward_link(ChipAndPin::new(a, 0), ChipAndPin::new(n, layout.input_pins[0]));
