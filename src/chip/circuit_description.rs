@@ -1,14 +1,17 @@
 use std::collections::HashMap;
 
 use super::{
+    types::*,
     chip::ChipType, 
-    chip_description::{ChipAndPin, ChipDescription, Link}
+    chip_description::ChipDescription
 };
 
+#[derive(Clone)]
 pub struct CircuitDescription {
     pub num_chips: usize,
     pub chip_types: HashMap<usize, ChipType>,
-    pub forward_links: HashMap<usize, HashMap<ChipAndPin, Vec<ChipAndPin>>>,
+    pub chip_descriptions: HashMap<usize, ChipDescription>,
+    pub forward_links: HashMap<usize, HashMap<usize, Vec<ChipAndPin>>>,
 }
 
 impl CircuitDescription {
@@ -16,6 +19,7 @@ impl CircuitDescription {
         Self {
             num_chips: 0,
             chip_types: HashMap::new(),
+            chip_descriptions: HashMap::new(),
             forward_links: HashMap::new(),
         }
     }
@@ -26,34 +30,27 @@ impl CircuitDescription {
         self.chip_types.entry(id).or_insert(chip_type);
         id
     }
-
-    pub fn is_valid(&self) -> bool {
-        let chip_description = self.compile_to_chip();
-        chip_description.is_valid()
+    
+    pub fn add_custom_chip(&mut self, description: ChipDescription) -> usize {
+        let id = self.num_chips;
+        self.num_chips += 1;
+        self.chip_types.entry(id).or_insert(ChipType::Custom);
+        self.chip_descriptions.entry(id).or_insert(description);
+        id
     }
 
-    pub fn compile_to_chip(&self) -> ChipDescription {
-        let num_inputs = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Input).count();
-        let num_nands = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Custom).count();
-        let num_outputs = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Output).count();
-        
-        let mut links = Vec::new();
-        for (source_chip_id, sources) in &self.forward_links {
-            for (_, target_pins) in sources {
-                for target_pin in target_pins {
-                    links.push(Link::new(source_chip_id.clone(), target_pin.chip_id));
-                }
-            }
+    pub fn is_valid(&self) -> bool {
+        if self.has_custom_chips_but_no_supply() {
+            return false;
         }
-        
-        ChipDescription::new(num_inputs, num_nands, num_outputs, links)
+        return true;
     }
     
     pub fn add_forward_link(&mut self, source: ChipAndPin, target: ChipAndPin) {
         self.forward_links
             .entry(source.chip_id)
             .or_insert_with(HashMap::new)
-            .entry(source)
+            .entry(source.pin_index)
             .or_insert_with(Vec::new)
             .push(target);
     }
@@ -64,11 +61,17 @@ impl CircuitDescription {
             panic!("No forward links found for chip ID {}.", source.chip_id);
         }
         let forward_links = forward_links.unwrap();
-        let targets = forward_links.get_mut(&source);
+        let targets = forward_links.get_mut(&source.pin_index);
         if targets.is_none() {
             panic!("No targets found for source chip and pin.");
         }
         let targets = targets.unwrap();
         targets.retain(|t| t != &target);
+    }
+    
+    fn has_custom_chips_but_no_supply(&self) -> bool {
+        let num_custom = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Custom).count();
+        let num_supply = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Supply).count();
+        return num_custom > 0 && num_supply == 0;
     }
 }

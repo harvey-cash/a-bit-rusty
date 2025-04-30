@@ -1,9 +1,9 @@
 use std::{collections::{HashMap, VecDeque}, vec};
 
+use crate::chip_pin;
+
 use super::{
-    chip::{Chip, ChipType, Tickable}, 
-    chip_description::{ChipAndPin, ChipDescription}, 
-    circuit_description::CircuitDescription
+    chip::{Chip, ChipType, CustomChip, Tickable}, circuit_description::CircuitDescription, types::*
 };
 
 pub struct Circuit {
@@ -20,23 +20,32 @@ impl Circuit {
             back_links: HashMap::new(),
         }
     }
+    
+    pub fn get_description(&self) -> CircuitDescription {
+        self.description.clone()
+    }
 
     pub fn add_chip<C: Chip + 'static>(&mut self, chip: C) -> usize {
-        let chip_type = chip.get_type();        
+        let chip_type = chip.get_type();
+        if chip_type == ChipType::Custom {
+            panic!("Can not add custom chip here - use add_custom_chip!");
+        }
         let id = self.description.add_chip(chip_type);
         self.chips.insert(id, Box::new(chip));
         return id;
     }
 
-    pub fn compile_to_chip(&self) -> ChipDescription {
-        self.description.compile_to_chip()
+    pub fn add_custom_chip(&mut self, chip: CustomChip) -> usize {
+        let id = self.description.add_custom_chip(chip.get_description());
+        self.chips.insert(id, Box::new(chip));
+        return id;
     }
 
     pub fn set_input(&mut self, input_chip_id: usize, value: u8) {
         if self.description.chip_types.get(&input_chip_id) != Some(&ChipType::Input) {
             panic!("Invalid chip ID for input.");
         }
-        self.chips.get_mut(&input_chip_id).unwrap().set_input(0, value);
+        self.chips.get_mut(&input_chip_id).unwrap().write_pin(0, value);
     }
 
     pub fn set_supply(&mut self, supply_chip_id: usize, value: u8) {
@@ -44,14 +53,14 @@ impl Circuit {
             panic!("Invalid chip ID for supply.");
         }
         let supply_chip = self.chips.get_mut(&supply_chip_id).unwrap();
-        supply_chip.set_input(0, value);
+        supply_chip.write_pin(0, value);
     }
 
     pub fn get_output(&self, output_index: usize) -> u8 {
         if self.description.chip_types.get(&output_index) != Some(&ChipType::Output) {
             panic!("Invalid chip ID for output.");
         }
-        self.chips.get(&output_index).unwrap().get_output(0)
+        self.chips.get(&output_index).unwrap().read_pin(0)
     }
 
     pub fn create_link(&mut self, source: ChipAndPin, target: ChipAndPin) {
@@ -77,21 +86,22 @@ impl Circuit {
             .collect()
     }
     
-    fn get_input_values_for_chip(&self, index: &usize) -> Vec<u8> {
-        let num_inputs = self.chips.get(index).unwrap().get_num_inputs();
-        let mut inputs = vec![0; num_inputs];
+    fn get_input_values_for_chip(&self, index: &usize) -> HashMap<usize, u8> {
+        let input_pins = self.chips.get(index).unwrap().get_layout().input_pins;
+        let mut inputs = HashMap::new();
         
-        for pin_idx in 0..num_inputs {
-            let pin = ChipAndPin::new(*index, pin_idx);
+        for pin_idx in input_pins {
+            let pin = chip_pin!(*index, pin_idx);
             let back_link_option = self.back_links.get(&pin);
 
             if back_link_option.is_none() {
-                inputs[pin_idx] = 0;
+                inputs.insert(pin_idx, 0);
                 continue;
             }
             
             let source_pin: ChipAndPin = *back_link_option.unwrap();
-            inputs[pin_idx] = self.chips.get(&source_pin.chip_id).unwrap().get_output(source_pin.pin_index);
+            let value = self.chips.get(&source_pin.chip_id).unwrap().read_pin(source_pin.pin_index);
+            inputs.insert(pin_idx, value);
         }
         inputs
         
@@ -110,7 +120,7 @@ impl Tickable for Circuit {
                 continue;
             }
 
-            let input_values = self.get_input_values_for_chip(&index);
+            let input_values: HashMap<usize, u8> = self.get_input_values_for_chip(&index);
 
             let chip_option = self.chips.get_mut(&index);
             if chip_option.is_none() {
@@ -118,8 +128,8 @@ impl Tickable for Circuit {
             }
 
             let chip = chip_option.unwrap();
-            for (i, value) in input_values.iter().enumerate() {
-                chip.set_input(i, *value);
+            for (pin_idx, value) in input_values {
+                chip.write_pin(pin_idx, value);
             }
             chip.tick();
             updated_this_tick[index] = true;
