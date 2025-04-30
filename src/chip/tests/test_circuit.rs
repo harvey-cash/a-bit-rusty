@@ -33,7 +33,7 @@
 // [ ] Circuit can be constructed from a ChipDescription.
 
 use crate::{chip::{
-    chip::{Chip, CustomChip, GroundChip, InputChip, NAndChip, OutputChip, SupplyChip, Tickable}, chip_description::ChipDescription, circuit::{self, Circuit}, compiler::ChipCompiler, types::*
+    chip::{Chip, CustomChip, GroundChip, InputChip, NAndChip, OutputChip, SupplyChip, Tickable}, chip_description::ChipDescription, circuit::Circuit, compiler::ChipCompiler, types::*
 }, chip_pin};
 
 
@@ -129,8 +129,7 @@ fn given_nand_when_supply_1_then_output_pin_1() {
     assert_eq!(*output_pin_value, 1);
 }
 
-#[test]
-fn given_not_gate_when_input_0_then_output_1() {
+fn build_not() -> (Circuit, usize, usize, usize) {
     let mut circuit = Circuit::new();
     let ground = circuit.add_chip(GroundChip::new());
     let supply = circuit.add_chip(SupplyChip::new());
@@ -144,6 +143,12 @@ fn given_not_gate_when_input_0_then_output_1() {
     circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 3));
     circuit.create_link(chip_pin!(nand_id, 4), chip_pin!(output_id, 0));
 
+    return (circuit, supply, input_id, output_id);
+}
+
+#[test]
+fn given_not_gate_when_input_0_then_output_1() {
+    let (mut circuit, supply, input_id, output_id) = build_not();
     circuit.set_supply(supply, 1);
     circuit.set_input(input_id, 0);
     circuit.tick();
@@ -152,19 +157,7 @@ fn given_not_gate_when_input_0_then_output_1() {
 
 #[test]
 fn given_not_gate_when_input_1_then_output_0() {
-    let mut circuit = Circuit::new();
-    let ground = circuit.add_chip(GroundChip::new());
-    let supply = circuit.add_chip(SupplyChip::new());
-    let input_id = circuit.add_chip(InputChip::new());
-    let nand_id = circuit.add_custom_chip(NAndChip::new());    
-    let output_id = circuit.add_chip(OutputChip::new());
-
-    circuit.create_link(chip_pin!(ground, 0), chip_pin!(nand_id, 0));
-    circuit.create_link(chip_pin!(supply, 0), chip_pin!(nand_id, 1));
-    circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 2));
-    circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 3));
-    circuit.create_link(chip_pin!(nand_id, 4), chip_pin!(output_id, 0));
-
+    let (mut circuit, supply, input_id, output_id) = build_not();
     circuit.set_supply(supply, 1);
     circuit.set_input(input_id, 1);
     circuit.tick();
@@ -173,18 +166,7 @@ fn given_not_gate_when_input_1_then_output_0() {
 
 #[test]
 fn given_compiled_not_circuit_then_functions_as_not_chip() {
-    let mut circuit = Circuit::new();
-    let ground_id = circuit.add_chip(GroundChip::new());
-    let supply_id = circuit.add_chip(SupplyChip::new());
-    let input_id = circuit.add_chip(InputChip::new());
-    let nand_id = circuit.add_custom_chip(NAndChip::new());
-    let output_id = circuit.add_chip(OutputChip::new());
-    circuit.create_link(chip_pin!(ground_id, 0), chip_pin!(nand_id, 0));
-    circuit.create_link(chip_pin!(supply_id, 0), chip_pin!(nand_id, 1));
-    circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 2));
-    circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 3));
-    circuit.create_link(chip_pin!(nand_id, 4), chip_pin!(output_id, 0));
-    
+    let (circuit, _, _, _) = build_not();    
     let description: ChipDescription = ChipCompiler::compile(circuit.get_description());
 
     let mut chip = CustomChip::new(description);
@@ -357,6 +339,44 @@ fn given_xor_when_supply_on_then_pin_states_correct() {
     let supply_id = circuit.get_supply_ids()[0];
     circuit.set_supply(supply_id, 1);
     circuit.tick();
-    let pin_states = circuit.get_chip_pin_states();
-    println!("{:#?}", pin_states);
+    let states = circuit.get_chip_pin_states();
+
+    // Ground and Supply
+    assert_eq!(*states.get(&chip_pin!(0, 0)).unwrap(), 0);
+    assert_eq!(*states.get(&chip_pin!(1, 0)).unwrap(), 1);
+
+    // Inputs
+    assert_eq!(*states.get(&chip_pin!(2, 0)).unwrap(), 0);
+    assert_eq!(*states.get(&chip_pin!(3, 0)).unwrap(), 0);
+
+    // NAnd 1
+    assert_eq!(*states.get(&chip_pin!(4, 0)).unwrap(), 0);
+    assert_eq!(*states.get(&chip_pin!(4, 1)).unwrap(), 1);
+    assert_eq!(*states.get(&chip_pin!(4, 2)).unwrap(), 0);
+    assert_eq!(*states.get(&chip_pin!(4, 3)).unwrap(), 0);
+    assert_eq!(*states.get(&chip_pin!(4, 4)).unwrap(), 1);
+
+    // NAnd 2
+    assert_eq!(*states.get(&chip_pin!(5, 0)).unwrap(), 0);
+    assert_eq!(*states.get(&chip_pin!(5, 1)).unwrap(), 1);
+    assert_eq!(*states.get(&chip_pin!(5, 2)).unwrap(), 0);
+    assert_eq!(*states.get(&chip_pin!(5, 3)).unwrap(), 1);
+    assert_eq!(*states.get(&chip_pin!(5, 4)).unwrap(), 1);
+
+    // NAnd 3
+    assert_eq!(*states.get(&chip_pin!(6, 0)).unwrap(), 0);
+    assert_eq!(*states.get(&chip_pin!(6, 1)).unwrap(), 1);
+    assert_eq!(*states.get(&chip_pin!(6, 2)).unwrap(), 0);
+    assert_eq!(*states.get(&chip_pin!(6, 3)).unwrap(), 1);
+    assert_eq!(*states.get(&chip_pin!(6, 4)).unwrap(), 1);
+
+    // NAnd 4
+    assert_eq!(*states.get(&chip_pin!(7, 0)).unwrap(), 0);
+    assert_eq!(*states.get(&chip_pin!(7, 1)).unwrap(), 1);
+    assert_eq!(*states.get(&chip_pin!(7, 2)).unwrap(), 1);
+    assert_eq!(*states.get(&chip_pin!(7, 3)).unwrap(), 1);
+    assert_eq!(*states.get(&chip_pin!(7, 4)).unwrap(), 0);
+
+    // Output
+    assert_eq!(*states.get(&chip_pin!(8, 0)).unwrap(), 0);
 }
