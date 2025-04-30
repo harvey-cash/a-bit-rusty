@@ -21,7 +21,6 @@ impl ChipCompiler {
         let mut back_links: HashMap<usize, Vec<usize>> = HashMap::new();
 
         Self::add_internal_links(&mut forward_links, &mut back_links, &circuit, &chip_pin_to_id_node);
-
         Self::add_external_links(&mut forward_links, &mut back_links, &circuit, &chip_pin_to_id_node);
 
         let mut id_type_map: HashMap<usize, NodeType> = chip_pin_to_id_node.iter()
@@ -29,7 +28,6 @@ impl ChipCompiler {
             .collect();
 
         Self::prune_unused_buffer_nodes(&mut forward_links, &mut back_links, &mut id_type_map);
-        
         Self::explode_buffers(&mut forward_links, &mut back_links, &mut id_type_map);
 
         let links: Vec<Link> = Self::construct_links(&forward_links);
@@ -38,31 +36,25 @@ impl ChipCompiler {
     }
     
     // Add nodes for each circuit ground, supply, input and output
-    fn add_inputs_and_outputs(chip_pin_to_id_node: &mut HashMap<ChipAndPin, IDNode>, circuit: &CircuitDescription) -> usize {
-        let mut new_node_id = 0;
-
-        for (id, chip_type) in &circuit.chip_types {
-            if chip_type == &ChipType::Ground {
-                chip_pin_to_id_node.insert(chip_pin!(*id, 0), (new_node_id, NodeType::Ground));
-                new_node_id += 1;
-            }
-        }
-        for (id, chip_type) in &circuit.chip_types {
-            if chip_type == &ChipType::Supply {
-                chip_pin_to_id_node.insert(chip_pin!(*id, 0), (new_node_id, NodeType::Supply));
-                new_node_id += 1;
-            }
-        }
-        for (id, chip_type) in &circuit.chip_types {
-            if chip_type == &ChipType::Input {
-                chip_pin_to_id_node.insert(chip_pin!(*id, 0), (new_node_id, NodeType::Input));
-                new_node_id += 1;
-            }
-        }
-        for (id, chip_type) in &circuit.chip_types {
-            if chip_type == &ChipType::Output {
-                chip_pin_to_id_node.insert(chip_pin!(*id, 0), (new_node_id, NodeType::Output));
-                new_node_id += 1;
+    fn add_inputs_and_outputs(
+        chip_pin_to_id_node: &mut HashMap<ChipAndPin, IDNode>,
+        circuit: &CircuitDescription
+    ) -> usize {
+        let mut new_node_id: usize = 0;
+        
+        let type_order = [
+            (ChipType::Ground, NodeType::Ground),
+            (ChipType::Supply, NodeType::Supply),
+            (ChipType::Input,  NodeType::Input),
+            (ChipType::Output, NodeType::Output),
+        ];
+        
+        for (target_chip_type, node_type) in type_order {            
+            for (id, chip_type) in &circuit.chip_types {
+                if chip_type == &target_chip_type {
+                    chip_pin_to_id_node.insert(chip_pin!(*id, 0), (new_node_id, node_type));
+                    new_node_id += 1;
+                }
             }
         }
 
@@ -87,42 +79,33 @@ impl ChipCompiler {
     }
     
     // add temporary "buffer" nodes for each ground, supply, input and output in each chip
-    fn add_buffer_nodes(chip_pin_to_id_node: &mut HashMap<ChipAndPin, (usize, NodeType)>, circuit: &CircuitDescription, num_nodes: usize) -> usize {
+    fn add_buffer_nodes(
+        chip_pin_to_id_node: &mut HashMap<ChipAndPin, (usize, NodeType)>, 
+        circuit: &CircuitDescription, 
+        num_nodes: usize
+    ) {
+        let type_order = [ NodeType::Ground, NodeType::Supply, NodeType::Input, NodeType::Output ];
         let mut new_node_id = num_nodes;
+        
+        for target_chip_type in type_order {
+            for (chip_id, description) in &circuit.chip_descriptions {
+                let nodes_of_type: Vec<usize> = description.id_type_map.iter()
+                    .filter(|(_, node_type)| node_type == &&target_chip_type)
+                    .map(|(id, _)| *id)
+                    .collect();
 
-        for (chip_id, description) in &circuit.chip_descriptions {
-            for (old_node_id, node_type) in &description.id_type_map {
-                let chip_and_pin = chip_pin!(*chip_id, *old_node_id);
-                
-                if chip_pin_to_id_node.contains_key(&chip_and_pin) && node_type != &NodeType::NAnd
-                {
-                    eprintln!("{:?}, {:?}, {:?}", chip_and_pin, node_type, chip_pin_to_id_node.get(&chip_and_pin).unwrap());
-                    panic!("Duplicate chip and pin!?")
-                }
+                for old_node_id in nodes_of_type {
+                    let chip_and_pin = chip_pin!(*chip_id, old_node_id);
+                    
+                    if chip_pin_to_id_node.contains_key(&chip_and_pin) {
+                        panic!("Duplicate chip and pin!?")
+                    }
 
-                match node_type {
-                    NodeType::Ground => {
-                        chip_pin_to_id_node.insert(chip_and_pin, (new_node_id, NodeType::Buffer));
-                        new_node_id += 1;
-                    },
-                    NodeType::Supply => {
-                        chip_pin_to_id_node.insert(chip_and_pin, (new_node_id, NodeType::Buffer));
-                        new_node_id += 1;
-                    },
-                    NodeType::Input => {
-                        chip_pin_to_id_node.insert(chip_and_pin, (new_node_id, NodeType::Buffer));
-                        new_node_id += 1;
-                    },
-                    NodeType::Output => {
-                        chip_pin_to_id_node.insert(chip_and_pin, (new_node_id, NodeType::Buffer));
-                        new_node_id += 1;
-                    },
-                    _ => {},
+                    chip_pin_to_id_node.insert(chip_and_pin, (new_node_id, NodeType::Buffer));
+                    new_node_id += 1;
                 }
             }
         }
-
-        return new_node_id;
     }
     
     // add node links for each internal chip node link
@@ -182,38 +165,36 @@ impl ChipCompiler {
     fn prune_unused_buffer_nodes(
         forward_links: &mut HashMap<usize, Vec<usize>>, 
         back_links: &mut HashMap<usize, Vec<usize>>, 
-        id_types: &mut HashMap<usize, NodeType>)
-    {
-        let unsourced_buffers: HashSet<usize> = id_types.iter()
-            .filter(|(_, node_type)| *node_type == &NodeType::Buffer)
-            .filter(|(buffer_id, _)| forward_links.entry(**buffer_id).or_default().len() == 0)
-            .map(|(buffer_id, _)| *buffer_id)
+        id_types: &mut HashMap<usize, NodeType>
+    ) {
+        let unused_buffer_ids: HashSet<usize> = id_types
+            .iter()
+            .filter(|(_, node_type)| node_type == &&NodeType::Buffer) 
+            .map(|(&id, _)| id)
+            .filter(|&id| {
+                let no_outgoing = forward_links.get(&id).map_or(true, |links| links.is_empty());
+                let no_incoming = back_links.get(&id).map_or(true, |links| links.is_empty());
+                no_outgoing || no_incoming
+            })
             .collect();
-
-        let untargeted_buffers: HashSet<usize> = id_types.iter()
-            .filter(|(_, node_type)| *node_type == &NodeType::Buffer)
-            .filter(|(buffer_id, _)| back_links.entry(**buffer_id).or_default().len() == 0)
-            .map(|(buffer_id, _)| *buffer_id)
-            .collect();
-
-        let unused_buffers = unsourced_buffers.union(&untargeted_buffers);
-
-        for buffer_id in unused_buffers {
-            for links in forward_links.values_mut() {
-                links.retain(|target| target != buffer_id);
-            }
-            forward_links.remove(buffer_id);
-
-            back_links.remove(buffer_id);
-            for links in back_links.values_mut() {
-                links.retain(|source| source != buffer_id);
-            }
-
-            id_types.remove(buffer_id);
+        
+        if unused_buffer_ids.is_empty() {
+            return;
         }
-
-        forward_links.retain(|_, v| !v.is_empty());
-        back_links.retain(|_, v| !v.is_empty());
+        
+        id_types.retain(|id, _| !unused_buffer_ids.contains(id));
+        forward_links.retain(|id, _| !unused_buffer_ids.contains(id));
+        back_links.retain(|id, _| !unused_buffer_ids.contains(id));
+        
+        for links in forward_links.values_mut() {
+            links.retain(|target_id| !unused_buffer_ids.contains(target_id));
+        }
+        for links in back_links.values_mut() {
+            links.retain(|source_id| !unused_buffer_ids.contains(source_id));
+        }
+        
+        forward_links.retain(|_, links| !links.is_empty());
+        back_links.retain(|_, links| !links.is_empty());
     }
     
     // "explode" the remaining buffer nodes: for each buffer source,
@@ -223,62 +204,35 @@ impl ChipCompiler {
         forward_links: &mut HashMap<usize, Vec<usize>>,
         back_links: &mut HashMap<usize, Vec<usize>>,
         id_types: &mut HashMap<usize, NodeType>,
-    ) {        
-        let buffer_ids: Vec<usize> = id_types
-            .iter()
+    ) {
+        let all_buffers_ids: Vec<usize> = id_types.iter()
             .filter(|(_, node_type)| node_type == &&NodeType::Buffer)
             .map(|(&id, _)| id)
             .collect();
         
-        for buffer_id in buffer_ids {
-            if id_types.get(&buffer_id) != Some(&NodeType::Buffer) {
-                continue;
-            }
-            
-            let sources = back_links.get(&buffer_id).cloned().unwrap_or_default();
-            let targets = forward_links.get(&buffer_id).cloned().unwrap_or_default();
-
-            for &source_id in &sources {
-                if id_types.contains_key(&source_id) {
-                    for &target_id in &targets {
-                        if id_types.contains_key(&target_id) {
-                            if let Some(source_fwd_links) = forward_links.get_mut(&source_id) {
-                                source_fwd_links.push(target_id);
-                            }
-                            
-                            if let Some(target_back_links) = back_links.get_mut(&target_id) {
-                                target_back_links.push(source_id);
-                            }
-                        }
-                    }
-                }
-            }
+        for buffer_id in all_buffers_ids {
+            let sources = back_links.remove(&buffer_id).unwrap_or_default();
+            let targets = forward_links.remove(&buffer_id).unwrap_or_default();
             
             for &source_id in &sources {
                 if let Some(source_fwd_links) = forward_links.get_mut(&source_id) {
                     source_fwd_links.retain(|&id| id != buffer_id);
+                    source_fwd_links.extend(targets.iter().filter(|&&t_id| id_types.contains_key(&t_id)));
                 }
             }
-            
+    
             for &target_id in &targets {
                 if let Some(target_back_links) = back_links.get_mut(&target_id) {
                     target_back_links.retain(|&id| id != buffer_id);
+                    target_back_links.extend(sources.iter().filter(|&&s_id| id_types.contains_key(&s_id)));
                 }
             }
             
-            forward_links.remove(&buffer_id);
-            back_links.remove(&buffer_id);
             id_types.remove(&buffer_id);
         }
         
         forward_links.retain(|_, v| !v.is_empty());
         back_links.retain(|_, v| !v.is_empty());
-    }
-
-    fn construct_type_map(chip_pin_to_id_node: &HashMap<ChipAndPin, IDNode>) -> HashMap<usize, NodeType> {
-        chip_pin_to_id_node.iter()
-            .map(|(_, (id, node_type))| (*id, *node_type))
-            .collect()
     }
     
     fn construct_links(forward_links: &HashMap<usize, Vec<usize>>) -> Vec<Link> {
