@@ -44,21 +44,7 @@ impl CircuitDescription {
         if self.has_custom_chips_but_no_supply() {
             return false;
         }
-
-        let chip_description = self.compile();
-        chip_description.is_valid()
-    }
-
-    pub fn compile_to_chip(&self) -> ChipDescription {
-        if self.has_custom_chips_but_no_supply() {
-            panic!("Can not compile an invalid circuit!");
-        }
-        
-        let chip_description = self.compile();
-        if !chip_description.is_valid() {
-            panic!("Can not compile an invalid circuit!");
-        }
-        chip_description
+        return true;
     }
     
     pub fn add_forward_link(&mut self, source: ChipAndPin, target: ChipAndPin) {
@@ -82,17 +68,6 @@ impl CircuitDescription {
         }
         let targets = targets.unwrap();
         targets.retain(|t| t != &target);
-    }
-
-    fn compile(&self) -> ChipDescription {
-        let id_types: HashMap<usize, NodeType> = node_type_map!{
-            0 => NodeType::Ground,
-            1 => NodeType::Supply,
-        };
-
-        let links = vec![];
-
-        ChipDescription::new(id_types, links)
     }
     
     fn has_custom_chips_but_no_supply(&self) -> bool {

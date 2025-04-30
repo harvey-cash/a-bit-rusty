@@ -29,10 +29,6 @@ impl Circuit {
         return id;
     }
 
-    pub fn compile_to_chip(&self) -> ChipDescription {
-        self.description.compile_to_chip()
-    }
-
     pub fn set_input(&mut self, input_chip_id: usize, value: u8) {
         if self.description.chip_types.get(&input_chip_id) != Some(&ChipType::Input) {
             panic!("Invalid chip ID for input.");
