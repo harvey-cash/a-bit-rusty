@@ -8,6 +8,7 @@ use super::{
     chip_description::ChipDescription
 };
 
+#[derive(Clone)]
 pub struct CircuitDescription {
     pub num_chips: usize,
     pub chip_types: HashMap<usize, ChipType>,

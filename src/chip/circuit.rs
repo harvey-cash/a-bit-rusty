@@ -1,10 +1,7 @@
 use std::{collections::{HashMap, VecDeque}, vec};
 
 use super::{
-    types::*,
-    chip::{Chip, ChipType, Tickable}, 
-    chip_description::ChipDescription, 
-    circuit_description::CircuitDescription
+    chip::{Chip, ChipType, CustomChip, Tickable}, chip_description::ChipDescription, circuit_description::CircuitDescription, types::*
 };
 
 pub struct Circuit {
@@ -21,10 +18,23 @@ impl Circuit {
             back_links: HashMap::new(),
         }
     }
+    
+    pub fn get_description(&self) -> CircuitDescription {
+        self.description.clone()
+    }
 
     pub fn add_chip<C: Chip + 'static>(&mut self, chip: C) -> usize {
-        let chip_type = chip.get_type();        
+        let chip_type = chip.get_type();
+        if chip_type == ChipType::Custom {
+            panic!("Can not add custom chip here - use add_custom_chip!");
+        }
         let id = self.description.add_chip(chip_type);
+        self.chips.insert(id, Box::new(chip));
+        return id;
+    }
+
+    pub fn add_custom_chip(&mut self, chip: CustomChip) -> usize {
+        let id = self.description.add_custom_chip(chip.get_description());
         self.chips.insert(id, Box::new(chip));
         return id;
     }
