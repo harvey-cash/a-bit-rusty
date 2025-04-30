@@ -2,7 +2,7 @@ use std::{collections::{HashMap, HashSet}, vec};
 
 use crate::chip_pin;
 
-use super::{chip::ChipType, chip_description::ChipDescription, circuit_description::CircuitDescription, types::{ChipAndPin, Link, NodeType, NodeTypeMap}};
+use super::{chip::ChipType, chip_description::ChipDescription, circuit_description::CircuitDescription, types::{ChipAndPin, Link, NodeType}};
 
 pub struct ChipCompiler {}
 

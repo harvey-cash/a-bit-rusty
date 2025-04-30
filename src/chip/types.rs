@@ -140,7 +140,8 @@ pub type NodeTypeMap = HashMap<usize, NodeType>;
 #[macro_export]
 macro_rules! node_type_map {
     ( $( $key:expr => $value:expr ),* $(,)? ) => {
-        {            
+        {
+            #[allow(unused_mut)]
             let mut map = std::collections::HashMap::new();
             $(
                 map.insert($key, $value);

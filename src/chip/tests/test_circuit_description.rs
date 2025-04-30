@@ -1,11 +1,11 @@
 
-
+// ToDo:
 // [ ] CircuitDescription contains position and rotation of all Chips.
 // [ ] CircuitDescription contains position of all Traces.
 // [ ] CircuitDescription contains state of all Chips, Pins, and Traces.
 
 use crate::{chip::{
-    chip::{ChipType, CustomChip, NAndChip}, circuit_description::CircuitDescription, compiler::ChipCompiler, types::*
+    chip::{ChipType, NAndChip}, circuit_description::CircuitDescription, compiler::ChipCompiler, types::*
 }, chip_pin};
 
 #[test]
