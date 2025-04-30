@@ -3,32 +3,6 @@ use std::{collections::HashMap, ops::Range};
 
 use super::types::*;
 
-fn link_maps_equal_ignore_vec_order(map1: &LinkMap, map2: &LinkMap) -> bool {
-    if map1.len() != map2.len() {
-        return false;
-    }
-    for (key, vec1) in map1 {
-        match map2.get(key) {
-            None => return false,
-            Some(vec2) => {
-                if vec1.len() != vec2.len() {
-                    return false;
-                }
-                let mut sorted_vec1 = vec1.clone();
-                let mut sorted_vec2 = vec2.clone();
-                
-                sorted_vec1.sort_unstable();
-                sorted_vec2.sort_unstable();
-                
-                if sorted_vec1 != sorted_vec2 {
-                    return false;
-                }
-            }
-        }
-    }
-    true
-}
-
 #[derive(Debug, Clone)]
 pub struct ChipDescription {
     pub layout: PinLayout,
@@ -45,8 +19,8 @@ impl PartialEq for ChipDescription {
         self.num_nands == other.num_nands &&
         self.is_valid == other.is_valid &&
         self.id_type_map == other.id_type_map &&
-        link_maps_equal_ignore_vec_order(&self.forward_links, &other.forward_links) &&
-        link_maps_equal_ignore_vec_order(&self.back_links, &other.back_links)
+        map_contents_eq_ignore_order(&self.forward_links, &other.forward_links) &&
+        map_contents_eq_ignore_order(&self.back_links, &other.back_links)
     }
 }
 impl Eq for ChipDescription {}

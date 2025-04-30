@@ -1,7 +1,35 @@
 use std::collections::HashMap;
 
+pub fn vec_contents_eq_ignore_order(vec1: &Vec<usize>, vec2: &Vec<usize>) -> bool {
+    if vec1.len() != vec2.len() {
+        return false;
+    }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+    let mut sorted1 = vec1.clone();
+    sorted1.sort_unstable();
+    let mut sorted2 = vec2.clone();
+    sorted2.sort_unstable();    
+    sorted1 == sorted2
+}
+
+pub fn map_contents_eq_ignore_order(map1: &LinkMap, map2: &LinkMap) -> bool {
+    if map1.len() != map2.len() {
+        return false;
+    }
+    for (key, vec1) in map1 {
+        match map2.get(key) {
+            None => return false,
+            Some(vec2) => {
+                if !vec_contents_eq_ignore_order(vec1, vec2) {
+                    return false;
+                }
+            }
+        }
+    }
+    true
+}
+
+#[derive(Debug, Clone)]
 pub struct PinLayout {
     pub ground_pins: Vec<usize>,
     pub supply_pins: Vec<usize>,
@@ -12,6 +40,18 @@ pub struct PinLayout {
     id_pin_map: HashMap<usize, usize>,
     pin_id_map: HashMap<usize, usize>,
 }
+
+impl PartialEq for PinLayout {
+    fn eq(&self, other: &Self) -> bool {
+        vec_contents_eq_ignore_order(&self.ground_pins, &other.ground_pins) &&
+        vec_contents_eq_ignore_order(&self.supply_pins, &other.supply_pins) &&
+        vec_contents_eq_ignore_order(&self.input_pins, &other.input_pins) &&
+        vec_contents_eq_ignore_order(&self.output_pins, &other.output_pins) &&
+        self.num_pins == other.num_pins
+    }
+}
+impl Eq for PinLayout {}
+
 impl PinLayout {
     pub fn new(id_type_map: NodeTypeMap) -> Self
     {        
