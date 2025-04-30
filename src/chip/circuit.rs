@@ -47,6 +47,13 @@ impl Circuit {
         }
         self.chips.get_mut(&input_chip_id).unwrap().write_pin(0, value);
     }
+    
+    pub fn get_supply_ids(&self) -> Vec<usize> {
+        self.description.chip_types.iter()
+            .filter(|(_, chip_type)| chip_type == &&ChipType::Supply)
+            .map(|(id, _)| *id)
+            .collect()
+    }
 
     pub fn set_supply(&mut self, supply_chip_id: usize, value: u8) {
         if self.description.chip_types.get(&supply_chip_id) != Some(&ChipType::Supply) {
@@ -76,6 +83,25 @@ impl Circuit {
         }
         self.back_links.remove(&target);
     }
+    
+    pub fn get_chip_pin_states(&self) -> HashMap<ChipAndPin, u8> {
+        let mut pin_states: HashMap<ChipAndPin, u8> = HashMap::new();
+        for (id, chip) in &self.chips {
+            for pin in chip.get_layout().ground_pins {
+                pin_states.insert(chip_pin!(*id, pin), chip.read_pin(pin));
+            }
+            for pin in chip.get_layout().supply_pins {
+                pin_states.insert(chip_pin!(*id, pin), chip.read_pin(pin));
+            }
+            for pin in chip.get_layout().input_pins {
+                pin_states.insert(chip_pin!(*id, pin), chip.read_pin(pin));
+            }
+            for pin in chip.get_layout().output_pins {
+                pin_states.insert(chip_pin!(*id, pin), chip.read_pin(pin));
+            }
+        }
+        pin_states
+    }
 
     fn get_input_ids(&self) -> Vec<usize> {
         self.description
@@ -87,10 +113,16 @@ impl Circuit {
     }
     
     fn get_input_values_for_chip(&self, index: &usize) -> HashMap<usize, u8> {
-        let input_pins = self.chips.get(index).unwrap().get_layout().input_pins;
+        let layout = self.chips.get(index).unwrap().get_layout();
+        let all_inputs: Vec<Vec<usize>> = vec![layout.ground_pins, layout.supply_pins, layout.input_pins];
+        let all_pins: Vec<usize> = all_inputs.iter()
+            .flat_map(|v| v.iter())
+            .map(|v| *v)
+            .collect();
+
         let mut inputs = HashMap::new();
         
-        for pin_idx in input_pins {
+        for pin_idx in all_pins {
             let pin = chip_pin!(*index, pin_idx);
             let back_link_option = self.back_links.get(&pin);
 

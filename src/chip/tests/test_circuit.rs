@@ -33,7 +33,7 @@
 // [ ] Circuit can be constructed from a ChipDescription.
 
 use crate::{chip::{
-    chip::{Chip, CustomChip, GroundChip, InputChip, NAndChip, OutputChip, SupplyChip, Tickable}, chip_description::ChipDescription, circuit::Circuit, compiler::ChipCompiler, types::*
+    chip::{Chip, CustomChip, GroundChip, InputChip, NAndChip, OutputChip, SupplyChip, Tickable}, chip_description::ChipDescription, circuit::{self, Circuit}, compiler::ChipCompiler, types::*
 }, chip_pin};
 
 
@@ -50,6 +50,7 @@ fn given_supply_connected_then_output_is_1() {
     let mut circuit = Circuit::new();
     let supply_id = circuit.add_chip(SupplyChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
+    circuit.set_supply(supply_id, 1);
     circuit.create_link(chip_pin!(supply_id, 0), chip_pin!(output_id, 0));
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 1);
@@ -60,6 +61,7 @@ fn given_supply_disconnected_then_output_is_0() {
     let mut circuit = Circuit::new();
     let supply_id = circuit.add_chip(SupplyChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
+    circuit.set_supply(supply_id, 1);
     circuit.create_link(chip_pin!(supply_id, 0), chip_pin!(output_id, 0));
     circuit.tick();
     circuit.delete_link(chip_pin!(supply_id, 0), chip_pin!(output_id, 0));
@@ -111,19 +113,39 @@ fn given_input_connected_when_1_then_output_is_1() {
 }
 
 #[test]
+fn given_nand_when_supply_1_then_output_pin_1() {
+    println!("{:?}", NAndChip::new().get_description());
+
+    let mut circuit = Circuit::new();
+    let ground = circuit.add_chip(GroundChip::new());
+    let supply = circuit.add_chip(SupplyChip::new());
+    let nand = circuit.add_custom_chip(NAndChip::new());
+    circuit.create_link(chip_pin!(ground, 0), chip_pin!(nand, 0));
+    circuit.create_link(chip_pin!(supply, 0), chip_pin!(nand, 1));
+    circuit.set_supply(supply, 1);
+    circuit.tick();
+    let pin_states = circuit.get_chip_pin_states();
+    let output_pin_value = pin_states.get(&chip_pin!(nand, 4)).unwrap();
+    assert_eq!(*output_pin_value, 1);
+}
+
+#[test]
 fn given_not_gate_when_input_0_then_output_1() {
     let mut circuit = Circuit::new();
+    let ground = circuit.add_chip(GroundChip::new());
+    let supply = circuit.add_chip(SupplyChip::new());
     let input_id = circuit.add_chip(InputChip::new());
-
-    let mut chip = NAndChip::new();
-    chip.write_pin(chip.get_supply_pin(), 1);
-    let nand_id = circuit.add_custom_chip(chip);
-    
+    let nand_id = circuit.add_custom_chip(NAndChip::new());    
     let output_id = circuit.add_chip(OutputChip::new());
-    circuit.set_input(input_id, 0);
+
+    circuit.create_link(chip_pin!(ground, 0), chip_pin!(nand_id, 0));
+    circuit.create_link(chip_pin!(supply, 0), chip_pin!(nand_id, 1));
     circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 2));
     circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 3));
     circuit.create_link(chip_pin!(nand_id, 4), chip_pin!(output_id, 0));
+
+    circuit.set_supply(supply, 1);
+    circuit.set_input(input_id, 0);
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 1);
 }
@@ -131,17 +153,20 @@ fn given_not_gate_when_input_0_then_output_1() {
 #[test]
 fn given_not_gate_when_input_1_then_output_0() {
     let mut circuit = Circuit::new();
+    let ground = circuit.add_chip(GroundChip::new());
+    let supply = circuit.add_chip(SupplyChip::new());
     let input_id = circuit.add_chip(InputChip::new());
-
-    let mut chip = NAndChip::new();
-    chip.write_pin(chip.get_supply_pin(), 1);
-    let nand_id = circuit.add_custom_chip(chip);
-    
+    let nand_id = circuit.add_custom_chip(NAndChip::new());    
     let output_id = circuit.add_chip(OutputChip::new());
-    circuit.set_input(input_id, 1);
+
+    circuit.create_link(chip_pin!(ground, 0), chip_pin!(nand_id, 0));
+    circuit.create_link(chip_pin!(supply, 0), chip_pin!(nand_id, 1));
     circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 2));
     circuit.create_link(chip_pin!(input_id, 0), chip_pin!(nand_id, 3));
     circuit.create_link(chip_pin!(nand_id, 4), chip_pin!(output_id, 0));
+
+    circuit.set_supply(supply, 1);
+    circuit.set_input(input_id, 1);
     circuit.tick();
     assert_eq!(circuit.get_output(output_id), 0);
 }
@@ -175,7 +200,7 @@ fn given_compiled_not_circuit_then_functions_as_not_chip() {
 }
 
 
-fn compile_xor_chip() -> CustomChip {
+fn build_xor() -> (Circuit, usize, usize, usize) {
     let mut circuit = Circuit::new();
     let ground = circuit.add_chip(GroundChip::new());
     let supply = circuit.add_chip(SupplyChip::new());
@@ -210,15 +235,57 @@ fn compile_xor_chip() -> CustomChip {
 
     circuit.create_link(chip_pin!(nand_4, 4), chip_pin!(output, 0));
     
-    let description: ChipDescription = ChipCompiler::compile(circuit.get_description());
-
-    CustomChip::new(description)
+    return (circuit, in_a, in_b, output);
 }
 
+#[test]
+fn given_xor_when_both_inputs_0_then_output_0() {
+    let (mut circuit, in_a, in_b, output) = build_xor();
+    circuit.set_supply(circuit.get_supply_ids()[0], 1);
+
+    circuit.set_input(in_a, 0);
+    circuit.set_input(in_b, 0);
+    circuit.tick();
+    circuit.tick();
+    assert_eq!(circuit.get_output(output), 0);
+}
+
+#[test]
+fn given_xor_when_inputs_differ_then_output_1() {
+    let (mut circuit, in_a, in_b, output) = build_xor();
+    circuit.set_supply(circuit.get_supply_ids()[0], 1);
+
+    circuit.set_input(in_a, 1);
+    circuit.set_input(in_b, 0);
+    circuit.tick();
+    circuit.tick();
+    assert_eq!(circuit.get_output(output), 1);
+
+    circuit.set_input(in_a, 1);
+    circuit.set_input(in_b, 0);
+    circuit.tick();
+    circuit.tick();
+    assert_eq!(circuit.get_output(output), 1);
+}
+
+#[test]
+fn given_xor_when_both_inputs_1_then_output_0() {
+    let (mut circuit, in_a, in_b, output) = build_xor();
+    circuit.set_supply(circuit.get_supply_ids()[0], 1);
+
+    circuit.set_input(in_a, 1);
+    circuit.set_input(in_b, 1);
+    circuit.tick();
+    circuit.tick();
+    assert_eq!(circuit.get_output(output), 0);
+}
 
 #[test]
 fn given_compiled_xor_when_both_inputs_0_then_output_0() {
-    let mut xor = compile_xor_chip();
+    let (circuit, _, _, _) = build_xor();
+    let description: ChipDescription = ChipCompiler::compile(circuit.get_description());
+    let mut xor = CustomChip::new(description);
+
     let layout = xor.get_description().get_layout();
     xor.write_pin(xor.get_supply_pin(), 1);
 
@@ -231,7 +298,10 @@ fn given_compiled_xor_when_both_inputs_0_then_output_0() {
 
 #[test]
 fn given_compiled_xor_when_inputs_differ_then_output_1() {
-    let mut xor = compile_xor_chip();
+    let (circuit, _, _, _) = build_xor();
+    let description: ChipDescription = ChipCompiler::compile(circuit.get_description());
+    let mut xor = CustomChip::new(description);
+
     let layout = xor.get_description().get_layout();
     xor.write_pin(xor.get_supply_pin(), 1);
 
@@ -250,7 +320,10 @@ fn given_compiled_xor_when_inputs_differ_then_output_1() {
 
 #[test]
 fn given_compiled_xor_when_both_inputs_1_then_output_0() {
-    let mut xor = compile_xor_chip();
+    let (circuit, _, _, _) = build_xor();
+    let description: ChipDescription = ChipCompiler::compile(circuit.get_description());
+    let mut xor = CustomChip::new(description);
+
     let layout = xor.get_description().get_layout();
     xor.write_pin(xor.get_supply_pin(), 1);
 
@@ -259,4 +332,31 @@ fn given_compiled_xor_when_both_inputs_1_then_output_0() {
     xor.tick();
     xor.tick();
     assert_eq!(xor.read_pin(layout.output_pins[0]), 0);
+}
+
+#[test]
+fn given_xor_when_not_yet_ticked_then_all_pin_states_low() {
+    let (circuit, _, _, _) = build_xor();
+    let pin_states = circuit.get_chip_pin_states();
+    let all_low = pin_states.iter().all(|(_, value)| *value == 0);
+    assert!(all_low);
+}
+
+#[test]
+fn given_xor_when_supply_off_then_all_pin_states_low() {
+    let (mut circuit, _, _, _) = build_xor();
+    circuit.tick();
+    let pin_states = circuit.get_chip_pin_states();
+    let all_low = pin_states.iter().all(|(_, value)| *value == 0);
+    assert!(all_low);
+}
+
+#[test]
+fn given_xor_when_supply_on_then_pin_states_correct() {
+    let (mut circuit, _, _, _) = build_xor();
+    let supply_id = circuit.get_supply_ids()[0];
+    circuit.set_supply(supply_id, 1);
+    circuit.tick();
+    let pin_states = circuit.get_chip_pin_states();
+    println!("{:#?}", pin_states);
 }
