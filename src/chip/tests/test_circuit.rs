@@ -22,14 +22,11 @@
 // [ ] If a Trace intersects multiple Output Pins it is invalid.
 // [ ] Circuits are invalid if any Trace is invalid.
 // [ ] Compilation turns Traces into Links in the ChipDescription.
-// [ ] Circuits can be ticked, even if invalid.
 // [ ] Ticking a Circuit calls tick on all Chips with no Input pins connected to an invalid Trace.
 // [ ] Before a Chip is ticked, its Inputs are set to the values of the connected Traces.
 // [ ] After a Chip is ticked, Traces connected to its Outputs have their value set.
 // [ ] After a Circuit is ticked, all output Chips have their values set to the value of the connected Traces.
 // [ ] Trace states can be read from a Circuit.
-// [ ] All Chip Pin states can be read from a Circuit.
-// [ ] CircuitDescription can be read from a Circuit.
 // [ ] Circuit can be constructed from a ChipDescription.
 
 use crate::{chip::{
