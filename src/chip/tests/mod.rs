@@ -12,3 +12,9 @@ mod test_circuit_description;
 
 #[cfg(test)]
 mod test_circuit;
+
+#[cfg(test)]
+mod test_circuit_board;
+
+#[cfg(test)]
+mod test_circuit_builder;
