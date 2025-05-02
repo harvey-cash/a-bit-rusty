@@ -23,9 +23,12 @@
 
 use crate::{
     chip::{
-        chip::ChipType,
-        circuit,
-        circuit_builder::{CircuitBuilder, LoadableChip},
+        chip::{
+            ChipType, CustomChip, GroundChip, InputChip, NAndChip, OutputChip, SupplyChip, Tickable,
+        },
+        chip_description::{self, ChipDescription},
+        circuit::{self, Circuit},
+        circuit_builder::{CircuitBuilder, LoadableChip, LoadedChip},
         compiler::ChipCompiler,
         types::*,
     },
@@ -43,50 +46,63 @@ fn given_new_then_chip_list_contains_fundamentals() {
     assert!(chips.contains(&LoadableChip::Custom(String::from("NAnd"))));
 }
 
-#[test]
-fn given_load_nand_then_added_to_circuit() {
-    let mut builder = CircuitBuilder::new();
-    let id = builder.load_chip(LoadableChip::Custom(String::from("NAnd")));
-    let circuit = builder.get_circuit();
-    assert_eq!(circuit.get_description().chip_types.contains_key(&id), true);
-}
+fn build_not() -> ChipDescription {
+    let mut circuit = Circuit::new();
+    let ground = circuit.add_chip(GroundChip::new());
+    let supply = circuit.add_chip(SupplyChip::new());
+    let input = circuit.add_chip(InputChip::new());
+    let output = circuit.add_chip(OutputChip::new());
+    let nand = circuit.add_custom_chip(NAndChip::new());
 
-fn build_not(builder: &mut CircuitBuilder) {
-    let ground = builder.load_chip(LoadableChip::Basic(ChipType::Ground));
-    let supply = builder.load_chip(LoadableChip::Basic(ChipType::Supply));
-    let input = builder.load_chip(LoadableChip::Basic(ChipType::Input));
-    let output = builder.load_chip(LoadableChip::Basic(ChipType::Output));
-    let nand = builder.load_chip(LoadableChip::Custom(String::from("NAnd")));
-
-    let circuit = builder.get_circuit();
     circuit.create_link(chip_pin!(ground, 0), chip_pin!(nand, 0));
     circuit.create_link(chip_pin!(supply, 0), chip_pin!(nand, 1));
     circuit.create_link(chip_pin!(input, 0), chip_pin!(nand, 2));
     circuit.create_link(chip_pin!(input, 0), chip_pin!(nand, 3));
     circuit.create_link(chip_pin!(nand, 4), chip_pin!(output, 0));
+
+    ChipCompiler::compile(circuit.get_description())
 }
 
 #[test]
 fn given_saved_not_then_chip_list_contains_not() {
+    let chip_description: ChipDescription = build_not();
     let mut builder = CircuitBuilder::new();
-    build_not(&mut builder);
-    let circuit = builder.get_circuit().get_description();
-    let chip = ChipCompiler::compile(circuit);
-    builder.save_chip(chip, "Not");
+    builder.save_chip(chip_description, "Not");
 
     let chips = builder.get_chip_list();
     assert!(chips.contains(&LoadableChip::Custom(String::from("Not"))));
 }
 
-// #[test]
-// fn given_saved_not_then_can_load() {
-//     let mut builder = CircuitBuilder::new();
-//     build_not(&mut builder);
-//     let circuit = builder.get_circuit().get_description();
-//     let chip = ChipCompiler::compile(circuit);
-//     builder.save_chip(chip, "Not");
+#[test]
+fn given_saved_not_when_loaded_then_behaves_as_not() {
+    let chip_description: ChipDescription = build_not();
+    let mut builder = CircuitBuilder::new();
+    builder.save_chip(chip_description, "Not");
 
-//     let id = builder.load_chip(LoadableChip::Custom(String::from("Not")));
-//     let circuit = builder.get_circuit();
-//     assert_eq!(circuit.get_description().chip_types.contains_key(&id), true);
-// }
+    let loaded: LoadedChip = builder.load_chip(LoadableChip::Custom(String::from("Not")));
+    let chip_description = match loaded {
+        LoadedChip::Basic(_) => panic!("Expected a custom chip"),
+        LoadedChip::Custom(description) => description,
+    };
+
+    let mut circuit = Circuit::new();
+    let ground = circuit.add_chip(GroundChip::new());
+    let supply = circuit.add_chip(SupplyChip::new());
+    let input = circuit.add_chip(InputChip::new());
+    let output = circuit.add_chip(OutputChip::new());
+    let not = circuit.add_custom_chip(CustomChip::new(chip_description));
+    circuit.create_link(chip_pin!(ground, 0), chip_pin!(not, 0));
+    circuit.create_link(chip_pin!(supply, 0), chip_pin!(not, 1));
+    circuit.create_link(chip_pin!(input, 0), chip_pin!(not, 2));
+    circuit.create_link(chip_pin!(not, 3), chip_pin!(output, 0));
+
+    circuit.set_supply(supply, 1);
+
+    circuit.set_input(input, 0);
+    circuit.tick();
+    assert_eq!(circuit.get_output(output), 1);
+
+    circuit.set_input(input, 1);
+    circuit.tick();
+    assert_eq!(circuit.get_output(output), 0);
+}
