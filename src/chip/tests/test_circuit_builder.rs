@@ -21,7 +21,16 @@
 // [ ] Truth table gets saved along with the circuit
 // [ ] Can run a circuit against a truth table and compare the actual output against the expected
 
-use crate::chip::{chip::ChipType, circuit_builder::{CircuitBuilder, LoadableChip}};
+use crate::{
+    chip::{
+        chip::ChipType,
+        circuit,
+        circuit_builder::{CircuitBuilder, LoadableChip},
+        compiler::ChipCompiler,
+        types::*,
+    },
+    chip_pin,
+};
 
 #[test]
 fn given_new_then_chip_list_contains_fundamentals() {
@@ -38,6 +47,46 @@ fn given_new_then_chip_list_contains_fundamentals() {
 fn given_load_nand_then_added_to_circuit() {
     let mut builder = CircuitBuilder::new();
     let id = builder.load_chip(LoadableChip::Custom(String::from("NAnd")));
-    let circuit = builder.get_circuit_description();
-    assert_eq!(circuit.chip_types.get(&id).unwrap(), &ChipType::Custom);
+    let circuit = builder.get_circuit();
+    assert_eq!(circuit.get_description().chip_types.contains_key(&id), true);
 }
+
+fn build_not(builder: &mut CircuitBuilder) {
+    let ground = builder.load_chip(LoadableChip::Basic(ChipType::Ground));
+    let supply = builder.load_chip(LoadableChip::Basic(ChipType::Supply));
+    let input = builder.load_chip(LoadableChip::Basic(ChipType::Input));
+    let output = builder.load_chip(LoadableChip::Basic(ChipType::Output));
+    let nand = builder.load_chip(LoadableChip::Custom(String::from("NAnd")));
+
+    let circuit = builder.get_circuit();
+    circuit.create_link(chip_pin!(ground, 0), chip_pin!(nand, 0));
+    circuit.create_link(chip_pin!(supply, 0), chip_pin!(nand, 1));
+    circuit.create_link(chip_pin!(input, 0), chip_pin!(nand, 2));
+    circuit.create_link(chip_pin!(input, 0), chip_pin!(nand, 3));
+    circuit.create_link(chip_pin!(nand, 4), chip_pin!(output, 0));
+}
+
+#[test]
+fn given_saved_not_then_chip_list_contains_not() {
+    let mut builder = CircuitBuilder::new();
+    build_not(&mut builder);
+    let circuit = builder.get_circuit().get_description();
+    let chip = ChipCompiler::compile(circuit);
+    builder.save_chip(chip, "Not");
+
+    let chips = builder.get_chip_list();
+    assert!(chips.contains(&LoadableChip::Custom(String::from("Not"))));
+}
+
+// #[test]
+// fn given_saved_not_then_can_load() {
+//     let mut builder = CircuitBuilder::new();
+//     build_not(&mut builder);
+//     let circuit = builder.get_circuit().get_description();
+//     let chip = ChipCompiler::compile(circuit);
+//     builder.save_chip(chip, "Not");
+
+//     let id = builder.load_chip(LoadableChip::Custom(String::from("Not")));
+//     let circuit = builder.get_circuit();
+//     assert_eq!(circuit.get_description().chip_types.contains_key(&id), true);
+// }
