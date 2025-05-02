@@ -26,8 +26,8 @@ use crate::{
         chip::{
             ChipType, CustomChip, GroundChip, InputChip, NAndChip, OutputChip, SupplyChip, Tickable,
         },
-        chip_description::{self, ChipDescription},
-        circuit::{self, Circuit},
+        chip_description::ChipDescription,
+        circuit::Circuit,
         circuit_builder::{CircuitBuilder, LoadableChip, LoadedChip},
         compiler::ChipCompiler,
         types::*,
