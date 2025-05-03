@@ -1,7 +1,4 @@
 // ToDo:
-// [ ] Can delete chips from the chip list
-// [ ] Can not delete the fundamental chips from the chip list
-// [ ] Compiled chips have their circuit saved to a circuit list
 // [ ] Can load circuits from the circuit list for editing
 // [ ] Given a circuit already compiled a chip, can choose to overwrite on save
 // [ ] Given a circuit already compiled a chip, can choose to save-as new
@@ -135,6 +132,18 @@ fn given_saved_circuit_then_can_load_it() {
     
     let loaded: Option<&CircuitDescription> = database.load_circuit("Not");
     assert_eq!(loaded, Some(&description));
+}
+
+#[test]
+fn given_deleted_circuit_then_circuit_list_omits_it() {
+    let circuit = build_not();
+    let mut database = ChipDatabase::new();
+    database.save_circuit(circuit, "Not");
+
+    database.delete_circuit("Not");
+    
+    let circuits = database.get_circuit_list();
+    assert_eq!(circuits.contains(&String::from("Not")), false);
 }
 
 #[test]

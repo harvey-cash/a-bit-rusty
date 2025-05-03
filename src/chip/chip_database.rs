@@ -53,21 +53,10 @@ impl ChipDatabase {
         self.saved_circuits.keys().map(|k| k.clone()).collect()
     }
 
-    pub fn save_chip(&mut self, name: &str, chip: ChipDescription, circuit: CircuitDescription) {
+    pub fn save_chip(&mut self, name: &str, chip: ChipDescription, circuit: CircuitDescription) -> bool {
         self.saved_chips.insert(ChipKey::Custom(name.to_string()), ChipValue::Custom(chip));
         self.saved_circuits.insert(name.to_string(), circuit);
-    }
-    
-    pub fn delete_chip(&mut self, key: &ChipKey) -> bool {
-        if self.fundamental_chips.contains(key) {
-            return false;
-        }
-        let value = self.saved_chips.remove(key);
-        return if value == None { false } else { true };
-    }
-
-    pub fn load_chip(&self, key: ChipKey) -> Option<&ChipValue> {
-        self.saved_chips.get(&key)
+        return true;
     }
 
     pub fn save_circuit(&mut self, description: CircuitDescription, name: &str) -> bool {
@@ -80,8 +69,25 @@ impl ChipDatabase {
         self.saved_circuits.insert(key, description);
         return true;
     }
+
+    pub fn load_chip(&self, key: ChipKey) -> Option<&ChipValue> {
+        self.saved_chips.get(&key)
+    }
     
     pub fn load_circuit(&self, name: &str) -> Option<&CircuitDescription> {
         self.saved_circuits.get(name)
+    }
+    
+    pub fn delete_chip(&mut self, key: &ChipKey) -> bool {
+        if self.fundamental_chips.contains(key) {
+            return false;
+        }
+        let value = self.saved_chips.remove(key);
+        return if value == None { false } else { true };
+    }
+
+    pub fn delete_circuit(&mut self, key: &str) -> bool {
+        let value = self.saved_circuits.remove(key);
+        return if value == None { false } else { true };
     }
 }
