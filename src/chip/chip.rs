@@ -1,9 +1,11 @@
+use serde::{Deserialize, Serialize};
+
 use crate::{chip::chip_description::ChipDescription, link, node_type_map};
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use super::types::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ChipType {
     Ground,
     Supply,

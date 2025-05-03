@@ -1,11 +1,11 @@
 use std::collections::{HashMap, HashSet};
-
+use serde::{Deserialize, Serialize};
 use super::{
     chip::{ChipType, NAndChip},
     chip_description::ChipDescription, circuit_description::CircuitDescription,
 };
 
-#[derive(Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, Hash)]
 pub enum ChipKey {
     Basic(ChipType),
     Custom(String),
@@ -17,6 +17,7 @@ pub enum ChipValue {
     Custom(ChipDescription),
 }
 
+#[derive(Debug)]
 pub struct ChipDatabase {
     fundamental_chips: HashSet<ChipKey>,
     saved_chips: HashMap<ChipKey, ChipValue>,

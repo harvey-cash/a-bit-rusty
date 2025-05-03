@@ -1,8 +1,6 @@
 // ToDo:
-// [ ] Can load circuits from the circuit list for editing
 // [ ] Given a circuit already compiled a chip, can choose to overwrite on save
 // [ ] Given a circuit already compiled a chip, can choose to save-as new
-// [ ] Can save circuits to the circuit list
 
 use crate::{
     chip::{
