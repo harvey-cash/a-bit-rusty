@@ -11,15 +11,15 @@ use crate::{
     chip::{
         chip::{
             ChipType, CustomChip, GroundChip, InputChip, NAndChip, OutputChip, SupplyChip, Tickable,
-        }, chip_description::ChipDescription, circuit::Circuit, circuit_builder::{ChipKey, ChipValue, CircuitBuilder}, circuit_description::CircuitDescription, compiler::ChipCompiler, types::*
+        }, chip_description::ChipDescription, circuit::Circuit, chip_database::{ChipKey, ChipValue, ChipDatabase}, circuit_description::CircuitDescription, compiler::ChipCompiler, types::*
     },
     chip_pin,
 };
 
 #[test]
 fn given_new_then_chip_list_contains_fundamentals() {
-    let builder = CircuitBuilder::new();
-    let chips = builder.get_chip_list();
+    let database = ChipDatabase::new();
+    let chips = database.get_chip_list();
     assert!(chips.contains(&ChipKey::Basic(ChipType::Ground)));
     assert!(chips.contains(&ChipKey::Basic(ChipType::Supply)));
     assert!(chips.contains(&ChipKey::Basic(ChipType::Input)));
@@ -28,23 +28,31 @@ fn given_new_then_chip_list_contains_fundamentals() {
 }
 
 #[test]
+fn given_new_when_delete_basic_chip_then_err()
+{
+    let mut database = ChipDatabase::new();
+    let success = database.delete_chip(&ChipKey::Basic(ChipType::Ground));
+    assert_eq!(success, false);
+}
+
+#[test]
 fn given_new_then_circuit_list_is_empty() {
-    let builder = CircuitBuilder::new();
-    let circuits = builder.get_circuit_list();
+    let database = ChipDatabase::new();
+    let circuits = database.get_circuit_list();
     assert!(circuits.is_empty());
 }
 
 #[test]
 fn given_nothing_saved_when_load_chip_then_is_none() {
-    let builder = CircuitBuilder::new();
-    let loaded = builder.load_chip(ChipKey::Custom(String::from("Not")));
+    let database = ChipDatabase::new();
+    let loaded = database.load_chip(ChipKey::Custom(String::from("Not")));
     assert_eq!(loaded, None);
 }
 
 #[test]
 fn given_nothing_saved_when_load_circuit_then_is_none() {
-    let builder = CircuitBuilder::new();
-    let loaded = builder.load_circuit("Not");
+    let database = ChipDatabase::new();
+    let loaded = database.load_circuit("Not");
     assert_eq!(loaded, None);
 }
 
@@ -66,41 +74,66 @@ fn build_not() -> CircuitDescription {
 }
 
 #[test]
-fn given_saved_not_then_chip_list_contains_not() {
+fn given_saved_chip_then_chip_list_contains_it() {
     let circuit_description = build_not();
     let chip_description: ChipDescription = ChipCompiler::compile(circuit_description.clone());
-    let mut builder = CircuitBuilder::new();
-    builder.save_chip("Not", chip_description, circuit_description);
+    let mut database = ChipDatabase::new();
+    database.save_chip("Not", chip_description, circuit_description);
 
-    let chips = builder.get_chip_list();
+    let chips = database.get_chip_list();
     assert!(chips.contains(&ChipKey::Custom(String::from("Not"))));
+}
+
+#[test]
+fn given_saved_chip_when_deleted_then_success() {
+    let circuit_description = build_not();
+    let chip_description: ChipDescription = ChipCompiler::compile(circuit_description.clone());
+    let mut database = ChipDatabase::new();
+    database.save_chip("Not", chip_description, circuit_description);
+
+    let success = database.delete_chip(&ChipKey::Custom(String::from("Not")));
+    assert!(success);
+}
+
+#[test]
+fn given_saved_chip_when_deleted_then_chip_list_omits_it() {
+    let circuit_description = build_not();
+    let chip_description: ChipDescription = ChipCompiler::compile(circuit_description.clone());
+    let mut database = ChipDatabase::new();
+    database.save_chip("Not", chip_description, circuit_description);
+
+    let key = ChipKey::Custom(String::from("Not"));
+    database.delete_chip(&key);
+
+    let chips = database.get_chip_list();
+    assert_eq!(chips.contains(&key), false);
 }
 
 #[test]
 fn given_saved_new_circuit_then_success() {
     let circuit = build_not();
-    let mut builder = CircuitBuilder::new();
-    let success = builder.save_circuit(circuit, "Not");
+    let mut database = ChipDatabase::new();
+    let success = database.save_circuit(circuit, "Not");
     assert!(success);
 }
 
 #[test]
 fn given_saved_circuit_then_circuit_list_contains_it() {
     let circuit = build_not();
-    let mut builder = CircuitBuilder::new();
-    builder.save_circuit(circuit, "Not");
+    let mut database = ChipDatabase::new();
+    database.save_circuit(circuit, "Not");
     
-    let circuits = builder.get_circuit_list();
+    let circuits = database.get_circuit_list();
     assert!(circuits.contains(&String::from("Not")));
 }
 
 #[test]
 fn given_saved_circuit_then_can_load_it() {
     let description = build_not();
-    let mut builder = CircuitBuilder::new();
-    builder.save_circuit(description.clone(), "Not");
+    let mut database = ChipDatabase::new();
+    database.save_circuit(description.clone(), "Not");
     
-    let loaded: Option<&CircuitDescription> = builder.load_circuit("Not");
+    let loaded: Option<&CircuitDescription> = database.load_circuit("Not");
     assert_eq!(loaded, Some(&description));
 }
 
@@ -108,10 +141,10 @@ fn given_saved_circuit_then_can_load_it() {
 fn given_saved_chip_then_can_load_its_circuit() {
     let circuit_description = build_not();
     let chip_description: ChipDescription = ChipCompiler::compile(circuit_description.clone());
-    let mut builder = CircuitBuilder::new();
-    builder.save_chip("Not", chip_description, circuit_description.clone());
+    let mut database = ChipDatabase::new();
+    database.save_chip("Not", chip_description, circuit_description.clone());
 
-    let circuit: Option<&CircuitDescription> = builder.load_circuit("Not");
+    let circuit: Option<&CircuitDescription> = database.load_circuit("Not");
     assert_eq!(circuit, Some(&circuit_description));
 }
 
@@ -119,10 +152,10 @@ fn given_saved_chip_then_can_load_its_circuit() {
 fn given_saved_chip_when_save_new_circuit_with_same_name_then_err() {
     let circuit_description = build_not();
     let chip_description: ChipDescription = ChipCompiler::compile(circuit_description.clone());
-    let mut builder = CircuitBuilder::new();
-    builder.save_chip("Not", chip_description, circuit_description.clone());
+    let mut database = ChipDatabase::new();
+    database.save_chip("Not", chip_description, circuit_description.clone());
 
-    let success = builder.save_circuit(CircuitDescription::new(), "Not");
+    let success = database.save_circuit(CircuitDescription::new(), "Not");
     assert_eq!(success, false);
 }
 
@@ -130,12 +163,12 @@ fn given_saved_chip_when_save_new_circuit_with_same_name_then_err() {
 fn given_saved_chip_when_save_new_circuit_with_same_name_then_not_overwritten() {
     let circuit_description = build_not();
     let chip_description: ChipDescription = ChipCompiler::compile(circuit_description.clone());
-    let mut builder = CircuitBuilder::new();
-    builder.save_chip("Not", chip_description, circuit_description.clone());
+    let mut database = ChipDatabase::new();
+    database.save_chip("Not", chip_description, circuit_description.clone());
 
-    builder.save_circuit(CircuitDescription::new(), "Not");
+    database.save_circuit(CircuitDescription::new(), "Not");
 
-    let circuit = builder.load_circuit("Not");
+    let circuit = database.load_circuit("Not");
     assert_eq!(circuit, Some(&circuit_description));
 }
 
@@ -143,10 +176,10 @@ fn given_saved_chip_when_save_new_circuit_with_same_name_then_not_overwritten() 
 fn given_saved_not_when_loaded_then_behaves_as_not() {
     let circuit_description = build_not();
     let chip_description: ChipDescription = ChipCompiler::compile(circuit_description.clone());
-    let mut builder = CircuitBuilder::new();
-    builder.save_chip("Not", chip_description, circuit_description.clone());
+    let mut database = ChipDatabase::new();
+    database.save_chip("Not", chip_description, circuit_description.clone());
 
-    let loaded = builder.load_chip(ChipKey::Custom(String::from("Not")));
+    let loaded = database.load_chip(ChipKey::Custom(String::from("Not")));
     let chip_description = match loaded {
         None => panic!("Should not be None!"),
         Some(ChipValue::Basic(_)) => panic!("Expected a custom chip"),

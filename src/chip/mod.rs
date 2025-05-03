@@ -5,7 +5,7 @@ mod trace;
 mod circuit_description;
 mod circuit;
 mod compiler;
-mod circuit_builder;
+mod chip_database;
 
 #[cfg(test)]
 mod tests;

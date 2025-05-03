@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::{
     chip::{ChipType, NAndChip},
@@ -17,12 +17,13 @@ pub enum ChipValue {
     Custom(ChipDescription),
 }
 
-pub struct CircuitBuilder {
+pub struct ChipDatabase {
+    fundamental_chips: HashSet<ChipKey>,
     saved_chips: HashMap<ChipKey, ChipValue>,
     saved_circuits: HashMap<String, CircuitDescription>
 }
 
-impl CircuitBuilder {
+impl ChipDatabase {
     pub fn new() -> Self {
         let mut saved_chips = HashMap::new();
 
@@ -30,9 +31,15 @@ impl CircuitBuilder {
         basic_types.iter().for_each(|chip_type| { 
             saved_chips.insert(ChipKey::Basic(*chip_type), ChipValue::Basic(*chip_type)); 
         });
-        saved_chips.insert(ChipKey::Custom(String::from("NAnd")), ChipValue::Custom(NAndChip::new().get_description()));
+
+        let nand_key = ChipKey::Custom(String::from("NAnd"));
+        saved_chips.insert(nand_key.clone(), ChipValue::Custom(NAndChip::new().get_description()));
+
+        let mut fundamental_chips: HashSet<ChipKey> = basic_types.iter().map(|chip_type| ChipKey::Basic(*chip_type)).collect();
+        fundamental_chips.insert(nand_key);
 
         Self {
+            fundamental_chips,
             saved_chips,
             saved_circuits: HashMap::new()
         }
@@ -49,6 +56,14 @@ impl CircuitBuilder {
     pub fn save_chip(&mut self, name: &str, chip: ChipDescription, circuit: CircuitDescription) {
         self.saved_chips.insert(ChipKey::Custom(name.to_string()), ChipValue::Custom(chip));
         self.saved_circuits.insert(name.to_string(), circuit);
+    }
+    
+    pub fn delete_chip(&mut self, key: &ChipKey) -> bool {
+        if self.fundamental_chips.contains(key) {
+            return false;
+        }
+        let value = self.saved_chips.remove(key);
+        return if value == None { false } else { true };
     }
 
     pub fn load_chip(&self, key: ChipKey) -> Option<&ChipValue> {
