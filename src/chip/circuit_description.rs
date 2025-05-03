@@ -6,7 +6,7 @@ use super::{
     chip_description::ChipDescription
 };
 
-#[derive(Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CircuitDescription {
     pub num_chips: usize,
     pub chip_types: HashMap<usize, ChipType>,
