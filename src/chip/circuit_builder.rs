@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::{
     chip::{ChipType, NAndChip},
-    chip_description::ChipDescription, circuit::Circuit, circuit_description::CircuitDescription,
+    chip_description::ChipDescription, circuit_description::CircuitDescription,
 };
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
@@ -19,6 +19,7 @@ pub enum ChipValue {
 
 pub struct CircuitBuilder {
     saved_chips: HashMap<ChipKey, ChipValue>,
+    saved_circuits: HashMap<String, CircuitDescription>
 }
 
 impl CircuitBuilder {
@@ -33,28 +34,39 @@ impl CircuitBuilder {
 
         Self {
             saved_chips,
+            saved_circuits: HashMap::new()
         }
     }
 
     pub fn get_chip_list(&self) -> Vec<ChipKey> {
         self.saved_chips.keys().map(|k| k.clone()).collect()
     }
+    
+    pub fn get_circuit_list(&self) -> Vec<String> {
+        self.saved_circuits.keys().map(|k| k.clone()).collect()
+    }
+
+    pub fn save_chip(&mut self, name: &str, chip: ChipDescription, circuit: CircuitDescription) {
+        self.saved_chips.insert(ChipKey::Custom(name.to_string()), ChipValue::Custom(chip));
+        self.saved_circuits.insert(name.to_string(), circuit);
+    }
 
     pub fn load_chip(&self, key: ChipKey) -> Option<&ChipValue> {
         self.saved_chips.get(&key)
     }
 
-    pub fn save_chip(&mut self, description: ChipDescription, name: &str) {
-        let key: ChipKey = ChipKey::Custom(name.to_string());
-        let value: ChipValue = ChipValue::Custom(description);
-        self.saved_chips.insert(key, value);
+    pub fn save_circuit(&mut self, description: CircuitDescription, name: &str) -> bool {
+        let key: String = name.to_string();
+
+        if self.saved_circuits.contains_key(&key) {
+            return false;
+        }
+
+        self.saved_circuits.insert(key, description);
+        return true;
     }
     
-    pub fn load_circuit(&self, chip_name: &str) -> Option<CircuitDescription> {
-        let key = &ChipKey::Custom(chip_name.to_string());
-        match self.saved_chips.get(key) {
-            None => None,
-            Some(_) => Some(CircuitDescription::new())
-        }
+    pub fn load_circuit(&self, name: &str) -> Option<&CircuitDescription> {
+        self.saved_circuits.get(name)
     }
 }
