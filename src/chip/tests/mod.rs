@@ -17,4 +17,7 @@ mod test_circuit;
 mod test_circuit_board;
 
 #[cfg(test)]
-mod test_circuit_builder;
+mod test_chip_database;
+
+#[cfg(test)]
+mod test_designer;
