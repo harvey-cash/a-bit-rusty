@@ -14,7 +14,7 @@ pub enum ChipType {
     Custom,
 }
 
-pub trait Tickable {
+pub trait Tickable: Send + Sync {
     fn tick(&mut self) {}
 }
 

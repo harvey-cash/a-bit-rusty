@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Tick Tester</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .stat-card {
+            @apply bg-white shadow-lg rounded-lg p-6 transition-all duration-300 hover:shadow-xl;
+        }
+        .btn {
+            @apply px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-all duration-150 ease-in-out;
+        }
+        .btn-green {
+            @apply bg-green-500 hover:bg-green-600;
+        }
+        .btn-red {
+            @apply bg-red-500 hover:bg-red-600;
+        }
+        .btn-blue {
+            @apply bg-blue-500 hover:bg-blue-600;
+        }
+        #jsonResponse {
+            white-space: pre-wrap; /* Preserve formatting of JSON */
+            word-break: break-all; /* Break long strings */
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Monospace', monospace;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Monospace&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="w-full max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-2xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-bold text-gray-800">WebSocket Tick Tester</h1>
+            <p class="text-gray-600 mt-2">Test your Axum WebSocket server's tick rate and responses.</p>
+        </header>
+
+        <div class="mb-6 flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <button id="connectButton" class="btn btn-green w-full sm:w-auto">Connect</button>
+            <button id="disconnectButton" class="btn btn-red w-full sm:w-auto" disabled>Disconnect</button>
+        </div>
+
+        <div id="status" class="mb-6 text-center text-gray-700 font-medium p-3 bg-gray-200 rounded-lg">
+            Not Connected
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="stat-card">
+                <h2 class="text-xl font-semibold text-gray-700 mb-2">Tick Rate</h2>
+                <p id="tickRate" class="text-3xl font-bold text-blue-600">0.00 TPS</p>
+                <p class="text-sm text-gray-500">Ticks per second</p>
+            </div>
+            <div class="stat-card">
+                <h2 class="text-xl font-semibold text-gray-700 mb-2">Total Ticks</h2>
+                <p id="totalTicks" class="text-3xl font-bold text-purple-600">0</p>
+                <p class="text-sm text-gray-500">Total messages sent/received</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <h2 class="text-xl font-semibold text-gray-700 mb-3">Last JSON Response:</h2>
+            <div id="jsonResponse" class="bg-gray-800 text-green-400 p-4 rounded-md text-sm">
+                { "message": "Waiting for server response..." }
+            </div>
+        </div>
+
+        <footer class="mt-8 text-center text-sm text-gray-500">
+            <p>Client sends "tick" and expects a JSON response.</p>
+        </footer>
+    </div>
+
+    <script>
+        const connectButton = document.getElementById('connectButton');
+        const disconnectButton = document.getElementById('disconnectButton');
+        const statusDiv = document.getElementById('status');
+        const tickRateDiv = document.getElementById('tickRate');
+        const totalTicksDiv = document.getElementById('totalTicks');
+        const jsonResponseDiv = document.getElementById('jsonResponse');
+
+        let socket = null;
+        let tickCount = 0;
+        let lastStatsUpdateTime = Date.now();
+        let ticksInInterval = 0;
+        let intervalId = null; // For periodic stats update
+        let shouldSendTick = false; // Controls the sending loop
+
+        const WS_URL = 'ws://127.0.0.1:3000/ws'; // Your WebSocket server URL
+
+        function updateStatus(message, isError = false) {
+            statusDiv.textContent = message;
+            statusDiv.className = `mb-6 text-center font-medium p-3 rounded-lg ${isError ? 'bg-red-200 text-red-700' : 'bg-green-200 text-green-700'}`;
+            if (message === "Not Connected") {
+                 statusDiv.className = 'mb-6 text-center text-gray-700 font-medium p-3 bg-gray-200 rounded-lg';
+            }
+        }
+
+        function updateStatsDisplay() {
+            totalTicksDiv.textContent = tickCount;
+            const now = Date.now();
+            const elapsedSeconds = (now - lastStatsUpdateTime) / 1000;
+
+            if (elapsedSeconds > 0) {
+                const rate = ticksInInterval / elapsedSeconds;
+                tickRateDiv.textContent = `${rate.toFixed(2)} TPS`;
+            } else {
+                tickRateDiv.textContent = `0.00 TPS`;
+            }
+            // Reset for next interval, but only if we are actively calculating
+            if (shouldSendTick) {
+                 ticksInInterval = 0;
+                 lastStatsUpdateTime = now;
+            }
+        }
+
+        function sendTick() {
+            if (socket && socket.readyState === WebSocket.OPEN && shouldSendTick) {
+                socket.send("tick");
+            }
+        }
+
+        connectButton.addEventListener('click', () => {
+            if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+                updateStatus('Already connected or connecting.', true);
+                return;
+            }
+
+            updateStatus('Connecting...');
+            socket = new WebSocket(WS_URL);
+            shouldSendTick = true; // Enable sending ticks
+
+            socket.onopen = () => {
+                updateStatus('Connected to WebSocket Server!');
+                connectButton.disabled = true;
+                disconnectButton.disabled = false;
+                tickCount = 0;
+                ticksInInterval = 0;
+                lastStatsUpdateTime = Date.now();
+                totalTicksDiv.textContent = "0";
+                tickRateDiv.textContent = "0.00 TPS";
+                jsonResponseDiv.textContent = JSON.stringify({ message: "Connection established. Waiting for first tick response..." }, null, 2);
+
+                sendTick(); // Send the first tick immediately after connection
+
+                if (intervalId) clearInterval(intervalId); // Clear previous interval if any
+                intervalId = setInterval(updateStatsDisplay, 1000); // Update stats display every second
+            };
+
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    jsonResponseDiv.textContent = JSON.stringify(data, null, 2);
+                    tickCount++;
+                    ticksInInterval++;
+                    // To send as fast as possible, send the next tick immediately after receiving a response
+                    sendTick();
+                } catch (e) {
+                    jsonResponseDiv.textContent = `Error parsing JSON: ${e.message}\nRaw: ${event.data}`;
+                    console.error("Error parsing JSON:", e, "Raw data:", event.data);
+                }
+            };
+
+            socket.onerror = (error) => {
+                console.error('WebSocket Error:', error);
+                updateStatus(`WebSocket Error. Check console. (Is server running at ${WS_URL}?)`, true);
+                connectButton.disabled = false;
+                disconnectButton.disabled = true;
+                shouldSendTick = false;
+                if (intervalId) clearInterval(intervalId);
+            };
+
+            socket.onclose = (event) => {
+                updateStatus(`Disconnected. Code: ${event.code}, Reason: ${event.reason || 'N/A'}`, !event.wasClean);
+                connectButton.disabled = false;
+                disconnectButton.disabled = true;
+                socket = null;
+                shouldSendTick = false;
+                if (intervalId) clearInterval(intervalId);
+                // Final update to stats display
+                updateStatsDisplay();
+                // Reset tick rate to 0 as we are disconnected
+                tickRateDiv.textContent = `0.00 TPS`;
+            };
+        });
+
+        disconnectButton.addEventListener('click', () => {
+            if (socket) {
+                shouldSendTick = false; // Stop sending ticks before closing
+                socket.close(1000, "Client initiated disconnect"); // 1000 is a normal closure
+            }
+            if (intervalId) clearInterval(intervalId);
+        });
+
+        // Initial UI state
+        updateStatus('Not Connected');
+
+    </script>
+</body>
+</html>

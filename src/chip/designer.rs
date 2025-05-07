@@ -1,14 +1,18 @@
+use serde::Serialize;
+
 use super::{chip_database::{ChipDatabase, ChipKey}, circuit::Circuit, types::ChipAndPin};
 
+#[derive(Serialize)]
 pub struct CircuitState {
-
+    tick_counter: u64,
 }
 
 impl CircuitState {
-    pub fn new() -> Self { Self {} }
+    pub fn new() -> Self { Self { tick_counter: 0 } }
 }
 
 pub struct Designer {    
+    tick_counter: u64,
     circuit: Circuit,
     database: ChipDatabase,
 }
@@ -16,6 +20,7 @@ pub struct Designer {
 impl Designer {
     pub fn new() -> Self { 
         Self { 
+            tick_counter: 0,
             circuit: Circuit::new(), 
             database: ChipDatabase::new() 
         }
@@ -42,11 +47,12 @@ impl Designer {
     }
 
     pub fn tick(&mut self) -> Result<(), String> {
+        self.tick_counter += 1;
         Ok(())
     }
 
     pub fn get_state(&self, ) -> CircuitState {
-        CircuitState::new()
+        CircuitState { tick_counter: self.tick_counter }
     }
 
     pub fn get_chips_from_db(&self) -> Result<Vec<ChipKey>, String> {
