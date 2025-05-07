@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use super::{chip_database::{ChipDatabase, ChipKey}, circuit::Circuit, types::ChipAndPin};
+use super::{chip::{ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip}, chip_database::{ChipDatabase, ChipKey, ChipValue}, circuit::Circuit, types::ChipAndPin};
 
 #[derive(Serialize)]
 pub struct CircuitState {
@@ -26,12 +26,22 @@ impl Designer {
         }
     }
 
-    pub fn add_chip(&mut self, key: ChipKey) -> Result<usize, String> {
-        Ok(0)
+    pub fn add_chip(&mut self, key: ChipKey) -> Result<usize, String> {        
+        let chip = self.database.load_chip(key.clone());
+        
+        match chip {
+            None => Err(format!("No chip with key {:?} in database!", key)),
+            Some(ChipValue::Custom(description)) => Ok(self.circuit.add_custom_chip(CustomChip::new(description.clone()))),
+            Some(ChipValue::Basic(ChipType::Ground)) => Ok(self.circuit.add_chip(GroundChip::new())),
+            Some(ChipValue::Basic(ChipType::Supply)) => Ok(self.circuit.add_chip(SupplyChip::new())),
+            Some(ChipValue::Basic(ChipType::Input)) => Ok(self.circuit.add_chip(InputChip::new())),
+            Some(ChipValue::Basic(ChipType::Output)) => Ok(self.circuit.add_chip(OutputChip::new())),
+            Some(ChipValue::Basic(ChipType::Custom)) => Err(format!("database should not contain a basic chip value of Custom type!")),
+        }
     }
 
     pub fn remove_chip(&mut self, id: usize) -> Result<(), String> {
-        Ok(())
+        Err("Not implemented".to_string())
     }
 
     pub fn add_link(&mut self, source: ChipAndPin, target: ChipAndPin) -> Result<usize, String> {
