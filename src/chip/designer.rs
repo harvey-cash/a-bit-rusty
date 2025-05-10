@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use super::{chip::{ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip}, chip_database::{ChipDatabase, ChipKey, ChipValue}, circuit::Circuit, types::ChipAndPin};
+use super::{chip::{ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip}, chip_database::{ChipDatabase, ChipKey, ChipValue}, circuit::{self, Circuit}, types::ChipAndPin};
 
 #[derive(Serialize)]
 pub struct CircuitState {
@@ -45,6 +45,10 @@ impl Designer {
     }
 
     pub fn add_link(&mut self, source: ChipAndPin, target: ChipAndPin) -> Result<usize, String> {
+        if source == target {
+            return Err("Can not link a pin to itself!".to_string());
+        }
+        self.circuit.create_link(source, target);
         Ok(0)
     }
 
@@ -69,7 +73,7 @@ impl Designer {
         Ok(vec![])
     }
 
-    pub fn save_to_chip_to_db(&mut self, name: String) -> Result<ChipKey, String> {
+    pub fn save_chip_to_db(&mut self, name: String) -> Result<ChipKey, String> {
         Ok(ChipKey::Custom(name))
     }
 

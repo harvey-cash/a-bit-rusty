@@ -47,6 +47,8 @@ impl CircuitDescription {
     }
     
     pub fn add_forward_link(&mut self, source: ChipAndPin, target: ChipAndPin) {
+        assert!(source != target, "Can not link a pin to itself!");
+
         self.forward_links
             .entry(source.chip_id)
             .or_insert_with(HashMap::new)
