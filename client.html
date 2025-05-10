@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Tick Tester</title>
+    <title>WebSocket Tick & Chip Tester</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -11,70 +11,124 @@
             @apply bg-white shadow-lg rounded-lg p-6 transition-all duration-300 hover:shadow-xl;
         }
         .btn {
-            @apply px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-all duration-150 ease-in-out;
+            @apply px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-opacity-75;
         }
         .btn-green {
-            @apply bg-green-500 hover:bg-green-600;
+            @apply bg-green-500 hover:bg-green-600 focus:ring-green-500;
         }
         .btn-red {
-            @apply bg-red-500 hover:bg-red-600;
+            @apply bg-red-500 hover:bg-red-600 focus:ring-red-500;
         }
         .btn-blue {
-            @apply bg-blue-500 hover:bg-blue-600;
+            @apply bg-blue-500 hover:bg-blue-600 focus:ring-blue-500;
         }
-        #jsonResponse {
+        .btn-purple {
+            @apply bg-purple-500 hover:bg-purple-600 focus:ring-purple-500;
+        }
+        #jsonResponse, #addChipResponse {
             white-space: pre-wrap; /* Preserve formatting of JSON */
             word-break: break-all; /* Break long strings */
             max-height: 300px;
             overflow-y: auto;
             font-family: 'Monospace', monospace;
         }
+        .input-field {
+            @apply mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm;
+        }
+        label {
+            @apply block text-sm font-medium text-gray-700;
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Monospace&display=swap" rel="stylesheet">
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
 
-    <div class="w-full max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-2xl">
-        <header class="mb-8 text-center">
-            <h1 class="text-4xl font-bold text-gray-800">WebSocket Tick Tester</h1>
-            <p class="text-gray-600 mt-2">Test your Axum WebSocket server's tick rate and responses.</p>
-        </header>
+    <div class="w-full max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-2xl space-y-8">
+        <div>
+            <header class="mb-8 text-center">
+                <h1 class="text-4xl font-bold text-gray-800">WebSocket Tick Tester</h1>
+                <p class="text-gray-600 mt-2">Test your Axum WebSocket server's tick rate and responses.</p>
+            </header>
 
-        <div class="mb-6 flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <button id="connectButton" class="btn btn-green w-full sm:w-auto">Connect</button>
-            <button id="disconnectButton" class="btn btn-red w-full sm:w-auto" disabled>Disconnect</button>
-        </div>
+            <div class="mb-6 flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <button id="connectButton" class="btn btn-green w-full sm:w-auto">Connect</button>
+                <button id="disconnectButton" class="btn btn-red w-full sm:w-auto" disabled>Disconnect</button>
+            </div>
 
-        <div id="status" class="mb-6 text-center text-gray-700 font-medium p-3 bg-gray-200 rounded-lg">
-            Not Connected
-        </div>
+            <div id="status" class="mb-6 text-center text-gray-700 font-medium p-3 bg-gray-200 rounded-lg">
+                Not Connected
+            </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="stat-card">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-2">Tick Rate</h2>
+                    <p id="tickRate" class="text-3xl font-bold text-blue-600">0.00 TPS</p>
+                    <p class="text-sm text-gray-500">Ticks per second</p>
+                </div>
+                <div class="stat-card">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-2">Total Ticks</h2>
+                    <p id="totalTicks" class="text-3xl font-bold text-purple-600">0</p>
+                    <p class="text-sm text-gray-500">Total messages sent/received</p>
+                </div>
+            </div>
+
             <div class="stat-card">
-                <h2 class="text-xl font-semibold text-gray-700 mb-2">Tick Rate</h2>
-                <p id="tickRate" class="text-3xl font-bold text-blue-600">0.00 TPS</p>
-                <p class="text-sm text-gray-500">Ticks per second</p>
+                <h2 class="text-xl font-semibold text-gray-700 mb-3">Last JSON Response (WebSocket):</h2>
+                <div id="jsonResponse" class="bg-gray-800 text-green-400 p-4 rounded-md text-sm">
+                    { "message": "Waiting for server response..." }
+                </div>
             </div>
-            <div class="stat-card">
-                <h2 class="text-xl font-semibold text-gray-700 mb-2">Total Ticks</h2>
-                <p id="totalTicks" class="text-3xl font-bold text-purple-600">0</p>
-                <p class="text-sm text-gray-500">Total messages sent/received</p>
-            </div>
+
+            <footer class="mt-8 text-center text-sm text-gray-500">
+                <p>Client sends "tick" and expects a JSON response.</p>
+            </footer>
         </div>
 
-        <div class="stat-card">
-            <h2 class="text-xl font-semibold text-gray-700 mb-3">Last JSON Response:</h2>
-            <div id="jsonResponse" class="bg-gray-800 text-green-400 p-4 rounded-md text-sm">
-                { "message": "Waiting for server response..." }
-            </div>
-        </div>
+        <hr class="border-gray-300">
 
-        <footer class="mt-8 text-center text-sm text-gray-500">
-            <p>Client sends "tick" and expects a JSON response.</p>
-        </footer>
+        <div>
+            <header class="mb-8 text-center">
+                <h1 class="text-3xl font-bold text-gray-800">Add Chip to Designer</h1>
+                <p class="text-gray-600 mt-2">Send a ChipKey to the <code>/designer/add_chip</code> endpoint.</p>
+            </header>
+
+            <div class="space-y-6">
+                <div>
+                    <label for="chipTypeSelect" class="block text-sm font-medium text-gray-700">Chip Type:</label>
+                    <select id="chipTypeSelect" name="chipType" class="input-field">
+                        <option value="Ground">Ground</option>
+                        <option value="Supply">Supply</option>
+                        <option value="Input">Input</option>
+                        <option value="Output">Output</option>
+                        <option value="Custom">Custom (Basic)</option>
+                        <option value="CustomNamed">Custom (Named)</option>
+                    </select>
+                </div>
+
+                <div id="customChipNameGroup" class="hidden"> <label for="customChipNameInput" class="block text-sm font-medium text-gray-700">Custom Chip Name:</label>
+                    <input type="text" id="customChipNameInput" name="customChipName" class="input-field" placeholder="e.g., MyAwesomeChip">
+                </div>
+
+                <button id="addChipButton" class="btn btn-purple w-full">Add Chip</button>
+
+                <div id="addChipStatus" class="mt-4 text-center text-gray-700 font-medium p-3 bg-gray-200 rounded-lg hidden">
+                    </div>
+
+                <div class="stat-card mt-6">
+                    <h2 class="text-xl font-semibold text-gray-700 mb-3">Add Chip Response (HTTP):</h2>
+                    <div id="addChipResponse" class="bg-gray-800 text-blue-400 p-4 rounded-md text-sm">
+                        { "message": "Waiting for add chip operation..." }
+                    </div>
+                </div>
+            </div>
+             <footer class="mt-8 text-center text-sm text-gray-500">
+                <p>Select chip type or provide a custom name.</p>
+            </footer>
+        </div>
     </div>
 
     <script>
+        // WebSocket Variables
         const connectButton = document.getElementById('connectButton');
         const disconnectButton = document.getElementById('disconnectButton');
         const statusDiv = document.getElementById('status');
@@ -86,11 +140,21 @@
         let tickCount = 0;
         let lastStatsUpdateTime = Date.now();
         let ticksInInterval = 0;
-        let intervalId = null; // For periodic stats update
-        let shouldSendTick = false; // Controls the sending loop
+        let intervalId = null;
+        let shouldSendTick = false;
 
-        const WS_URL = 'ws://127.0.0.1:3000/ws'; // Your WebSocket server URL
+        const WS_URL = 'ws://127.0.0.1:3000/ws/designer';
 
+        // Add Chip Variables
+        const chipTypeSelect = document.getElementById('chipTypeSelect');
+        const customChipNameGroup = document.getElementById('customChipNameGroup');
+        const customChipNameInput = document.getElementById('customChipNameInput');
+        const addChipButton = document.getElementById('addChipButton');
+        const addChipStatusDiv = document.getElementById('addChipStatus');
+        const addChipResponseDiv = document.getElementById('addChipResponse');
+        const ADD_CHIP_URL = '/designer/add_chip'; // Relative URL for the add_chip endpoint
+
+        // --- WebSocket Functions ---
         function updateStatus(message, isError = false) {
             statusDiv.textContent = message;
             statusDiv.className = `mb-6 text-center font-medium p-3 rounded-lg ${isError ? 'bg-red-200 text-red-700' : 'bg-green-200 text-green-700'}`;
@@ -110,10 +174,9 @@
             } else {
                 tickRateDiv.textContent = `0.00 TPS`;
             }
-            // Reset for next interval, but only if we are actively calculating
             if (shouldSendTick) {
-                 ticksInInterval = 0;
-                 lastStatsUpdateTime = now;
+                ticksInInterval = 0;
+                lastStatsUpdateTime = now;
             }
         }
 
@@ -131,7 +194,7 @@
 
             updateStatus('Connecting...');
             socket = new WebSocket(WS_URL);
-            shouldSendTick = true; // Enable sending ticks
+            shouldSendTick = true;
 
             socket.onopen = () => {
                 updateStatus('Connected to WebSocket Server!');
@@ -143,11 +206,9 @@
                 totalTicksDiv.textContent = "0";
                 tickRateDiv.textContent = "0.00 TPS";
                 jsonResponseDiv.textContent = JSON.stringify({ message: "Connection established. Waiting for first tick response..." }, null, 2);
-
-                sendTick(); // Send the first tick immediately after connection
-
-                if (intervalId) clearInterval(intervalId); // Clear previous interval if any
-                intervalId = setInterval(updateStatsDisplay, 1000); // Update stats display every second
+                sendTick();
+                if (intervalId) clearInterval(intervalId);
+                intervalId = setInterval(updateStatsDisplay, 1000);
             };
 
             socket.onmessage = (event) => {
@@ -156,7 +217,6 @@
                     jsonResponseDiv.textContent = JSON.stringify(data, null, 2);
                     tickCount++;
                     ticksInInterval++;
-                    // To send as fast as possible, send the next tick immediately after receiving a response
                     sendTick();
                 } catch (e) {
                     jsonResponseDiv.textContent = `Error parsing JSON: ${e.message}\nRaw: ${event.data}`;
@@ -180,23 +240,104 @@
                 socket = null;
                 shouldSendTick = false;
                 if (intervalId) clearInterval(intervalId);
-                // Final update to stats display
                 updateStatsDisplay();
-                // Reset tick rate to 0 as we are disconnected
                 tickRateDiv.textContent = `0.00 TPS`;
             };
         });
 
         disconnectButton.addEventListener('click', () => {
             if (socket) {
-                shouldSendTick = false; // Stop sending ticks before closing
-                socket.close(1000, "Client initiated disconnect"); // 1000 is a normal closure
+                shouldSendTick = false;
+                socket.close(1000, "Client initiated disconnect");
             }
             if (intervalId) clearInterval(intervalId);
         });
 
+        // --- Add Chip Functions ---
+
+        // Show/hide custom chip name input based on selection
+        chipTypeSelect.addEventListener('change', () => {
+            if (chipTypeSelect.value === 'CustomNamed') {
+                customChipNameGroup.classList.remove('hidden');
+            } else {
+                customChipNameGroup.classList.add('hidden');
+                customChipNameInput.value = ''; // Clear input if not CustomNamed
+            }
+        });
+
+        function updateAddChipStatus(message, isError = false) {
+            addChipStatusDiv.textContent = message;
+            addChipStatusDiv.className = `mt-4 text-center font-medium p-3 rounded-lg ${isError ? 'bg-red-200 text-red-700' : 'bg-green-200 text-green-700'}`;
+            addChipStatusDiv.classList.remove('hidden');
+        }
+
+        addChipButton.addEventListener('click', async () => {
+            const selectedType = chipTypeSelect.value;
+            const customName = customChipNameInput.value.trim();
+            let payload = {};
+
+            if (selectedType === 'CustomNamed') {
+                if (!customName) {
+                    updateAddChipStatus('Custom chip name cannot be empty when "Custom (Named)" is selected.', true);
+                    return;
+                }
+                payload = { Custom: customName };
+            } else {
+                // For "Ground", "Supply", "Input", "Output", "Custom (Basic)"
+                // The Rust enum `ChipType` has a variant `Custom`. So if "Custom (Basic)" is selected,
+                // the payload should be {"Basic": "Custom"}
+                payload = { Basic: selectedType };
+            }
+
+            updateAddChipStatus('Sending chip data...', false);
+            addChipResponseDiv.textContent = JSON.stringify({ message: "Processing..." }, null, 2);
+
+            try {
+                const response = await fetch(ADD_CHIP_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const responseData = await response.json().catch(() => null); // Try to parse JSON, otherwise null
+
+                if (response.ok) {
+                    updateAddChipStatus('Chip added successfully!', false);
+                    if (responseData) {
+                        addChipResponseDiv.textContent = JSON.stringify(responseData, null, 2);
+                    } else {
+                         addChipResponseDiv.textContent = JSON.stringify({ message: "Success, but no JSON content in response body." }, null, 2);
+                    }
+                } else {
+                    let errorMsg = `Error adding chip. Status: ${response.status}`;
+                    if (responseData && responseData.error) { // Assuming server sends { "error": "message" }
+                        errorMsg += ` - ${responseData.error}`;
+                    } else if (responseData) {
+                        errorMsg += ` - ${JSON.stringify(responseData)}`;
+                    } else {
+                        const textResponse = await response.text();
+                        errorMsg += ` - ${textResponse || response.statusText}`;
+                    }
+                    updateAddChipStatus(errorMsg, true);
+                    addChipResponseDiv.textContent = JSON.stringify({ error: errorMsg, details: responseData }, null, 2);
+                    console.error('Add chip error:', responseData || response.statusText);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                updateAddChipStatus(`Network or client-side error: ${error.message}`, true);
+                addChipResponseDiv.textContent = JSON.stringify({ error: `Network or client-side error: ${error.message}` }, null, 2);
+            }
+        });
+
         // Initial UI state
         updateStatus('Not Connected');
+        addChipResponseDiv.textContent = JSON.stringify({ message: "Waiting for add chip operation..." }, null, 2);
+        // Ensure custom name input is hidden initially if not 'CustomNamed'
+        if (chipTypeSelect.value !== 'CustomNamed') {
+            customChipNameGroup.classList.add('hidden');
+        }
 
     </script>
 </body>

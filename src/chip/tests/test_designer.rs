@@ -1,13 +1,12 @@
 
 // Starts with an empty circuit
 // Can add fundamental chips
-// Can add links between pins
 // Can compile circuit to chip
 // Can create new circuit
 // Can add new chip to circuits going forwards
 // Can read pin states and link states
 
-use crate::{chip::{chip::ChipType, chip_database::ChipKey, designer::{self, Designer}, types::*}, chip_pin};
+use crate::{chip::{chip::ChipType, chip_database::ChipKey, designer::Designer, types::*}, chip_pin};
 
 #[test]
 fn given_add_nand_chip_then_succeeds() {
@@ -65,9 +64,9 @@ fn given_single_io_when_input_1_then_output_1() {
     let output = designer.add_chip(ChipKey::Basic(ChipType::Output)).unwrap();
     let _ = designer.add_link(chip_pin!(input, 0), chip_pin!(output, 0));
     let _ = designer.set_input_chip_value(input, 1);
-    let _ = designer.tick();
+    designer.tick();
     let state = designer.get_state();
-    let output_state = state.chip_pin_states.get(&chip_pin!(output, 0)).unwrap();
+    let output_state = state.chip_pin_states.get(&output).unwrap().get(&0).unwrap();
     assert_eq!(*output_state, 1);
 }
 
@@ -79,9 +78,9 @@ fn given_single_io_when_link_deleted_then_output_0() {
     let _ = designer.add_link(chip_pin!(input, 0), chip_pin!(output, 0)).unwrap();
     let _ = designer.set_input_chip_value(input, 1);
     let _ = designer.delete_link(chip_pin!(input, 0), chip_pin!(output, 0));
-    let _ = designer.tick();
+    designer.tick();
     let state = designer.get_state();
-    let output_state = state.chip_pin_states.get(&chip_pin!(output, 0)).unwrap();
+    let output_state = state.chip_pin_states.get(&output).unwrap().get(&0).unwrap();
     assert_eq!(*output_state, 0);
 }
 
@@ -92,8 +91,8 @@ fn given_single_io_when_input_0_then_output_0() {
     let output = designer.add_chip(ChipKey::Basic(ChipType::Output)).unwrap();
     let _ = designer.add_link(chip_pin!(input, 0), chip_pin!(output, 0));
     let _ = designer.set_input_chip_value(input, 0);
-    let _ = designer.tick();
+    designer.tick();
     let state = designer.get_state();
-    let output_state = state.chip_pin_states.get(&chip_pin!(output, 0)).unwrap();
+    let output_state = state.chip_pin_states.get(&output).unwrap().get(&0).unwrap();
     assert_eq!(*output_state, 0);
 }

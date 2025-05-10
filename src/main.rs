@@ -1,17 +1,13 @@
-use a_bit_rusty::chip::designer::Designer;
+use a_bit_rusty::chip::{chip_database::ChipKey, designer::Designer};
 use axum::{
-    extract::{
+    body::Body, extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
         State,
-    },
-    response::IntoResponse,
-    routing::get,
-    Router,
+    }, http::{Response, StatusCode}, response::{Html, IntoResponse}, routing::{get, post}, Json, Router
 };
 use serde_json::json;
 use std::{
-    net::SocketAddr,
-    sync::{Arc, Mutex},
+    fs, net::SocketAddr, sync::{Arc, Mutex}
 };
 use tokio::net::TcpListener;
 
@@ -37,16 +33,16 @@ async fn handle_socket(mut socket: WebSocket, state: SharedState) {
                     let designer_state;
                     {
                         let mut app_state = state.lock().unwrap();
-                        let _ = app_state.designer.tick();
+                        app_state.designer.tick();
                         designer_state = app_state.designer.get_state();
                     }
 
-                    let response = json!({
+                    let state_json = json!({
                         "designer": designer_state,
                     });
 
                     if socket
-                        .send(Message::Text(response.to_string().into()))
+                        .send(Message::Text(state_json.to_string().into()))
                         .await
                         .is_err()
                     {
@@ -86,6 +82,35 @@ async fn handle_socket(mut socket: WebSocket, state: SharedState) {
     println!("Client session ended (socket.recv() returned None or an error not caught above).");
 }
 
+async fn get_root_handler() -> impl IntoResponse {
+    let file_contents = fs::read_to_string("client.html");
+    match file_contents {
+        Ok(html_content) => Html(html_content).into_response(),
+        Err(e) => {
+            eprintln!("Failed to read client.html: {}", e);
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(Body::from(format!("Failed to load client.html: {}", e)))
+                .unwrap() // This unwrap is safe because we're building a valid response
+        }
+    }
+}
+
+async fn add_chip_handler(
+    State(state): State<SharedState>,
+    Json(key): Json<ChipKey>,
+) -> impl IntoResponse {
+    let mut app_state = state.lock().unwrap();
+    let result = app_state.designer.add_chip(key);
+    match result {
+        Ok(_) => StatusCode::OK,
+        Err(message) => {
+            eprintln!("{}", message);
+            return StatusCode::INTERNAL_SERVER_ERROR;
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
     let shared_state = Arc::new(Mutex::new(AppState {
@@ -93,11 +118,13 @@ async fn main() {
     }));
 
     let app = Router::new()
-        .route("/ws", get(websocket_handler))
+        .route("/", get(get_root_handler))
+        .route("/designer/add_chip", post(add_chip_handler))
+        .route("/ws/designer", get(websocket_handler))
         .with_state(shared_state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    println!("WebSocket server with state listening on ws://{}", addr);
+    println!("Server listening on {}", addr);
 
     let listener = match TcpListener::bind(&addr).await {
         Ok(listener) => listener,

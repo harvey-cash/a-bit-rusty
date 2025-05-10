@@ -5,19 +5,19 @@ use serde::Serialize;
 use super::{chip::{ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip, Tickable}, chip_database::{ChipDatabase, ChipKey, ChipValue}, circuit::{self, Circuit}, types::{ChipAndPin, PinLayout}};
 
 #[derive(Serialize)]
-pub struct CircuitState {
+pub struct DesignerState {
     pub tick_counter: u64,
-    pub chip_pin_states: HashMap<ChipAndPin, u8>,
-    pub links: HashMap<usize, HashMap<usize, Vec<ChipAndPin>>>,
     pub chip_layouts: HashMap<usize, PinLayout>,
+    pub chip_pin_states: HashMap<usize, HashMap<usize, u8>>,
+    pub links: HashMap<usize, HashMap<usize, Vec<ChipAndPin>>>,
 }
 
-impl CircuitState {
+impl DesignerState {
     pub fn new() -> Self { Self { 
         tick_counter: 0, 
+        chip_layouts: HashMap::new(),
         chip_pin_states: HashMap::new(),
         links: HashMap::new(),
-        chip_layouts: HashMap::new(),
     } }
 }
 
@@ -72,18 +72,17 @@ impl Designer {
         Ok(())
     }
 
-    pub fn tick(&mut self) -> Result<(), String> {
+    pub fn tick(&mut self) {
         self.tick_counter += 1;
         self.circuit.tick();
-        Ok(())
     }
 
-    pub fn get_state(&self) -> CircuitState {
-        CircuitState { 
+    pub fn get_state(&self) -> DesignerState {
+        DesignerState { 
             tick_counter: self.tick_counter, 
-            chip_pin_states: self.circuit.get_chip_pin_states(),
-            links: self.circuit.get_description().forward_links,
             chip_layouts: self.circuit.get_chip_layouts(),
+            chip_pin_states: self.get_pin_states_map(),
+            links: self.circuit.get_description().forward_links,
         }
     }
 
@@ -117,5 +116,13 @@ impl Designer {
 
     pub fn new_circuit(&mut self) -> Result<(), String> {
         Ok(())
+    }
+    
+    fn get_pin_states_map(&self) -> HashMap<usize, HashMap<usize, u8>> {
+        let mut pin_states: HashMap<usize, HashMap<usize, u8>> = HashMap::new();
+        for (chip_pin, value) in self.circuit.get_chip_pin_states() {
+            pin_states.entry(chip_pin.chip_id).or_default().insert(chip_pin.pin_index, value);
+        }
+        return pin_states;
     }
 }
