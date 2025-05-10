@@ -47,15 +47,16 @@ impl Designer {
         Err("Not implemented".to_string())
     }
 
-    pub fn add_link(&mut self, source: ChipAndPin, target: ChipAndPin) -> Result<usize, String> {
+    pub fn add_link(&mut self, source: ChipAndPin, target: ChipAndPin) -> Result<(), String> {
         if source == target {
             return Err("Can not link a pin to itself!".to_string());
         }
         self.circuit.create_link(source, target);
-        Ok(0)
+        Ok(())
     }
 
-    pub fn delete_link(&mut self, id: usize) -> Result<(), String> {
+    pub fn delete_link(&mut self, source: ChipAndPin, target: ChipAndPin) -> Result<(), String> {
+        self.circuit.delete_link(source, target);
         Ok(())
     }
 

@@ -56,6 +56,20 @@ fn given_single_io_when_input_1_then_output_1() {
 }
 
 #[test]
+fn given_single_io_when_link_deleted_then_output_0() {
+    let mut designer = Designer::new();
+    let input = designer.add_chip(ChipKey::Basic(ChipType::Input)).unwrap();
+    let output = designer.add_chip(ChipKey::Basic(ChipType::Output)).unwrap();
+    let _ = designer.add_link(chip_pin!(input, 0), chip_pin!(output, 0)).unwrap();
+    let _ = designer.set_input_chip_value(input, 1);
+    let _ = designer.delete_link(chip_pin!(input, 0), chip_pin!(output, 0));
+    let _ = designer.tick();
+    let state = designer.get_state();
+    let output_state = state.outputs.get(&output).unwrap();
+    assert_eq!(*output_state, 0);
+}
+
+#[test]
 fn given_single_io_when_input_0_then_output_0() {
     let mut designer = Designer::new();
     let input = designer.add_chip(ChipKey::Basic(ChipType::Input)).unwrap();
