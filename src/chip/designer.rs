@@ -1,14 +1,17 @@
+use std::collections::HashMap;
+
 use serde::Serialize;
 
-use super::{chip::{ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip}, chip_database::{ChipDatabase, ChipKey, ChipValue}, circuit::{self, Circuit}, types::ChipAndPin};
+use super::{chip::{ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip, Tickable}, chip_database::{ChipDatabase, ChipKey, ChipValue}, circuit::{self, Circuit}, types::ChipAndPin};
 
 #[derive(Serialize)]
 pub struct CircuitState {
-    tick_counter: u64,
+    pub tick_counter: u64,
+    pub outputs: HashMap<usize, u8>
 }
 
 impl CircuitState {
-    pub fn new() -> Self { Self { tick_counter: 0 } }
+    pub fn new() -> Self { Self { tick_counter: 0, outputs: HashMap::new() } }
 }
 
 pub struct Designer {    
@@ -57,16 +60,21 @@ impl Designer {
     }
 
     pub fn set_input_chip_value(&mut self, id: usize, value: u8) -> Result<(), String> {
+        self.circuit.set_input(id, value);
         Ok(())
     }
 
     pub fn tick(&mut self) -> Result<(), String> {
         self.tick_counter += 1;
+        self.circuit.tick();
         Ok(())
     }
 
     pub fn get_state(&self, ) -> CircuitState {
-        CircuitState { tick_counter: self.tick_counter }
+        let mut outputs: HashMap<usize, u8> = HashMap::new();
+        let value = self.circuit.get_output(1);
+        outputs.insert(1, value);
+        CircuitState { tick_counter: self.tick_counter, outputs: outputs }
     }
 
     pub fn get_chips_from_db(&self) -> Result<Vec<ChipKey>, String> {
