@@ -1,5 +1,7 @@
 use std::{collections::{HashMap, VecDeque}, vec};
 
+use serde::Serialize;
+
 use crate::chip_pin;
 
 use super::{
@@ -137,6 +139,12 @@ impl Circuit {
         }
         inputs
         
+    }
+    
+    pub fn get_chip_layouts(&self) -> HashMap<usize, PinLayout> {
+        self.chips.iter()
+            .map(|(id, chip)| (*id, chip.get_layout()))
+            .collect()
     }
 }
 

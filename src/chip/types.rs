@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use serde::Serialize;
+
 pub fn vec_contents_eq_ignore_order(vec1: &Vec<usize>, vec2: &Vec<usize>) -> bool {
     if vec1.len() != vec2.len() {
         return false;
@@ -29,7 +31,7 @@ pub fn map_contents_eq_ignore_order(map1: &LinkMap, map2: &LinkMap) -> bool {
     true
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct PinLayout {
     pub ground_pins: Vec<usize>,
     pub supply_pins: Vec<usize>,
@@ -107,7 +109,7 @@ impl PinLayout {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 pub struct ChipAndPin {
     pub chip_id: usize,
     pub pin_index: usize,

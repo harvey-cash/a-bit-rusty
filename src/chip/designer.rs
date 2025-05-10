@@ -2,16 +2,23 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 
-use super::{chip::{ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip, Tickable}, chip_database::{ChipDatabase, ChipKey, ChipValue}, circuit::{self, Circuit}, types::ChipAndPin};
+use super::{chip::{ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip, Tickable}, chip_database::{ChipDatabase, ChipKey, ChipValue}, circuit::{self, Circuit}, types::{ChipAndPin, PinLayout}};
 
 #[derive(Serialize)]
 pub struct CircuitState {
     pub tick_counter: u64,
-    pub outputs: HashMap<usize, u8>
+    pub chip_pin_states: HashMap<ChipAndPin, u8>,
+    pub links: HashMap<usize, HashMap<usize, Vec<ChipAndPin>>>,
+    pub chip_layouts: HashMap<usize, PinLayout>,
 }
 
 impl CircuitState {
-    pub fn new() -> Self { Self { tick_counter: 0, outputs: HashMap::new() } }
+    pub fn new() -> Self { Self { 
+        tick_counter: 0, 
+        chip_pin_states: HashMap::new(),
+        links: HashMap::new(),
+        chip_layouts: HashMap::new(),
+    } }
 }
 
 pub struct Designer {    
@@ -25,7 +32,7 @@ impl Designer {
         Self { 
             tick_counter: 0,
             circuit: Circuit::new(), 
-            database: ChipDatabase::new() 
+            database: ChipDatabase::new(),
         }
     }
 
@@ -71,11 +78,13 @@ impl Designer {
         Ok(())
     }
 
-    pub fn get_state(&self, ) -> CircuitState {
-        let mut outputs: HashMap<usize, u8> = HashMap::new();
-        let value = self.circuit.get_output(1);
-        outputs.insert(1, value);
-        CircuitState { tick_counter: self.tick_counter, outputs: outputs }
+    pub fn get_state(&self) -> CircuitState {
+        CircuitState { 
+            tick_counter: self.tick_counter, 
+            chip_pin_states: self.circuit.get_chip_pin_states(),
+            links: self.circuit.get_description().forward_links,
+            chip_layouts: self.circuit.get_chip_layouts(),
+        }
     }
 
     pub fn get_chips_from_db(&self) -> Result<Vec<ChipKey>, String> {
