@@ -3,339 +3,904 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Tick & Chip Tester</title>
+    <title>A Bit Rusty - Circuit Designer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .stat-card {
-            @apply bg-white shadow-lg rounded-lg p-6 transition-all duration-300 hover:shadow-xl;
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none; /* Prevents pull-to-refresh on touch devices */
         }
-        .btn {
-            @apply px-6 py-3 rounded-lg font-semibold text-white shadow-md transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-opacity-75;
+        /* Custom scrollbar for webkit browsers */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
         }
-        .btn-green {
-            @apply bg-green-500 hover:bg-green-600 focus:ring-green-500;
+        ::-webkit-scrollbar-track {
+            background: #2d3748; /* bg-gray-800 */
         }
-        .btn-red {
-            @apply bg-red-500 hover:bg-red-600 focus:ring-red-500;
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568; /* bg-gray-700 */
+            border-radius: 4px;
         }
-        .btn-blue {
-            @apply bg-blue-500 hover:bg-blue-600 focus:ring-blue-500;
+        ::-webkit-scrollbar-thumb:hover {
+            background: #718096; /* bg-gray-600 */
         }
-        .btn-purple {
-            @apply bg-purple-500 hover:bg-purple-600 focus:ring-purple-500;
+        .pin {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
         }
-        #jsonResponse, #addChipResponse {
-            white-space: pre-wrap; /* Preserve formatting of JSON */
-            word-break: break-all; /* Break long strings */
-            max-height: 300px;
-            overflow-y: auto;
-            font-family: 'Monospace', monospace;
+        .pin:hover {
+            stroke-width: 2;
+            stroke: #f6e05e; /* yellow-400 */
         }
-        .input-field {
-            @apply mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm;
+        .chip-rect {
+            cursor: grab;
+            transition: filter 0.2s ease-in-out, fill 0.2s ease-in-out; /* Added fill transition */
         }
-        label {
-            @apply block text-sm font-medium text-gray-700;
+        .chip-rect:active {
+            cursor: grabbing;
+        }
+        .chip-rect.input-chip-body:hover {
+            filter: brightness(1.2);
+        }
+        /* Style for selected source pin */
+        .pin.selected-source {
+            fill: #63b3ed; /* blue-400 */
+            stroke: #fff;
+            stroke-width: 2;
+        }
+        #designer-canvas {
+            touch-action: none; 
         }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Monospace&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-gray-900 text-gray-200 flex flex-col h-screen overflow-hidden">
 
-    <div class="w-full max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-2xl space-y-8">
-        <div>
-            <header class="mb-8 text-center">
-                <h1 class="text-4xl font-bold text-gray-800">WebSocket Tick Tester</h1>
-                <p class="text-gray-600 mt-2">Test your Axum WebSocket server's tick rate and responses.</p>
-            </header>
-
-            <div class="mb-6 flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                <button id="connectButton" class="btn btn-green w-full sm:w-auto">Connect</button>
-                <button id="disconnectButton" class="btn btn-red w-full sm:w-auto" disabled>Disconnect</button>
-            </div>
-
-            <div id="status" class="mb-6 text-center text-gray-700 font-medium p-3 bg-gray-200 rounded-lg">
-                Not Connected
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div class="stat-card">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-2">Tick Rate</h2>
-                    <p id="tickRate" class="text-3xl font-bold text-blue-600">0.00 TPS</p>
-                    <p class="text-sm text-gray-500">Ticks per second</p>
-                </div>
-                <div class="stat-card">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-2">Total Ticks</h2>
-                    <p id="totalTicks" class="text-3xl font-bold text-purple-600">0</p>
-                    <p class="text-sm text-gray-500">Total messages sent/received</p>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <h2 class="text-xl font-semibold text-gray-700 mb-3">Last JSON Response (WebSocket):</h2>
-                <div id="jsonResponse" class="bg-gray-800 text-green-400 p-4 rounded-md text-sm">
-                    { "message": "Waiting for server response..." }
-                </div>
-            </div>
-
-            <footer class="mt-8 text-center text-sm text-gray-500">
-                <p>Client sends "tick" and expects a JSON response.</p>
-            </footer>
+    <header class="bg-gray-800 p-3 shadow-lg flex items-center space-x-4 flex-wrap">
+        <h1 class="text-xl font-semibold text-white">A Bit Rusty Designer</h1>
+        
+        <div class="flex items-center space-x-2">
+            <label for="chip-type-select" class="text-sm">Add Chip:</label>
+            <select id="chip-type-select" class="bg-gray-700 text-white border border-gray-600 rounded-md px-2 py-1 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </select>
+            <button id="add-chip-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-3 rounded-md text-sm transition duration-150">Add</button>
         </div>
 
-        <hr class="border-gray-300">
+        <div class="flex items-center space-x-2">
+            <button id="manual-tick-btn" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md text-sm transition duration-150">Tick</button>
+            <input type="checkbox" id="auto-tick-checkbox" class="form-checkbox h-4 w-4 text-teal-500 bg-gray-700 border-gray-600 rounded focus:ring-teal-500">
+            <label for="auto-tick-checkbox" class="text-sm">Auto Tick</label>
+            <input type="number" id="auto-tick-interval" value="1000" min="100" step="100" class="bg-gray-700 text-white border border-gray-600 rounded-md px-2 py-1 text-sm w-20 focus:ring-indigo-500 focus:border-indigo-500" placeholder="ms">
+        </div>
+        
+        <div class="flex items-center space-x-2">
+            <button id="start-link-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md text-sm transition duration-150">Start Link</button>
+            <button id="clear-selection-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md text-sm transition duration-150">Clear Selection</button>
+        </div>
+        <div id="status-indicator" class="w-3 h-3 rounded-full bg-red-500" title="Disconnected"></div>
+        <span id="tick-counter-span" class="text-sm text-gray-400">Ticks: 0</span>
+    </header>
 
-        <div>
-            <header class="mb-8 text-center">
-                <h1 class="text-3xl font-bold text-gray-800">Add Chip to Designer</h1>
-                <p class="text-gray-600 mt-2">Send a String to the <code>/designer/add_chip</code> endpoint.</p>
-            </header>
-
-            <div class="space-y-6">
-                <div>
-                    <label for="chipTypeSelect" class="block text-sm font-medium text-gray-700">Chip Type:</label>
-                    <select id="chipTypeSelect" name="chipType" class="input-field">
-                        <option value="Ground">Ground</option>
-                        <option value="Supply">Supply</option>
-                        <option value="Input">Input</option>
-                        <option value="Output">Output</option>
-                        <option value="Custom">Custom (Basic)</option>
-                        <option value="CustomNamed">Custom (Named)</option>
-                    </select>
-                </div>
-
-                <div id="customChipNameGroup" class="hidden"> <label for="customChipNameInput" class="block text-sm font-medium text-gray-700">Custom Chip Name:</label>
-                    <input type="text" id="customChipNameInput" name="customChipName" class="input-field" placeholder="e.g., MyAwesomeChip">
-                </div>
-
-                <button id="addChipButton" class="btn btn-purple w-full">Add Chip</button>
-
-                <div id="addChipStatus" class="mt-4 text-center text-gray-700 font-medium p-3 bg-gray-200 rounded-lg hidden">
-                    </div>
-
-                <div class="stat-card mt-6">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-3">Add Chip Response (HTTP):</h2>
-                    <div id="addChipResponse" class="bg-gray-800 text-blue-400 p-4 rounded-md text-sm">
-                        { "message": "Waiting for add chip operation..." }
-                    </div>
-                </div>
+    <main class="flex-grow relative overflow-hidden">
+        <svg id="designer-canvas" class="w-full h-full select-none bg-gray-900">
+            <defs>
+                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                    <polygon points="0 0, 10 3.5, 0 7" fill="#a0aec0" />
+                </marker>
+            </defs>
+            <g id="links-container"></g>
+            <g id="chips-container"></g>
+        </svg>
+        <div id="context-menu" class="hidden absolute bg-gray-700 border border-gray-600 rounded-md shadow-xl py-1 z-50">
+            <button id="delete-chip-btn" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-600">Delete Chip</button>
             </div>
-             <footer class="mt-8 text-center text-sm text-gray-500">
-                <p>Select chip type or provide a custom name.</p>
-            </footer>
+    </main>
+    
+    <div id="message-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl max-w-sm w-full">
+            <h3 id="message-modal-title" class="text-lg font-semibold text-white mb-2">Message</h3>
+            <p id="message-modal-content" class="text-gray-300 mb-4"></p>
+            <button id="message-modal-close-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md w-full transition duration-150">Close</button>
         </div>
     </div>
 
+
     <script>
-        // WebSocket Variables
-        const connectButton = document.getElementById('connectButton');
-        const disconnectButton = document.getElementById('disconnectButton');
-        const statusDiv = document.getElementById('status');
-        const tickRateDiv = document.getElementById('tickRate');
-        const totalTicksDiv = document.getElementById('totalTicks');
-        const jsonResponseDiv = document.getElementById('jsonResponse');
+        const SVG_NS = "http://www.w3.org/2000/svg";
 
-        let socket = null;
-        let tickCount = 0;
-        let lastStatsUpdateTime = Date.now();
-        let ticksInInterval = 0;
-        let intervalId = null;
-        let shouldSendTick = false;
+        // --- Configuration ---
+        const CHIP_WIDTH = 160;
+        const CHIP_HEIGHT = 100;
+        const PIN_SIZE = 10;
+        // const PIN_SPACING = 15; // Spacing between centers of pins - Not directly used in getPinPosition like this
+        const CHIP_PADDING_TOP = 20; // Space above top pins for chip name
+        const CHIP_TOTAL_HEIGHT = CHIP_HEIGHT + CHIP_PADDING_TOP;
 
-        const WS_URL = 'ws://127.0.0.1:3000/ws/designer';
+        const PIN_COLOR_LOW = '#718096';    // gray-500
+        const PIN_COLOR_HIGH = '#f6e05e';   // yellow-400
+        const PIN_STROKE_COLOR = '#a0aec0'; // gray-400
+        
+        const CHIP_DEFAULT_COLOR = '#4a5568'; // gray-700
+        const CHIP_ACTIVE_COLOR = '#667eea';  // indigo-500 (for active ground/supply etc.)
+        const CHIP_INPUT_TYPE_COLOR = '#38a169'; // green-600 (special for input type chip body when low)
 
-        // Add Chip Variables
-        const chipTypeSelect = document.getElementById('chipTypeSelect');
-        const customChipNameGroup = document.getElementById('customChipNameGroup');
-        const customChipNameInput = document.getElementById('customChipNameInput');
-        const addChipButton = document.getElementById('addChipButton');
-        const addChipStatusDiv = document.getElementById('addChipStatus');
-        const addChipResponseDiv = document.getElementById('addChipResponse');
-        const ADD_CHIP_URL = '/designer/add_chip'; // Relative URL for the add_chip endpoint
+        // --- Global State ---
+        let designerState = null;
+        let chipPositions = {}; // { chipId: { x, y, selected: false } }
+        let webSocket = null;
+        let autoTickIntervalId = null;
+        let linkingState = {
+            active: false,
+            sourcePin: null, // { chipId, pinIndex, element }
+        };
+        let draggingState = {
+            active: false,
+            chipId: null,
+            offsetX: 0,
+            offsetY: 0,
+            dragged: false
+        };
+        let panZoomState = {
+            x: 0, y: 0, scale: 1,
+            panning: false, lastMouseX: 0, lastMouseY: 0
+        };
+        let contextMenuChipId = null;
 
-        // --- WebSocket Functions ---
-        function updateStatus(message, isError = false) {
-            statusDiv.textContent = message;
-            statusDiv.className = `mb-6 text-center font-medium p-3 rounded-lg ${isError ? 'bg-red-200 text-red-700' : 'bg-green-200 text-green-700'}`;
-            if (message === "Not Connected") {
-                 statusDiv.className = 'mb-6 text-center text-gray-700 font-medium p-3 bg-gray-200 rounded-lg';
+        // --- UI Elements ---
+        const chipTypeSelect = document.getElementById('chip-type-select');
+        const addChipBtn = document.getElementById('add-chip-btn');
+        const manualTickBtn = document.getElementById('manual-tick-btn');
+        const autoTickCheckbox = document.getElementById('auto-tick-checkbox');
+        const autoTickIntervalInput = document.getElementById('auto-tick-interval');
+        const startLinkBtn = document.getElementById('start-link-btn');
+        const clearSelectionBtn = document.getElementById('clear-selection-btn');
+        const statusIndicator = document.getElementById('status-indicator');
+        const tickCounterSpan = document.getElementById('tick-counter-span');
+        
+        const svgCanvas = document.getElementById('designer-canvas');
+        const chipsContainer = document.getElementById('chips-container');
+        const linksContainer = document.getElementById('links-container');
+
+        const contextMenu = document.getElementById('context-menu');
+        const deleteChipBtn = document.getElementById('delete-chip-btn');
+
+        const messageModal = document.getElementById('message-modal');
+        const messageModalTitle = document.getElementById('message-modal-title');
+        const messageModalContent = document.getElementById('message-modal-content');
+        const messageModalCloseBtn = document.getElementById('message-modal-close-btn');
+
+        // --- WebSocket Logic ---
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            webSocket = new WebSocket(`${protocol}//${host}/ws/designer`);
+
+            webSocket.onopen = () => {
+                console.log("WebSocket connected");
+                statusIndicator.classList.remove('bg-red-500');
+                statusIndicator.classList.add('bg-green-500');
+                statusIndicator.title = "Connected";
+                // Request initial state. Backend should send it on connection or on first tick.
+                // For robustness, let's send a tick if the backend doesn't auto-send.
+                // setTimeout(() => { if (!designerState && webSocket.readyState === WebSocket.OPEN) webSocket.send("tick"); }, 500);
+            };
+
+            webSocket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.designer) {
+                        designerState = data.designer;
+                        console.log("Received state:", designerState);
+                        updateUI();
+                    } else if (data.error) {
+                        console.error("Error from server:", data.error);
+                        showMessage("Server Error", data.error);
+                    }
+                } catch (e) {
+                    console.error("Error processing message:", e, event.data);
+                    showMessage("Processing Error", "Received invalid data from server.");
+                }
+            };
+
+            webSocket.onclose = () => {
+                console.log("WebSocket disconnected");
+                statusIndicator.classList.remove('bg-green-500');
+                statusIndicator.classList.add('bg-red-500');
+                statusIndicator.title = "Disconnected";
+                if (autoTickIntervalId) {
+                    clearInterval(autoTickIntervalId);
+                    autoTickIntervalId = null;
+                    autoTickCheckbox.checked = false;
+                }
+            };
+
+            webSocket.onerror = (error) => {
+                console.error("WebSocket error:", error);
+                statusIndicator.classList.remove('bg-green-500');
+                statusIndicator.classList.add('bg-red-500');
+                statusIndicator.title = "Error";
+                showMessage("WebSocket Error", "Could not connect to the server. Please ensure the server is running.");
+            };
+        }
+
+        // --- API Call Helpers ---
+        async function apiPost(endpoint, body) {
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                if (!response.ok) {
+                    // Try to parse error message from server
+                    let errorMsg = `HTTP error ${response.status}`;
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.message || errorData.error || (typeof errorData === 'string' ? errorData : errorMsg);
+                    } catch (e) { /* Ignore if error response is not JSON */ }
+                    throw new Error(errorMsg);
+                }
+                if (response.headers.get("content-type")?.includes("application/json")) {
+                    return await response.json();
+                }
+                return { success: true }; 
+            } catch (error) {
+                console.error(`API POST error to ${endpoint}:`, error);
+                showMessage("API Error", error.message);
+                throw error; 
+            }
+        }
+        
+        // --- Rendering Logic ---
+        function updateUI() {
+            if (!designerState) return;
+
+            tickCounterSpan.textContent = `Ticks: ${designerState.tick_counter}`;
+            populateChipTypeSelect();
+            renderChipsAndLinks();
+        }
+
+        function populateChipTypeSelect() {
+            if (!designerState || !designerState.layouts) return;
+            const currentChipTypesInSelect = Array.from(chipTypeSelect.options).map(opt => opt.value);
+            const newChipTypesFromServer = Object.keys(designerState.layouts);
+
+            // Check if update is needed (simple length check or content check)
+            if (currentChipTypesInSelect.length !== newChipTypesFromServer.length || 
+                !newChipTypesFromServer.every(type => currentChipTypesInSelect.includes(type))) {
+                
+                const selectedValueBeforeUpdate = chipTypeSelect.value;
+                chipTypeSelect.innerHTML = ''; // Clear existing
+                newChipTypesFromServer.sort().forEach(key => {
+                    const option = document.createElement('option');
+                    option.value = key; // Use the original key from server
+                    option.textContent = key.charAt(0).toUpperCase() + key.slice(1); 
+                    chipTypeSelect.appendChild(option);
+                });
+                // Try to restore previous selection if still valid
+                if (newChipTypesFromServer.includes(selectedValueBeforeUpdate)) {
+                    chipTypeSelect.value = selectedValueBeforeUpdate;
+                }
+            }
+        }
+        
+        function getPinPosition(chipLayout, pinIndex, chipX, chipY, chipWidth, chipHeightWithPadding) {
+            const actualChipHeight = chipHeightWithPadding - CHIP_PADDING_TOP; 
+
+            const categorizedPins = { top: [], left: [], right: [] };
+            chipLayout.ground_pins.forEach(pIdx => categorizedPins.top.push(pIdx));
+            chipLayout.supply_pins.forEach(pIdx => categorizedPins.top.push(pIdx));
+            categorizedPins.top = [...new Set(categorizedPins.top)].sort((a,b) => a-b); // Sort for consistent order
+            
+            chipLayout.input_pins.forEach(pIdx => categorizedPins.left.push(pIdx));
+            categorizedPins.left.sort((a,b) => a-b);
+
+            chipLayout.output_pins.forEach(pIdx => categorizedPins.right.push(pIdx));
+            categorizedPins.right.sort((a,b) => a-b);
+
+            let x = 0, y = 0;
+            let found = false;
+
+            const positionPin = (pinsOnSide, totalPinsOnSide, indexInSideList, isTop, isLeft) => {
+                const spacing = (isTop ? chipWidth : actualChipHeight) / (totalPinsOnSide + 1);
+                const offset = (indexInSideList + 1) * spacing;
+                if (isTop) {
+                    x = chipX + offset;
+                    y = chipY + CHIP_PADDING_TOP; 
+                } else if (isLeft) {
+                    x = chipX;
+                    y = chipY + CHIP_PADDING_TOP + offset;
+                } else { // Right
+                    x = chipX + chipWidth;
+                    y = chipY + CHIP_PADDING_TOP + offset;
+                }
+            };
+            
+            let pinListIndex = categorizedPins.top.indexOf(pinIndex);
+            if (pinListIndex !== -1) {
+                positionPin(categorizedPins.top, categorizedPins.top.length, pinListIndex, true, false);
+                found = true;
+            }
+            
+            if (!found) {
+                pinListIndex = categorizedPins.left.indexOf(pinIndex);
+                if (pinListIndex !== -1) {
+                    positionPin(categorizedPins.left, categorizedPins.left.length, pinListIndex, false, true);
+                    found = true;
+                }
+            }
+
+            if (!found) {
+                pinListIndex = categorizedPins.right.indexOf(pinIndex);
+                if (pinListIndex !== -1) {
+                    positionPin(categorizedPins.right, categorizedPins.right.length, pinListIndex, false, false);
+                    found = true;
+                }
+            }
+
+            if (!found) {
+                // Fallback if pin not in categorized lists, e.g. a generic I/O pin not covered by current rules
+                // This can happen if a chip has pins not in ground, supply, input, or output specifically.
+                // Or if pin_index itself isn't in any of the layout lists.
+                console.warn(`Pin index ${pinIndex} for chip type ${chipLayout.key_name || 'unknown'} not found in standard categories (top, left, right). Placing at default.`);
+                // Default placement (e.g., center top)
+                x = chipX + chipWidth / 2;
+                y = chipY + CHIP_PADDING_TOP; 
+            }
+            return { x, y };
+        }
+
+        function getChipColor(chipId) {
+            const originalChipKey = designerState.chip_names[chipId];
+            if (!originalChipKey) return CHIP_DEFAULT_COLOR; 
+
+            const layout = designerState.layouts[originalChipKey]; // Use original key for layout lookup
+            const pinStatesForChip = designerState.chip_pin_states[chipId];
+
+            if (!layout || !pinStatesForChip) return CHIP_DEFAULT_COLOR;
+
+            const chipKeyLower = originalChipKey.toLowerCase(); // For comparison
+
+            let pinIndexToWatch = -1;
+
+            if (chipKeyLower === 'ground' && layout.ground_pins.length > 0) {
+                pinIndexToWatch = layout.ground_pins[0];
+            } else if (chipKeyLower === 'supply' && layout.supply_pins.length > 0) {
+                pinIndexToWatch = layout.supply_pins[0];
+            } else if (chipKeyLower === 'input' && layout.output_pins.length > 0) {
+                pinIndexToWatch = layout.output_pins[0];
+                // For input chips, color depends on its output state
+                if (typeof pinStatesForChip[pinIndexToWatch] !== 'undefined') {
+                    return pinStatesForChip[pinIndexToWatch] === 1 ? PIN_COLOR_HIGH : CHIP_INPUT_TYPE_COLOR;
+                }
+                return CHIP_INPUT_TYPE_COLOR; // Default to low color if state undefined
+            } else if (chipKeyLower === 'output' && layout.input_pins.length > 0) { 
+                // This is a guess: color 'output' chip based on its first input pin's state
+                pinIndexToWatch = layout.input_pins[0];
+            }
+            
+            if (pinIndexToWatch !== -1 && typeof pinStatesForChip[pinIndexToWatch] !== 'undefined') {
+                 if (pinStatesForChip[pinIndexToWatch] === 1) {
+                    // For ground/supply if high, or 'output' if its watched input is high
+                    return CHIP_ACTIVE_COLOR; 
+                 }
+            }
+            return CHIP_DEFAULT_COLOR;
+        }
+
+        function renderChipsAndLinks() {
+            if (!designerState) return;
+
+            chipsContainer.innerHTML = ''; 
+            linksContainer.innerHTML = ''; 
+
+            chipsContainer.setAttribute('transform', `translate(${panZoomState.x}, ${panZoomState.y}) scale(${panZoomState.scale})`);
+            linksContainer.setAttribute('transform', `translate(${panZoomState.x}, ${panZoomState.y}) scale(${panZoomState.scale})`);
+
+            Object.keys(designerState.chip_names).forEach(chipIdStr => {
+                const chipId = parseInt(chipIdStr);
+                const chipKeyFromServer = designerState.chip_names[chipId]; // Original key from server
+                const layout = designerState.layouts[chipKeyFromServer]; // Use original key for layout
+                const chipState = designerState.chip_pin_states[chipId];
+
+                if (!chipPositions[chipId]) { 
+                    const existingChipIds = Object.keys(chipPositions).map(id => parseInt(id));
+                    const canvasWidth = svgCanvas.clientWidth || 800; // Get current canvas width or default
+                    const chipsPerRow = Math.max(1, Math.floor((canvasWidth - 100) / (CHIP_WIDTH + 60))); // Calculate chips per row based on width
+                    const nextX = 50 + (existingChipIds.length % chipsPerRow) * (CHIP_WIDTH + 60);
+                    const nextY = 50 + Math.floor(existingChipIds.length / chipsPerRow) * (CHIP_TOTAL_HEIGHT + 60);
+                    chipPositions[chipId] = { x: nextX, y: nextY, selected: false };
+                }
+                const { x, y, selected } = chipPositions[chipId];
+
+                const chipGroup = document.createElementNS(SVG_NS, 'g');
+                chipGroup.setAttribute('id', `chip-g-${chipId}`);
+                chipGroup.setAttribute('transform', `translate(${x}, ${y})`);
+                chipGroup.dataset.chipId = chipId;
+
+                const chipRect = document.createElementNS(SVG_NS, 'rect');
+                chipRect.setAttribute('class', 'chip-rect');
+                chipRect.setAttribute('x', 0);
+                chipRect.setAttribute('y', CHIP_PADDING_TOP); 
+                chipRect.setAttribute('width', CHIP_WIDTH);
+                chipRect.setAttribute('height', CHIP_HEIGHT);
+                chipRect.setAttribute('rx', 8);
+                chipRect.setAttribute('ry', 8);
+                
+                let chipBodyColor = getChipColor(chipId); // Uses the updated logic
+                // Add specific class for input chips to enable click-to-toggle
+                if (chipKeyFromServer && chipKeyFromServer.toLowerCase() === 'input') {
+                    chipRect.classList.add('input-chip-body');
+                }
+                
+                chipRect.setAttribute('fill', chipBodyColor);
+                chipRect.setAttribute('stroke', selected ? PIN_COLOR_HIGH : '#6b7280'); 
+                chipRect.setAttribute('stroke-width', selected ? '2' : '1');
+                chipRect.dataset.chipId = chipId; 
+                chipGroup.appendChild(chipRect);
+
+                const chipNameText = document.createElementNS(SVG_NS, 'text');
+                chipNameText.setAttribute('x', CHIP_WIDTH / 2);
+                chipNameText.setAttribute('y', CHIP_PADDING_TOP / 2 + 5); 
+                chipNameText.setAttribute('fill', '#e2e8f0'); 
+                chipNameText.setAttribute('text-anchor', 'middle');
+                chipNameText.setAttribute('font-size', '12px');
+                chipNameText.setAttribute('font-weight', 'bold');
+                chipNameText.textContent = `${chipKeyFromServer} (${chipId})`;
+                chipGroup.appendChild(chipNameText);
+
+                if (layout && chipState) {
+                    const allPinsInLayout = [
+                        ...layout.ground_pins, ...layout.supply_pins, 
+                        ...layout.input_pins, ...layout.output_pins
+                    ];
+                    const uniquePins = [...new Set(allPinsInLayout)].sort((a,b) => a-b); // Sort for consistent rendering order
+
+                    uniquePins.forEach(pinIndex => {
+                        // Pass chipKeyFromServer to getPinPosition if needed, or ensure layout has a name property
+                        const pinPos = getPinPosition(layout, pinIndex, 0, 0, CHIP_WIDTH, CHIP_TOTAL_HEIGHT);
+                        
+                        const pinCircle = document.createElementNS(SVG_NS, 'circle');
+                        pinCircle.setAttribute('class', 'pin');
+                        pinCircle.setAttribute('cx', pinPos.x);
+                        pinCircle.setAttribute('cy', pinPos.y);
+                        pinCircle.setAttribute('r', PIN_SIZE / 2);
+                        const pinValue = chipState[pinIndex];
+                        pinCircle.setAttribute('fill', (typeof pinValue !== 'undefined' && pinValue === 1) ? PIN_COLOR_HIGH : PIN_COLOR_LOW);
+                        pinCircle.setAttribute('stroke', PIN_STROKE_COLOR);
+                        pinCircle.setAttribute('stroke-width', '1');
+                        pinCircle.dataset.chipId = chipId;
+                        pinCircle.dataset.pinIndex = pinIndex;
+
+                        if (linkingState.active && linkingState.sourcePin && 
+                            linkingState.sourcePin.chipId === chipId && linkingState.sourcePin.pinIndex === pinIndex) {
+                            pinCircle.classList.add('selected-source');
+                        }
+                        chipGroup.appendChild(pinCircle);
+                    });
+                }
+                chipsContainer.appendChild(chipGroup);
+            });
+
+            if (designerState.links) {
+                Object.keys(designerState.links).forEach(sourceChipIdStr => {
+                    const sourceChipId = parseInt(sourceChipIdStr);
+                    const sourceChipPinData = designerState.links[sourceChipIdStr];
+                    Object.keys(sourceChipPinData).forEach(sourcePinIndexStr => {
+                        const sourcePinIndex = parseInt(sourcePinIndexStr);
+                        const targets = sourceChipPinData[sourcePinIndexStr];
+                        
+                        targets.forEach(targetInfo => {
+                            const targetChipId = targetInfo.chip_id;
+                            const targetPinIndex = targetInfo.pin_index;
+
+                            const sourceChipName = designerState.chip_names[sourceChipId];
+                            const targetChipName = designerState.chip_names[targetChipId];
+                            if (!sourceChipName || !targetChipName) return; // Skip if chip name missing
+
+                            const sourceLayout = designerState.layouts[sourceChipName];
+                            const targetLayout = designerState.layouts[targetChipName];
+                            
+                            if (!chipPositions[sourceChipId] || !chipPositions[targetChipId] || !sourceLayout || !targetLayout) {
+                                console.warn("Skipping link due to missing chip/layout data:", sourceChipId, targetChipId);
+                                return;
+                            }
+
+                            const sourcePos = getPinPosition(sourceLayout, sourcePinIndex, chipPositions[sourceChipId].x, chipPositions[sourceChipId].y, CHIP_WIDTH, CHIP_TOTAL_HEIGHT);
+                            const targetPos = getPinPosition(targetLayout, targetPinIndex, chipPositions[targetChipId].x, chipPositions[targetChipId].y, CHIP_WIDTH, CHIP_TOTAL_HEIGHT);
+
+                            const linkLine = document.createElementNS(SVG_NS, 'line');
+                            linkLine.setAttribute('x1', sourcePos.x);
+                            linkLine.setAttribute('y1', sourcePos.y);
+                            linkLine.setAttribute('x2', targetPos.x);
+                            linkLine.setAttribute('y2', targetPos.y);
+                            linkLine.setAttribute('stroke', '#a0aec0'); 
+                            linkLine.setAttribute('stroke-width', '2');
+                            linksContainer.appendChild(linkLine);
+                        });
+                    });
+                });
             }
         }
 
-        function updateStatsDisplay() {
-            totalTicksDiv.textContent = tickCount;
-            const now = Date.now();
-            const elapsedSeconds = (now - lastStatsUpdateTime) / 1000;
 
-            if (elapsedSeconds > 0) {
-                const rate = ticksInInterval / elapsedSeconds;
-                tickRateDiv.textContent = `${rate.toFixed(2)} TPS`;
+        // --- Event Handlers ---
+        addChipBtn.addEventListener('click', async () => {
+            const chipKeyToAdd = chipTypeSelect.value; // This is the original key from server
+            if (!chipKeyToAdd) {
+                showMessage("Add Chip", "Please select a chip type.");
+                return;
+            }
+            try {
+                const result = await apiPost('/designer/add_chip', chipKeyToAdd); // Send original key
+                if (result && typeof result.id !== 'undefined') {
+                    const newChipId = result.id;
+                    // Initial placement logic is in renderChipsAndLinks if chipPositions[newChipId] is undefined
+                }
+                if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+                     webSocket.send("tick"); 
+                }
+            } catch (error) { /* showMessage is called in apiPost */ }
+        });
+
+        manualTickBtn.addEventListener('click', () => {
+            if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+                webSocket.send("tick");
             } else {
-                tickRateDiv.textContent = `0.00 TPS`;
+                showMessage("Tick Error", "WebSocket is not connected.");
             }
-            if (shouldSendTick) {
-                ticksInInterval = 0;
-                lastStatsUpdateTime = now;
-            }
-        }
+        });
 
-        function sendTick() {
-            if (socket && socket.readyState === WebSocket.OPEN && shouldSendTick) {
-                socket.send("tick");
+        autoTickCheckbox.addEventListener('change', () => {
+            if (autoTickCheckbox.checked) {
+                const interval = parseInt(autoTickIntervalInput.value);
+                if (isNaN(interval) || interval < 50) {
+                    showMessage("Auto Tick", "Invalid interval. Must be at least 50ms.");
+                    autoTickCheckbox.checked = false;
+                    autoTickIntervalInput.value = 1000; // Reset
+                    return;
+                }
+                if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+                    autoTickIntervalId = setInterval(() => {
+                        if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+                            webSocket.send("tick");
+                        } else {
+                            clearInterval(autoTickIntervalId); 
+                            autoTickCheckbox.checked = false;
+                            autoTickIntervalInput.disabled = false;
+                        }
+                    }, interval);
+                    autoTickIntervalInput.disabled = true;
+                } else {
+                    showMessage("Auto Tick", "WebSocket is not connected.");
+                    autoTickCheckbox.checked = false;
+                }
+            } else {
+                if (autoTickIntervalId) clearInterval(autoTickIntervalId);
+                autoTickIntervalId = null;
+                autoTickIntervalInput.disabled = false;
             }
-        }
+        });
+        autoTickIntervalInput.addEventListener('input', () => { // Changed to 'input' for immediate feedback
+            if (autoTickCheckbox.checked) { 
+                if (autoTickIntervalId) clearInterval(autoTickIntervalId);
+                const interval = parseInt(autoTickIntervalInput.value);
+                 if (!isNaN(interval) && interval >= 50) {
+                    autoTickIntervalId = setInterval(() => { 
+                        if (webSocket && webSocket.readyState === WebSocket.OPEN) webSocket.send("tick");
+                    }, interval);
+                 } else if (autoTickIntervalId) { // If invalid, stop current timer but don't show message on every keystroke
+                     clearInterval(autoTickIntervalId);
+                 }
+            }
+        });
 
-        connectButton.addEventListener('click', () => {
-            if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
-                updateStatus('Already connected or connecting.', true);
+        startLinkBtn.addEventListener('click', () => {
+            linkingState.active = !linkingState.active;
+            if (linkingState.active) {
+                startLinkBtn.textContent = "Cancel Link";
+                startLinkBtn.classList.replace('bg-blue-600', 'bg-red-600');
+                startLinkBtn.classList.replace('hover:bg-blue-700', 'hover:bg-red-700');
+                svgCanvas.style.cursor = 'crosshair';
+            } else {
+                startLinkBtn.textContent = "Start Link";
+                startLinkBtn.classList.replace('bg-red-600', 'bg-blue-600');
+                startLinkBtn.classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
+                svgCanvas.style.cursor = 'default';
+                if (linkingState.sourcePin && linkingState.sourcePin.element) {
+                    linkingState.sourcePin.element.classList.remove('selected-source');
+                }
+                linkingState.sourcePin = null;
+            }
+        });
+        
+        clearSelectionBtn.addEventListener('click', () => {
+            Object.values(chipPositions).forEach(cp => cp.selected = false);
+            if (linkingState.active && linkingState.sourcePin && linkingState.sourcePin.element) {
+                linkingState.sourcePin.element.classList.remove('selected-source');
+            }
+            // Don't reset sourcePin if linking is still active, allow user to pick a new source
+            // linkingState.sourcePin = null; 
+            renderChipsAndLinks(); 
+        });
+
+        svgCanvas.addEventListener('mousedown', (e) => {
+            const target = e.target;
+            const chipGElement = target.closest('g[data-chip-id]');
+            const chipIdData = chipGElement?.dataset.chipId || target.dataset.chipId;
+            
+            hideContextMenu(); 
+
+            if (e.button === 2) { 
+                if (chipIdData) {
+                    contextMenuChipId = parseInt(chipIdData);
+                    showContextMenu(e.clientX, e.clientY);
+                    e.preventDefault();
+                }
                 return;
             }
 
-            updateStatus('Connecting...');
-            socket = new WebSocket(WS_URL);
-            shouldSendTick = true;
+            if (target.classList.contains('pin')) {
+                if (!linkingState.active) return;
+                const chipId = parseInt(target.dataset.chipId);
+                const pinIndex = parseInt(target.dataset.pinIndex);
 
-            socket.onopen = () => {
-                updateStatus('Connected to WebSocket Server!');
-                connectButton.disabled = true;
-                disconnectButton.disabled = false;
-                tickCount = 0;
-                ticksInInterval = 0;
-                lastStatsUpdateTime = Date.now();
-                totalTicksDiv.textContent = "0";
-                tickRateDiv.textContent = "0.00 TPS";
-                jsonResponseDiv.textContent = JSON.stringify({ message: "Connection established. Waiting for first tick response..." }, null, 2);
-                sendTick();
-                if (intervalId) clearInterval(intervalId);
-                intervalId = setInterval(updateStatsDisplay, 1000);
-            };
-
-            socket.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    jsonResponseDiv.textContent = JSON.stringify(data, null, 2);
-                    tickCount++;
-                    ticksInInterval++;
-                    sendTick();
-                } catch (e) {
-                    jsonResponseDiv.textContent = `Error parsing JSON: ${e.message}\nRaw: ${event.data}`;
-                    console.error("Error parsing JSON:", e, "Raw data:", event.data);
-                }
-            };
-
-            socket.onerror = (error) => {
-                console.error('WebSocket Error:', error);
-                updateStatus(`WebSocket Error. Check console. (Is server running at ${WS_URL}?)`, true);
-                connectButton.disabled = false;
-                disconnectButton.disabled = true;
-                shouldSendTick = false;
-                if (intervalId) clearInterval(intervalId);
-            };
-
-            socket.onclose = (event) => {
-                updateStatus(`Disconnected. Code: ${event.code}, Reason: ${event.reason || 'N/A'}`, !event.wasClean);
-                connectButton.disabled = false;
-                disconnectButton.disabled = true;
-                socket = null;
-                shouldSendTick = false;
-                if (intervalId) clearInterval(intervalId);
-                updateStatsDisplay();
-                tickRateDiv.textContent = `0.00 TPS`;
-            };
-        });
-
-        disconnectButton.addEventListener('click', () => {
-            if (socket) {
-                shouldSendTick = false;
-                socket.close(1000, "Client initiated disconnect");
-            }
-            if (intervalId) clearInterval(intervalId);
-        });
-
-        // --- Add Chip Functions ---
-
-        // Show/hide custom chip name input based on selection
-        chipTypeSelect.addEventListener('change', () => {
-            if (chipTypeSelect.value === 'CustomNamed') {
-                customChipNameGroup.classList.remove('hidden');
-            } else {
-                customChipNameGroup.classList.add('hidden');
-                customChipNameInput.value = ''; // Clear input if not CustomNamed
-            }
-        });
-
-        function updateAddChipStatus(message, isError = false) {
-            addChipStatusDiv.textContent = message;
-            addChipStatusDiv.className = `mt-4 text-center font-medium p-3 rounded-lg ${isError ? 'bg-red-200 text-red-700' : 'bg-green-200 text-green-700'}`;
-            addChipStatusDiv.classList.remove('hidden');
-        }
-
-        addChipButton.addEventListener('click', async () => {
-            const selectedType = chipTypeSelect.value;
-            const customName = customChipNameInput.value.trim();
-            let payload = {};
-
-            if (selectedType === 'CustomNamed') {
-                if (!customName) {
-                    updateAddChipStatus('Custom chip name cannot be empty when "Custom (Named)" is selected.', true);
-                    return;
-                }
-                payload = customName;
-            } else {
-                payload = selectedType;
-            }
-
-            updateAddChipStatus('Sending chip data...', false);
-            addChipResponseDiv.textContent = JSON.stringify({ message: "Processing..." }, null, 2);
-
-            try {
-                const response = await fetch(ADD_CHIP_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload),
-                });
-
-                const responseData = await response.json().catch(() => null); // Try to parse JSON, otherwise null
-
-                if (response.ok) {
-                    updateAddChipStatus('Chip added successfully!', false);
-                    if (responseData) {
-                        addChipResponseDiv.textContent = JSON.stringify(responseData, null, 2);
-                    } else {
-                         addChipResponseDiv.textContent = JSON.stringify({ message: "Success, but no JSON content in response body." }, null, 2);
-                    }
+                if (!linkingState.sourcePin) {
+                    linkingState.sourcePin = { chipId, pinIndex, element: target };
+                    target.classList.add('selected-source');
                 } else {
-                    let errorMsg = `Error adding chip. Status: ${response.status}`;
-                    if (responseData && responseData.error) { // Assuming server sends { "error": "message" }
-                        errorMsg += ` - ${responseData.error}`;
-                    } else if (responseData) {
-                        errorMsg += ` - ${JSON.stringify(responseData)}`;
-                    } else {
-                        const textResponse = await response.text();
-                        errorMsg += ` - ${textResponse || response.statusText}`;
+                    if (linkingState.sourcePin.chipId === chipId && linkingState.sourcePin.pinIndex === pinIndex) {
+                        showMessage("Linking Error", "Cannot link a pin to itself.");
+                        // Deselect if clicking same pin again
+                        target.classList.remove('selected-source');
+                        linkingState.sourcePin = null;
+                        return;
                     }
-                    updateAddChipStatus(errorMsg, true);
-                    addChipResponseDiv.textContent = JSON.stringify({ error: errorMsg, details: responseData }, null, 2);
-                    console.error('Add chip error:', responseData || response.statusText);
+
+                    const link = {
+                        source: { chip_id: linkingState.sourcePin.chipId, pin_index: linkingState.sourcePin.pinIndex },
+                        target: { chip_id: chipId, pin_index: pinIndex }
+                    };
+                    apiPost('/designer/add_link', link)
+                        .then(() => {
+                            if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+                                webSocket.send("tick"); 
+                            }
+                        })
+                        .catch(err => console.error("Failed to add link:", err)); // showMessage is in apiPost
+                    
+                    if (linkingState.sourcePin.element) linkingState.sourcePin.element.classList.remove('selected-source');
+                    linkingState.sourcePin = null;
+                    // Keep linking active for multiple links:
+                    // linkingState.active = false; 
+                    // startLinkBtn.click(); // Toggle button state and cursor
                 }
-            } catch (error) {
-                console.error('Fetch error:', error);
-                updateAddChipStatus(`Network or client-side error: ${error.message}`, true);
-                addChipResponseDiv.textContent = JSON.stringify({ error: `Network or client-side error: ${error.message}` }, null, 2);
+            } else if (target.classList.contains('chip-rect') || chipGElement) {
+                const chipIdToDrag = parseInt(chipIdData);
+
+                if (!e.ctrlKey && !e.metaKey && !chipPositions[chipIdToDrag].selected) {
+                    Object.values(chipPositions).forEach(cp => cp.selected = false);
+                }
+                chipPositions[chipIdToDrag].selected = e.ctrlKey || e.metaKey ? !chipPositions[chipIdToDrag].selected : true;
+                
+                draggingState.active = true;
+                // Store initial mouse offset relative to each selected chip's top-left
+                draggingState.selectedChipsStartPos = {};
+                const CTM = svgCanvas.getScreenCTM().inverse();
+                const globalMouseX = e.clientX * CTM.a + CTM.e;
+                const globalMouseY = e.clientY * CTM.d + CTM.f;
+
+                Object.keys(chipPositions).forEach(idStr => {
+                    const id = parseInt(idStr);
+                    if (chipPositions[id].selected) {
+                        draggingState.selectedChipsStartPos[id] = {
+                            startX: chipPositions[id].x,
+                            startY: chipPositions[id].y,
+                            offsetX: (globalMouseX / panZoomState.scale) - chipPositions[id].x,
+                            offsetY: (globalMouseY / panZoomState.scale) - chipPositions[id].y,
+                        };
+                    }
+                });
+                draggingState.dragged = false; 
+                renderChipsAndLinks(); 
+            } else if (target.id === 'designer-canvas') { 
+                panZoomState.panning = true;
+                panZoomState.lastMouseX = e.clientX;
+                panZoomState.lastMouseY = e.clientY;
+                svgCanvas.style.cursor = 'grabbing';
+
+                if (!chipIdData) { // If click was on background, not starting drag of a chip
+                    Object.values(chipPositions).forEach(cp => cp.selected = false);
+                    if (linkingState.sourcePin && linkingState.sourcePin.element) { // Deselect source pin if linking
+                        linkingState.sourcePin.element.classList.remove('selected-source');
+                        linkingState.sourcePin = null;
+                    }
+                    renderChipsAndLinks();
+                }
+            }
+        });
+        
+        svgCanvas.addEventListener('click', (e) => { 
+            const target = e.target;
+            if (draggingState.dragged) { // If a drag just ended, reset flag and don't process as click
+                draggingState.dragged = false;
+                return;
+            }
+
+            if (target.classList.contains('input-chip-body')) {
+                const chipId = parseInt(target.dataset.chipId);
+                const chipKeyFromServer = designerState.chip_names[chipId]; 
+                
+                if (!chipKeyFromServer) return; // Should not happen
+                const layout = designerState.layouts[chipKeyFromServer]; 
+                const pinStatesForChip = designerState.chip_pin_states[chipId];
+
+                if (chipKeyFromServer.toLowerCase() === 'input' && layout && layout.output_pins.length > 0 && pinStatesForChip) {
+                    const outputPinIndex = layout.output_pins[0]; 
+                    const currentValue = pinStatesForChip[outputPinIndex];
+                    const newValue = (typeof currentValue !== 'undefined' && currentValue === 1) ? 0 : 1;
+                    
+                    apiPost('/designer/set_input_value', { id: chipId, value: newValue })
+                        .then(() => {
+                             if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+                                webSocket.send("tick");
+                            }
+                        })
+                        .catch(err => console.error("Failed to set input value:", err)); // showMessage in apiPost
+                }
             }
         });
 
-        // Initial UI state
-        updateStatus('Not Connected');
-        addChipResponseDiv.textContent = JSON.stringify({ message: "Waiting for add chip operation..." }, null, 2);
-        // Ensure custom name input is hidden initially if not 'CustomNamed'
-        if (chipTypeSelect.value !== 'CustomNamed') {
-            customChipNameGroup.classList.add('hidden');
+
+        svgCanvas.addEventListener('mousemove', (e) => {
+            if (draggingState.active && draggingState.selectedChipsStartPos) {
+                const CTM = svgCanvas.getScreenCTM().inverse();
+                const globalMouseX = e.clientX * CTM.a + CTM.e;
+                const globalMouseY = e.clientY * CTM.d + CTM.f;
+
+                Object.keys(draggingState.selectedChipsStartPos).forEach(idStr => {
+                    const id = parseInt(idStr);
+                    const chipStartInfo = draggingState.selectedChipsStartPos[id];
+                    if (chipPositions[id] && chipPositions[id].selected) { // Ensure chip still exists and is selected
+                        chipPositions[id].x = (globalMouseX / panZoomState.scale) - chipStartInfo.offsetX;
+                        chipPositions[id].y = (globalMouseY / panZoomState.scale) - chipStartInfo.offsetY;
+                    }
+                });
+                
+                draggingState.dragged = true;
+                renderChipsAndLinks();
+            } else if (panZoomState.panning) {
+                const dx = e.clientX - panZoomState.lastMouseX;
+                const dy = e.clientY - panZoomState.lastMouseY;
+                panZoomState.x += dx;
+                panZoomState.y += dy;
+                panZoomState.lastMouseX = e.clientX;
+                panZoomState.lastMouseY = e.clientY;
+                renderChipsAndLinks(); 
+            }
+        });
+
+        svgCanvas.addEventListener('mouseup', () => {
+            if (draggingState.active) {
+                // draggingState.dragged is checked in 'click' handler to differentiate drag from click
+                draggingState.active = false;
+                draggingState.selectedChipsStartPos = null; 
+            }
+            if (panZoomState.panning) {
+                panZoomState.panning = false;
+                svgCanvas.style.cursor = linkingState.active ? 'crosshair' : 'default';
+            }
+        });
+        
+        svgCanvas.addEventListener('mouseleave', () => { 
+            if (draggingState.active) {
+                draggingState.active = false;
+                draggingState.selectedChipsStartPos = null;
+                // Note: if a drag was in progress, it will stop. State is preserved.
+            }
+            if (panZoomState.panning) {
+                panZoomState.panning = false;
+                svgCanvas.style.cursor = linkingState.active ? 'crosshair' : 'default';
+            }
+        });
+
+        svgCanvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const scaleAmount = 1.1;
+            const CTM = svgCanvas.getScreenCTM(); // Not inverted for this calculation
+            const mouseClientX = e.clientX;
+            const mouseClientY = e.clientY;
+
+            // Convert mouse client coordinates to SVG coordinates
+            let pt = svgCanvas.createSVGPoint();
+            pt.x = mouseClientX;
+            pt.y = mouseClientY;
+            let svgMouseBeforeZoom = pt.matrixTransform(CTM.inverse());
+
+            const currentScale = panZoomState.scale;
+            let newScale;
+
+            if (e.deltaY < 0) { 
+                newScale = currentScale * scaleAmount;
+            } else { 
+                newScale = currentScale / scaleAmount;
+            }
+            newScale = Math.max(0.1, Math.min(newScale, 10)); // Increased max zoom
+
+            panZoomState.scale = newScale;
+            
+            // Update transform to keep mouse point stationary
+            // After scaling, the svgMouseBeforeZoom point will be at a new client coordinate.
+            // We want to translate the view so that svgMouseBeforeZoom is back under the mouse pointer.
+            pt = svgCanvas.createSVGPoint();
+            pt.x = svgMouseBeforeZoom.x;
+            pt.y = svgMouseBeforeZoom.y;
+            let svgMouseAfterZoomClientCoords = pt.matrixTransform(chipsContainer.getCTM()); // Use one of the transformed groups
+
+            panZoomState.x += mouseClientX - svgMouseAfterZoomClientCoords.x;
+            panZoomState.y += mouseClientY - svgMouseAfterZoomClientCoords.y;
+            
+            renderChipsAndLinks();
+        });
+        
+        // Context Menu Handlers
+        function showContextMenu(x, y) {
+            contextMenu.style.left = `${x}px`;
+            contextMenu.style.top = `${y}px`;
+            contextMenu.classList.remove('hidden');
+        }
+        function hideContextMenu() {
+            contextMenu.classList.add('hidden');
+            contextMenuChipId = null;
+        }
+        deleteChipBtn.addEventListener('click', () => {
+            if (contextMenuChipId !== null) {
+                // Assuming a fictional endpoint for now as it's not in the Rust code provided.
+                // You'll need to implement this on your backend.
+                showMessage("Chip Action", `Delete for chip ${contextMenuChipId} would be sent here. Endpoint not implemented.`);
+                // Example:
+                // apiPost('/designer/remove_chip', { id: contextMenuChipId }) 
+                //     .then(() => {
+                //         delete chipPositions[contextMenuChipId]; 
+                //         if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+                //             webSocket.send("tick"); 
+                //         }
+                //         showMessage("Chip Action", `Chip ${contextMenuChipId} remove request sent.`);
+                //     })
+                //     .catch(err => showMessage("Chip Action Error", `Could not remove chip ${contextMenuChipId}. ${err.message}`));
+            }
+            hideContextMenu();
+        });
+        document.addEventListener('click', (e) => { 
+            if (!contextMenu.contains(e.target) && !e.target.closest('g[data-chip-id]')) { // also don't hide if clicking a chip (mousedown handles it)
+                hideContextMenu();
+            }
+        });
+
+
+        // Message Modal
+        function showMessage(title, content) {
+            messageModalTitle.textContent = title;
+            messageModalContent.textContent = content;
+            messageModal.classList.remove('hidden');
+        }
+        messageModalCloseBtn.addEventListener('click', () => {
+            messageModal.classList.add('hidden');
+        });
+
+
+        // --- Initialization ---
+        function init() {
+            connectWebSocket();
+            svgCanvas.style.cursor = 'default';
+             // Add resize listener for responsive chip placement in renderChipsAndLinks
+            window.addEventListener('resize', () => {
+                if(designerState) renderChipsAndLinks(); // Re-render on resize if state exists
+            });
         }
 
+        init();
     </script>
 </body>
 </html>

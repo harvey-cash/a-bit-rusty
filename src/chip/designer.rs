@@ -1,8 +1,14 @@
 use std::collections::HashMap;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::{chip::{ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip, Tickable}, chip_database::{ChipDatabase, ChipValue}, circuit::Circuit, types::{ChipAndPin, PinLayout}};
+
+#[derive(Serialize, Deserialize)]
+pub struct ChipPinLink { 
+    pub source: ChipAndPin, 
+    pub target: ChipAndPin 
+}
 
 #[derive(Serialize)]
 pub struct DesignerState {
@@ -43,14 +49,14 @@ impl Designer {
     }
 
     pub fn remove_chip(&mut self, id: usize) -> Result<(), String> {
-        Err("Not implemented".to_string())
+        todo!()
     }
 
-    pub fn add_link(&mut self, source: ChipAndPin, target: ChipAndPin) -> Result<(), String> {
-        if source == target {
+    pub fn add_link(&mut self, link: ChipPinLink) -> Result<(), String> {
+        if link.source == link.target {
             return Err("Can not link a pin to itself!".to_string());
         }
-        self.circuit.create_link(source, target);
+        self.circuit.create_link(link.source, link.target);
         Ok(())
     }
 
@@ -80,35 +86,35 @@ impl Designer {
     }
 
     pub fn get_chips_from_db(&self) -> Result<Vec<String>, String> {
-        Ok(vec![])
+        todo!()
     }
 
     pub fn save_chip_to_db(&mut self, name: String) -> Result<String, String> {
-        Ok(name)
+        todo!()
     }
 
     pub fn delete_chip_from_db(&mut self, key: String) -> Result<(), String> {
-        Ok(())
+        todo!()
     }
 
     pub fn get_circuits_from_db(&self) -> Result<Vec<String>, String> {
-        Ok(vec![])
+        todo!()
     }
 
     pub fn save_circuit_to_db(&mut self, name: String) -> Result<(), String> {
-        Ok(())
+        todo!()
     }
 
     pub fn delete_circuit_from_db(&mut self, name: String) -> Result<(), String> {
-        Ok(())
+        todo!()
     }
 
     pub fn load_circuit_from_db(&mut self, name: String) -> Result<(), String> {
-        Ok(())
+        todo!()
     }
 
     pub fn new_circuit(&mut self) -> Result<(), String> {
-        Ok(())
+        todo!()
     }
     
     fn get_pin_states_map(&self) -> HashMap<usize, HashMap<usize, u8>> {
