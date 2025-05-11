@@ -281,12 +281,9 @@
                     updateAddChipStatus('Custom chip name cannot be empty when "Custom (Named)" is selected.', true);
                     return;
                 }
-                payload = { Custom: customName };
+                payload = customName;
             } else {
-                // For "Ground", "Supply", "Input", "Output", "Custom (Basic)"
-                // The Rust enum `ChipType` has a variant `Custom`. So if "Custom (Basic)" is selected,
-                // the payload should be {"Basic": "Custom"}
-                payload = { Basic: selectedType };
+                payload = selectedType;
             }
 
             updateAddChipStatus('Sending chip data...', false);

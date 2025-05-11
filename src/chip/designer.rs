@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 
-use super::{chip::{Chip, ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip, Tickable}, chip_database::{ChipDatabase, ChipValue}, circuit::Circuit, types::{ChipAndPin, PinLayout}};
+use super::{chip::{ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip, Tickable}, chip_database::{ChipDatabase, ChipValue}, circuit::Circuit, types::{ChipAndPin, PinLayout}};
 
 #[derive(Serialize)]
 pub struct DesignerState {
@@ -69,14 +69,11 @@ impl Designer {
     }
 
     pub fn get_state(&self) -> DesignerState {
-        let mut layouts: HashMap<String, PinLayout> = HashMap::new();
-        layouts.insert("Ground".to_string(), GroundChip::new().get_layout());
-
         DesignerState { 
             tick_counter: self.tick_counter,
             chip_pin_states: self.get_pin_states_map(),
             links: self.circuit.get_description().forward_links,
-            layouts: layouts
+            layouts: self.database.get_layouts()
         }
     }
 

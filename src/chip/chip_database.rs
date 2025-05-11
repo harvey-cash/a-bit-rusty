@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use super::{
     chip::{ChipType, NAndChip},
-    chip_description::ChipDescription, circuit_description::CircuitDescription,
+    chip_description::{self, ChipDescription}, circuit_description::CircuitDescription, types::PinLayout,
 };
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -9,12 +9,20 @@ pub enum ChipValue {
     Basic(ChipType),
     Custom(ChipDescription),
 }
+impl ChipValue {
+    fn get_layout(&self) -> PinLayout {
+        match self {
+            Self::Basic(chip_type) => chip_type.get_layout(),
+            Self::Custom(chip_description) => chip_description.get_layout(),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct ChipDatabase {
     fundamental_chips: HashSet<String>,
     saved_chips: HashMap<String, ChipValue>,
-    saved_circuits: HashMap<String, CircuitDescription>
+    saved_circuits: HashMap<String, CircuitDescription>,
 }
 
 impl ChipDatabase {
@@ -46,6 +54,12 @@ impl ChipDatabase {
     
     pub fn get_circuit_list(&self) -> Vec<String> {
         self.saved_circuits.keys().map(|k| k.clone()).collect()
+    }
+    
+    pub fn get_layouts(&self) -> HashMap<String, PinLayout> {
+        self.saved_chips.iter()
+            .map(|(chip_key, chip_value)| (chip_key.clone(), chip_value.get_layout()))
+            .collect()
     }
 
     pub fn save_chip(&mut self, name: &str, chip: ChipDescription, circuit: CircuitDescription) -> bool {

@@ -13,6 +13,20 @@ pub enum ChipType {
     Output,
     Custom,
 }
+impl ChipType {
+    pub fn get_layout(&self) -> PinLayout {
+        match self {
+            Self::Ground => PinLayout::new(node_type_map!{0 => NodeType::Output}),
+            Self::Supply => PinLayout::new(node_type_map!{0 => NodeType::Output}),
+            Self::Input => PinLayout::new(node_type_map!{0 => NodeType::Output}),
+            Self::Output => PinLayout::new(node_type_map!{
+                0 => NodeType::Input,
+                1 => NodeType::Output
+            }),
+            Self::Custom => panic!("Layout for CustomChips only accessible from a ChipDescription!"),
+        }
+    }
+}
 impl Display for ChipType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -31,7 +45,7 @@ pub trait Tickable: Send + Sync {
 
 pub trait Chip: Tickable {
     fn get_type(&self) -> ChipType;
-    fn get_layout(&self) -> PinLayout;
+    fn get_layout(&self) -> PinLayout { self.get_type().get_layout() }
     fn get_num_inputs(&self) -> usize { self.get_layout().input_pins.len() }
     fn get_num_outputs(&self) -> usize { self.get_layout().output_pins.len() }
     fn write_pin(&mut self, index: usize, value: u8);
@@ -44,9 +58,6 @@ impl GroundChip {
 }
 impl Chip for GroundChip {
     fn get_type(&self) -> ChipType { ChipType::Ground }
-    fn get_layout(&self) -> PinLayout { 
-        PinLayout::new(node_type_map!{0 => NodeType::Output}) 
-    }
     fn write_pin(&mut self, _index: usize, _value: u8) {}
     fn read_pin(&self, _index: usize) -> u8 { 0 }
 }
@@ -62,9 +73,6 @@ impl SupplyChip {
 }
 impl Chip for SupplyChip {
     fn get_type(&self) -> ChipType { ChipType::Supply }
-    fn get_layout(&self) -> PinLayout {
-        PinLayout::new(node_type_map!{0 => NodeType::Output}) 
-    }
     fn write_pin(&mut self, _index: usize, value: u8) {
         self.value = value;
     }
@@ -80,9 +88,6 @@ impl InputChip {
 }
 impl Chip for InputChip {
     fn get_type(&self) -> ChipType { ChipType::Input }
-    fn get_layout(&self) -> PinLayout { 
-        PinLayout::new(node_type_map!{0 => NodeType::Output}) 
-    }
     fn write_pin(&mut self, _index: usize, value: u8) { self.value = value; }
     fn read_pin(&self, _index: usize) -> u8 { self.value }
 }
@@ -97,12 +102,6 @@ impl OutputChip {
 }
 impl Chip for OutputChip {
     fn get_type(&self) -> ChipType { ChipType::Output }
-    fn get_layout(&self) -> PinLayout { 
-        PinLayout::new(node_type_map!{
-            0 => NodeType::Input,
-            1 => NodeType::Output
-        })
-    }
     fn write_pin(&mut self, _index: usize, value: u8) {
         self.input_value = value;
     }

@@ -23,6 +23,17 @@ fn given_new_then_chip_list_contains_fundamentals() {
 }
 
 #[test]
+fn given_new_then_layouts_contain_fundamentals() {
+    let database = ChipDatabase::new();
+    let layouts = database.get_layouts();
+    assert!(layouts.contains_key(&ChipType::Ground.to_string()));
+    assert!(layouts.contains_key(&ChipType::Supply.to_string()));
+    assert!(layouts.contains_key(&ChipType::Input.to_string()));
+    assert!(layouts.contains_key(&ChipType::Output.to_string()));
+    assert!(layouts.contains_key(&String::from("NAnd")));
+}
+
+#[test]
 fn given_new_when_delete_basic_chip_then_err()
 {
     let mut database = ChipDatabase::new();
