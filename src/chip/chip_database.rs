@@ -79,8 +79,8 @@ impl ChipDatabase {
         return true;
     }
 
-    pub fn load_chip(&self, key: String) -> Option<&ChipValue> {
-        self.saved_chips.get(&key)
+    pub fn load_chip(&self, key: &str) -> Option<&ChipValue> {
+        self.saved_chips.get(key)
     }
     
     pub fn load_circuit(&self, name: &str) -> Option<&CircuitDescription> {

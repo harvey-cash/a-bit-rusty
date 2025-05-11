@@ -28,8 +28,8 @@ impl Designer {
         }
     }
 
-    pub fn add_chip(&mut self, key: String) -> Result<usize, String> {        
-        let chip = self.database.load_chip(key.clone());
+    pub fn add_chip(&mut self, key: &str) -> Result<usize, String> {        
+        let chip = self.database.load_chip(key);
         
         match chip {
             None => Err(format!("No chip with key {:?} in database!", key)),

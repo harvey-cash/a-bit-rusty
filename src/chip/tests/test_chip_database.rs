@@ -51,7 +51,7 @@ fn given_new_then_circuit_list_is_empty() {
 #[test]
 fn given_nothing_saved_when_load_chip_then_is_none() {
     let database = ChipDatabase::new();
-    let loaded = database.load_chip(String::from("Not"));
+    let loaded = database.load_chip("Not");
     assert_eq!(loaded, None);
 }
 
@@ -197,7 +197,7 @@ fn given_saved_not_when_loaded_then_behaves_as_not() {
     let mut database = ChipDatabase::new();
     database.save_chip("Not", chip_description, circuit_description.clone());
 
-    let loaded = database.load_chip(String::from("Not"));
+    let loaded = database.load_chip("Not");
     let chip_description = match loaded {
         None => panic!("Should not be None!"),
         Some(ChipValue::Basic(_)) => panic!("Expected a custom chip"),

@@ -105,7 +105,7 @@ async fn add_chip_handler(
     Json(key): Json<String>,
 ) -> impl IntoResponse {
     let mut app_state = state.lock().unwrap();
-    app_state.designer.add_chip(key)
+    app_state.designer.add_chip(&key)
         .map(|id| (StatusCode::OK, Json(IdResponse { id: id })))
         .map_err(|message| (StatusCode::INTERNAL_SERVER_ERROR, Json(message)))
 }
