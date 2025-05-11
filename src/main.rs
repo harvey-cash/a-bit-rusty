@@ -1,4 +1,4 @@
-use a_bit_rusty::chip::{chip_database::ChipKey, designer::Designer};
+use a_bit_rusty::chip::designer::Designer;
 use axum::{
     body::Body, extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
@@ -102,7 +102,7 @@ struct IdResponse { id: usize }
 
 async fn add_chip_handler(
     State(state): State<SharedState>,
-    Json(key): Json<ChipKey>,
+    Json(key): Json<String>,
 ) -> impl IntoResponse {
     let mut app_state = state.lock().unwrap();
     app_state.designer.add_chip(key)

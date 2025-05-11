@@ -6,7 +6,7 @@ use crate::{
     chip::{
         chip::{
             ChipType, CustomChip, GroundChip, InputChip, NAndChip, OutputChip, SupplyChip, Tickable,
-        }, chip_description::ChipDescription, circuit::Circuit, chip_database::{ChipKey, ChipValue, ChipDatabase}, circuit_description::CircuitDescription, compiler::ChipCompiler, types::*
+        }, chip_description::ChipDescription, circuit::Circuit, chip_database::{ChipValue, ChipDatabase}, circuit_description::CircuitDescription, compiler::ChipCompiler, types::*
     },
     chip_pin,
 };
@@ -15,18 +15,18 @@ use crate::{
 fn given_new_then_chip_list_contains_fundamentals() {
     let database = ChipDatabase::new();
     let chips = database.get_chip_list();
-    assert!(chips.contains(&ChipKey::Basic(ChipType::Ground)));
-    assert!(chips.contains(&ChipKey::Basic(ChipType::Supply)));
-    assert!(chips.contains(&ChipKey::Basic(ChipType::Input)));
-    assert!(chips.contains(&ChipKey::Basic(ChipType::Output)));
-    assert!(chips.contains(&ChipKey::Custom(String::from("NAnd"))));
+    assert!(chips.contains(&ChipType::Ground.to_string()));
+    assert!(chips.contains(&ChipType::Supply.to_string()));
+    assert!(chips.contains(&ChipType::Input.to_string()));
+    assert!(chips.contains(&ChipType::Output.to_string()));
+    assert!(chips.contains(&String::from("NAnd")));
 }
 
 #[test]
 fn given_new_when_delete_basic_chip_then_err()
 {
     let mut database = ChipDatabase::new();
-    let success = database.delete_chip(&ChipKey::Basic(ChipType::Ground));
+    let success = database.delete_chip(&ChipType::Ground.to_string());
     assert_eq!(success, false);
 }
 
@@ -40,7 +40,7 @@ fn given_new_then_circuit_list_is_empty() {
 #[test]
 fn given_nothing_saved_when_load_chip_then_is_none() {
     let database = ChipDatabase::new();
-    let loaded = database.load_chip(ChipKey::Custom(String::from("Not")));
+    let loaded = database.load_chip(String::from("Not"));
     assert_eq!(loaded, None);
 }
 
@@ -76,7 +76,7 @@ fn given_saved_chip_then_chip_list_contains_it() {
     database.save_chip("Not", chip_description, circuit_description);
 
     let chips = database.get_chip_list();
-    assert!(chips.contains(&ChipKey::Custom(String::from("Not"))));
+    assert!(chips.contains(&String::from("Not")));
 }
 
 #[test]
@@ -86,7 +86,7 @@ fn given_saved_chip_when_deleted_then_success() {
     let mut database = ChipDatabase::new();
     database.save_chip("Not", chip_description, circuit_description);
 
-    let success = database.delete_chip(&ChipKey::Custom(String::from("Not")));
+    let success = database.delete_chip(&String::from("Not"));
     assert!(success);
 }
 
@@ -97,7 +97,7 @@ fn given_saved_chip_when_deleted_then_chip_list_omits_it() {
     let mut database = ChipDatabase::new();
     database.save_chip("Not", chip_description, circuit_description);
 
-    let key = ChipKey::Custom(String::from("Not"));
+    let key = String::from("Not");
     database.delete_chip(&key);
 
     let chips = database.get_chip_list();
@@ -186,7 +186,7 @@ fn given_saved_not_when_loaded_then_behaves_as_not() {
     let mut database = ChipDatabase::new();
     database.save_chip("Not", chip_description, circuit_description.clone());
 
-    let loaded = database.load_chip(ChipKey::Custom(String::from("Not")));
+    let loaded = database.load_chip(String::from("Not"));
     let chip_description = match loaded {
         None => panic!("Should not be None!"),
         Some(ChipValue::Basic(_)) => panic!("Expected a custom chip"),

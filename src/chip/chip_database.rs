@@ -1,15 +1,8 @@
 use std::collections::{HashMap, HashSet};
-use serde::{Deserialize, Serialize};
 use super::{
     chip::{ChipType, NAndChip},
     chip_description::ChipDescription, circuit_description::CircuitDescription,
 };
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Debug, Hash)]
-pub enum ChipKey {
-    Basic(ChipType),
-    Custom(String),
-}
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ChipValue {
@@ -19,24 +12,25 @@ pub enum ChipValue {
 
 #[derive(Debug)]
 pub struct ChipDatabase {
-    fundamental_chips: HashSet<ChipKey>,
-    saved_chips: HashMap<ChipKey, ChipValue>,
+    fundamental_chips: HashSet<String>,
+    saved_chips: HashMap<String, ChipValue>,
     saved_circuits: HashMap<String, CircuitDescription>
 }
 
 impl ChipDatabase {
     pub fn new() -> Self {
-        let mut saved_chips = HashMap::new();
+        let mut saved_chips: HashMap<String, ChipValue> = HashMap::new();
 
         let basic_types = [ChipType::Ground, ChipType::Supply, ChipType::Input, ChipType::Output];
+
         basic_types.iter().for_each(|chip_type| { 
-            saved_chips.insert(ChipKey::Basic(*chip_type), ChipValue::Basic(*chip_type)); 
+            saved_chips.insert(chip_type.to_string(), ChipValue::Basic(*chip_type)); 
         });
 
-        let nand_key = ChipKey::Custom(String::from("NAnd"));
+        let nand_key = String::from("NAnd");
         saved_chips.insert(nand_key.clone(), ChipValue::Custom(NAndChip::new().get_description()));
 
-        let mut fundamental_chips: HashSet<ChipKey> = basic_types.iter().map(|chip_type| ChipKey::Basic(*chip_type)).collect();
+        let mut fundamental_chips: HashSet<String> = basic_types.iter().map(|chip_type| chip_type.to_string()).collect();
         fundamental_chips.insert(nand_key);
 
         Self {
@@ -46,7 +40,7 @@ impl ChipDatabase {
         }
     }
 
-    pub fn get_chip_list(&self) -> Vec<ChipKey> {
+    pub fn get_chip_list(&self) -> Vec<String> {
         self.saved_chips.keys().map(|k| k.clone()).collect()
     }
     
@@ -55,7 +49,7 @@ impl ChipDatabase {
     }
 
     pub fn save_chip(&mut self, name: &str, chip: ChipDescription, circuit: CircuitDescription) -> bool {
-        self.saved_chips.insert(ChipKey::Custom(name.to_string()), ChipValue::Custom(chip));
+        self.saved_chips.insert(name.to_string(), ChipValue::Custom(chip));
         self.saved_circuits.insert(name.to_string(), circuit);
         return true;
     }
@@ -71,7 +65,7 @@ impl ChipDatabase {
         return true;
     }
 
-    pub fn load_chip(&self, key: ChipKey) -> Option<&ChipValue> {
+    pub fn load_chip(&self, key: String) -> Option<&ChipValue> {
         self.saved_chips.get(&key)
     }
     
@@ -79,7 +73,7 @@ impl ChipDatabase {
         self.saved_circuits.get(name)
     }
     
-    pub fn delete_chip(&mut self, key: &ChipKey) -> bool {
+    pub fn delete_chip(&mut self, key: &String) -> bool {
         if self.fundamental_chips.contains(key) {
             return false;
         }

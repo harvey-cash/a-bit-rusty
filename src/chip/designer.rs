@@ -2,13 +2,14 @@ use std::collections::HashMap;
 
 use serde::Serialize;
 
-use super::{chip::{ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip, Tickable}, chip_database::{ChipDatabase, ChipKey, ChipValue}, circuit::{self, Circuit}, types::{ChipAndPin, PinLayout}};
+use super::{chip::{Chip, ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip, Tickable}, chip_database::{ChipDatabase, ChipValue}, circuit::Circuit, types::{ChipAndPin, PinLayout}};
 
 #[derive(Serialize)]
 pub struct DesignerState {
     pub tick_counter: u64,
     pub chip_pin_states: HashMap<usize, HashMap<usize, u8>>,
     pub links: HashMap<usize, HashMap<usize, Vec<ChipAndPin>>>,
+    pub layouts: HashMap<String, PinLayout>,
 }
 
 pub struct Designer {    
@@ -26,7 +27,7 @@ impl Designer {
         }
     }
 
-    pub fn add_chip(&mut self, key: ChipKey) -> Result<usize, String> {        
+    pub fn add_chip(&mut self, key: String) -> Result<usize, String> {        
         let chip = self.database.load_chip(key.clone());
         
         match chip {
@@ -68,22 +69,26 @@ impl Designer {
     }
 
     pub fn get_state(&self) -> DesignerState {
+        let mut layouts: HashMap<String, PinLayout> = HashMap::new();
+        layouts.insert("Ground".to_string(), GroundChip::new().get_layout());
+
         DesignerState { 
             tick_counter: self.tick_counter,
             chip_pin_states: self.get_pin_states_map(),
             links: self.circuit.get_description().forward_links,
+            layouts: layouts
         }
     }
 
-    pub fn get_chips_from_db(&self) -> Result<Vec<ChipKey>, String> {
+    pub fn get_chips_from_db(&self) -> Result<Vec<String>, String> {
         Ok(vec![])
     }
 
-    pub fn save_chip_to_db(&mut self, name: String) -> Result<ChipKey, String> {
-        Ok(ChipKey::Custom(name))
+    pub fn save_chip_to_db(&mut self, name: String) -> Result<String, String> {
+        Ok(name)
     }
 
-    pub fn delete_chip_from_db(&mut self, key: ChipKey) -> Result<(), String> {
+    pub fn delete_chip_from_db(&mut self, key: String) -> Result<(), String> {
         Ok(())
     }
 

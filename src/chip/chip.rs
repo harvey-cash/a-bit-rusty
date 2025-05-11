@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{chip::chip_description::ChipDescription, link, node_type_map};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::{collections::{HashMap, HashSet, VecDeque}, fmt::Display};
 
 use super::types::*;
 
@@ -12,6 +12,17 @@ pub enum ChipType {
     Input,
     Output,
     Custom,
+}
+impl Display for ChipType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ChipType::Ground => write!(f, "Ground"),
+            ChipType::Supply => write!(f, "Supply"),
+            ChipType::Input => write!(f, "Input"),
+            ChipType::Output => write!(f, "Output"),
+            ChipType::Custom => write!(f, "Custom"),
+        }
+    }
 }
 
 pub trait Tickable: Send + Sync {
