@@ -17,15 +17,6 @@ fn given_add_nand_chip_then_succeeds() {
 }
 
 #[test]
-fn given_add_nand_chip_then_state_contains_nand_layout() {
-    let mut designer = Designer::new();
-    let key = ChipKey::Custom("NAnd".to_string());
-    let nand = designer.add_chip(key).unwrap();
-    let state = designer.get_state();
-    assert!(state.chip_layouts.contains_key(&nand));
-}
-
-#[test]
 fn given_no_chips_in_db_when_add_custom_chip_then_err() {
     let mut designer = Designer::new();
     let key = ChipKey::Custom("Test".to_string());

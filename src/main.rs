@@ -5,6 +5,7 @@ use axum::{
         State,
     }, http::{Response, StatusCode}, response::{Html, IntoResponse}, routing::{get, post}, Json, Router
 };
+use serde::Serialize;
 use serde_json::json;
 use std::{
     fs, net::SocketAddr, sync::{Arc, Mutex}
@@ -91,24 +92,22 @@ async fn get_root_handler() -> impl IntoResponse {
             Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(Body::from(format!("Failed to load client.html: {}", e)))
-                .unwrap() // This unwrap is safe because we're building a valid response
+                .unwrap()
         }
     }
 }
+
+#[derive(Serialize)]
+struct IdResponse { id: usize }
 
 async fn add_chip_handler(
     State(state): State<SharedState>,
     Json(key): Json<ChipKey>,
 ) -> impl IntoResponse {
     let mut app_state = state.lock().unwrap();
-    let result = app_state.designer.add_chip(key);
-    match result {
-        Ok(_) => StatusCode::OK,
-        Err(message) => {
-            eprintln!("{}", message);
-            return StatusCode::INTERNAL_SERVER_ERROR;
-        }
-    }
+    app_state.designer.add_chip(key)
+        .map(|id| (StatusCode::OK, Json(IdResponse { id: id })))
+        .map_err(|message| (StatusCode::INTERNAL_SERVER_ERROR, Json(message)))
 }
 
 #[tokio::main]

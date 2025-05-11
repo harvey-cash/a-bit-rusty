@@ -140,12 +140,6 @@ impl Circuit {
         inputs
         
     }
-    
-    pub fn get_chip_layouts(&self) -> HashMap<usize, PinLayout> {
-        self.chips.iter()
-            .map(|(id, chip)| (*id, chip.get_layout()))
-            .collect()
-    }
 }
 
 impl Tickable for Circuit {
