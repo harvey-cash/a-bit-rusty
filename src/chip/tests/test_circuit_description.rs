@@ -15,7 +15,7 @@ fn given_wrapped_nand_then_compiled_description_is_valid() {
     let ground = layout.get_pin_for(layout.ground_pins[0]);
     let supply = layout.get_pin_for(layout.supply_pins[0]);
 
-    let mut circuit = CircuitDescription::new();
+    let mut circuit = CircuitDescription::new("test");
     let g = circuit.add_chip(ChipType::Ground);
     let s = circuit.add_chip(ChipType::Supply);
     let a = circuit.add_chip(ChipType::Input);
@@ -40,7 +40,7 @@ fn given_wrapped_nand_then_compiled_description_is_identical() {
     let ground = layout.get_pin_for(layout.ground_pins[0]);
     let supply = layout.get_pin_for(layout.supply_pins[0]);
 
-    let mut circuit = CircuitDescription::new();
+    let mut circuit = CircuitDescription::new("test");
     let g = circuit.add_chip(ChipType::Ground);
     let s = circuit.add_chip(ChipType::Supply);
     let a = circuit.add_chip(ChipType::Input);
@@ -65,7 +65,7 @@ fn given_not_chip_then_compiled_description_is_valid() {
     let ground = layout.get_pin_for(layout.ground_pins[0]);
     let supply = layout.get_pin_for(layout.supply_pins[0]);
 
-    let mut circuit = CircuitDescription::new();
+    let mut circuit = CircuitDescription::new("test");
     let g = circuit.add_chip(ChipType::Ground);
     let s = circuit.add_chip(ChipType::Supply);
     let i = circuit.add_chip(ChipType::Input);
@@ -89,7 +89,7 @@ fn given_wrapped_not_then_compiled_description_is_identical() {
     let ground = layout.get_pin_for(layout.ground_pins[0]);
     let supply = layout.get_pin_for(layout.supply_pins[0]);
 
-    let mut circuit = CircuitDescription::new();
+    let mut circuit = CircuitDescription::new("test");
     let g = circuit.add_chip(ChipType::Ground);
     let s = circuit.add_chip(ChipType::Supply);
     let i = circuit.add_chip(ChipType::Input);
@@ -105,7 +105,7 @@ fn given_wrapped_not_then_compiled_description_is_identical() {
     let not_description = ChipCompiler::compile(circuit);
     let layout2 = not_description.get_layout();
 
-    let mut circuit2 = CircuitDescription::new();
+    let mut circuit2 = CircuitDescription::new("test");
     let g = circuit2.add_chip(ChipType::Ground);
     let s = circuit2.add_chip(ChipType::Supply);
     let i = circuit2.add_chip(ChipType::Input);

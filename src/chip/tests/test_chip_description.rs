@@ -11,14 +11,14 @@ use crate::{chip::{chip_description::ChipDescription, types::*}, node_type_map};
 fn given_no_ground_then_invalid() {
     let id_types = node_type_map!{1 => NodeType::Supply, 2 => NodeType::Input, 3 => NodeType::Input};
     let links = vec![Link::new(2, 3)];
-    let description = ChipDescription::new(id_types, links);
+    let description = ChipDescription::new("test", id_types, links);
     assert_eq!(description.is_valid(), false);
 }
 #[test]
 fn given_no_supply_then_invalid() {
     let id_types = node_type_map!{0 => NodeType::Ground, 2 => NodeType::Input, 3 => NodeType::Input};
     let links = vec![Link::new(2, 3)];
-    let description = ChipDescription::new(id_types, links);
+    let description = ChipDescription::new("test", id_types, links);
     assert_eq!(description.is_valid(), false);
 }
 
@@ -27,7 +27,7 @@ fn given_no_inputs_then_invalid() {
     let id_types = node_type_map!{
         0 => NodeType::Ground, 1 => NodeType::Supply, 2 => NodeType::Output
     };
-    let description = ChipDescription::new(id_types, vec![Link::new(2, 2)]);
+    let description = ChipDescription::new("test", id_types, vec![Link::new(2, 2)]);
     assert_eq!(description.is_valid(), false);
 }
 
@@ -36,7 +36,7 @@ fn given_no_outputs_then_invalid() {
     let id_types = node_type_map!{
         0 => NodeType::Ground, 1 => NodeType::Supply, 2 => NodeType::Input
     };
-	let description = ChipDescription::new(id_types, vec![Link::new(2, 2)]);
+	let description = ChipDescription::new("test", id_types, vec![Link::new(2, 2)]);
 	assert_eq!(description.is_valid(), false);
 }
 
@@ -45,7 +45,7 @@ fn given_no_links_then_invalid() {
     let id_types = node_type_map!{
         0 => NodeType::Ground, 1 => NodeType::Supply, 2 => NodeType::Input, 3 => NodeType::Output
     };
-	let description = ChipDescription::new(id_types, vec![]);
+	let description = ChipDescription::new("test", id_types, vec![]);
 	assert_eq!(description.is_valid(), false);
 }
 
@@ -54,7 +54,7 @@ fn given_no_nands_then_still_valid() {
     let id_types = node_type_map!{
         0 => NodeType::Ground, 1 => NodeType::Supply, 2 => NodeType::Input, 3 => NodeType::Output
     };
-	let description = ChipDescription::new(id_types, vec![Link::new(2, 3)]);
+	let description = ChipDescription::new("test", id_types, vec![Link::new(2, 3)]);
 	assert_eq!(description.is_valid(), true);
 }
 
@@ -70,7 +70,7 @@ fn given_single_wired_up_nand_then_valid() {
         nand => NodeType::NAnd
     };
     let description = ChipDescription::new(
-        id_types, vec![Link::new(input_1, nand), Link::new(input_2, nand), Link::new(nand, output)]
+        "test", id_types, vec![Link::new(input_1, nand), Link::new(input_2, nand), Link::new(nand, output)]
     );
     assert_eq!(description.is_valid(), true);
 }
@@ -80,14 +80,14 @@ fn given_link_source_out_of_range_then_invalid() {
     let id_types = node_type_map!{
         0 => NodeType::Ground, 1 => NodeType::Supply, 2 => NodeType::Input, 3 => NodeType::Output
     };
-	let description = ChipDescription::new(id_types, vec![Link::new(7, 2)]);
+	let description = ChipDescription::new("test", id_types, vec![Link::new(7, 2)]);
     assert_eq!(description.is_valid(), false);
 
     let links = vec![Link::new(2, 2), Link::new(7, 2)];
     let id_types = node_type_map!{
         0 => NodeType::Ground, 1 => NodeType::Supply, 2 => NodeType::Input, 3 => NodeType::Output
     };
-	let description = ChipDescription::new(id_types, links);
+	let description = ChipDescription::new("test", id_types, links);
     assert_eq!(description.is_valid(), false);
 }
 
@@ -101,7 +101,7 @@ fn given_link_targets_input_then_invalid() {
         output => NodeType::Output
     };
     let description = ChipDescription::new(
-        id_types, 
+        "test", id_types, 
         vec![Link::new(input_1, input_2), Link::new(input_2, output)],
     );
     assert_eq!(description.is_valid(), false);
@@ -117,7 +117,7 @@ fn given_link_sources_output_then_invalid() {
         output_2 => NodeType::Output
     };
     let description = ChipDescription::new(
-        id_types, 
+        "test", id_types, 
         vec![Link::new(input_1, output_1), Link::new(input_1, output_2), Link::new(output_1, output_2)],
     );
     assert_eq!(description.is_valid(), false);
@@ -133,7 +133,7 @@ fn given_output_targeted_by_two_links_then_invalid() {
         input_2 => NodeType::Input,
         output => NodeType::Output
     };
-	let description = ChipDescription::new(id_types, links);
+	let description = ChipDescription::new("test", id_types, links);
 	assert_eq!(description.is_valid(), false);
 }
 
@@ -146,11 +146,11 @@ fn given_any_node_unconnected_then_invalid() {
         output => NodeType::Output,
         nand => NodeType::NAnd,
     };
-	let description = ChipDescription::new(id_types.clone(), vec![Link::new(input, nand)]);
+	let description = ChipDescription::new("test", id_types.clone(), vec![Link::new(input, nand)]);
     assert_eq!(description.is_valid(), false);
 
     let description = ChipDescription::new(
-        id_types.clone(), 
+        "test", id_types.clone(), 
         vec![Link::new(input, output), Link::new(nand, nand), Link::new(nand, nand)],
     );
     assert_eq!(description.is_valid(), false);
@@ -166,7 +166,7 @@ fn given_nand_with_no_targets_then_invalid() {
         output => NodeType::Output,
         nand => NodeType::NAnd,
     };
-	let description = ChipDescription::new(id_types, links);
+	let description = ChipDescription::new("test", id_types, links);
 	assert_eq!(description.is_valid(), false);
 }
 
@@ -180,7 +180,7 @@ fn given_nand_no_sources_then_invalid() {
         output_2 => NodeType::Output,
         nand => NodeType::NAnd,
     };
-	let description = ChipDescription::new(id_types, vec![Link::new(input, output_1), Link::new(nand, output_2)]);
+	let description = ChipDescription::new("test", id_types, vec![Link::new(input, output_1), Link::new(nand, output_2)]);
 	assert_eq!(description.is_valid(), false);
 }
 
@@ -201,7 +201,7 @@ fn given_nand_three_sources_then_invalid() {
         output => NodeType::Output,
         nand => NodeType::NAnd,
     };
-	let description = ChipDescription::new(id_types, links);
+	let description = ChipDescription::new("test", id_types, links);
 	assert_eq!(description.is_valid(), false);
 }
 
@@ -220,6 +220,6 @@ fn given_nand_same_source_three_times_then_invalid() {
         output => NodeType::Output,
         nand => NodeType::NAnd,
     };
-	let description = ChipDescription::new(id_types, links);
+	let description = ChipDescription::new("test", id_types, links);
 	assert_eq!(description.is_valid(), false);
 }

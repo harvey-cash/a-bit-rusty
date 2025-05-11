@@ -5,6 +5,7 @@ use super::types::*;
 
 #[derive(Debug, Clone)]
 pub struct ChipDescription {
+    pub name: String,
     pub layout: PinLayout,
     pub id_type_map: NodeTypeMap,
     pub forward_links: LinkMap,
@@ -26,7 +27,7 @@ impl PartialEq for ChipDescription {
 impl Eq for ChipDescription {}
 
 impl ChipDescription {
-    pub fn new(id_type_map: NodeTypeMap, links: Vec<Link>) -> Self {
+    pub fn new(name: &str, id_type_map: NodeTypeMap, links: Vec<Link>) -> Self {
 
         let forward_links = Self::construct_forward_links(&links);
         let back_links = Self::construct_back_links(&links);
@@ -50,7 +51,7 @@ impl ChipDescription {
 
         let layout = PinLayout::new(id_type_map.clone());
 
-        Self { layout, id_type_map, forward_links, back_links, num_nands: *num_nands, is_valid }
+        Self { name: name.to_string(), layout, id_type_map, forward_links, back_links, num_nands: *num_nands, is_valid }
     }
 
     pub fn is_valid(&self) -> bool {

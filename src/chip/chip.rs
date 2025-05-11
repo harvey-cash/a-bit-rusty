@@ -45,6 +45,7 @@ pub trait Tickable: Send + Sync {
 
 pub trait Chip: Tickable {
     fn get_type(&self) -> ChipType;
+    fn get_name(&self) -> String { self.get_type().to_string() }
     fn get_layout(&self) -> PinLayout { self.get_type().get_layout() }
     fn get_num_inputs(&self) -> usize { self.get_layout().input_pins.len() }
     fn get_num_outputs(&self) -> usize { self.get_layout().output_pins.len() }
@@ -126,7 +127,7 @@ impl NAndChip {
             5 => NodeType::NAnd
         };
         let links = vec![link!(2 => 5), link!(3 => 5), link!(5 => 4)];
-        let description = ChipDescription::new(id_types, links);
+        let description = ChipDescription::new("NAnd", id_types, links);
         CustomChip::new(description)
     }
 }
@@ -274,6 +275,8 @@ impl Tickable for CustomChip {
 }
 impl Chip for CustomChip {
     fn get_type(&self) -> ChipType { ChipType::Custom }
+
+    fn get_name(&self) -> String { self.description.name.clone() }
 
     fn get_layout(&self) -> PinLayout {
         self.description.get_layout()

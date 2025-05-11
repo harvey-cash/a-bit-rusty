@@ -7,12 +7,13 @@ use super::{chip::{ChipType, CustomChip, GroundChip, InputChip, OutputChip, Supp
 #[derive(Serialize)]
 pub struct DesignerState {
     pub tick_counter: u64,
+    pub chip_names: HashMap<usize, String>,
     pub chip_pin_states: HashMap<usize, HashMap<usize, u8>>,
     pub links: HashMap<usize, HashMap<usize, Vec<ChipAndPin>>>,
     pub layouts: HashMap<String, PinLayout>,
 }
 
-pub struct Designer {    
+pub struct Designer {
     tick_counter: u64,
     circuit: Circuit,
     database: ChipDatabase,
@@ -71,6 +72,7 @@ impl Designer {
     pub fn get_state(&self) -> DesignerState {
         DesignerState { 
             tick_counter: self.tick_counter,
+            chip_names: self.circuit.get_chip_names(),
             chip_pin_states: self.get_pin_states_map(),
             links: self.circuit.get_description().forward_links,
             layouts: self.database.get_layouts()

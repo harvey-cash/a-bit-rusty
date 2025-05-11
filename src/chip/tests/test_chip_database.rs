@@ -173,7 +173,7 @@ fn given_saved_chip_when_save_new_circuit_with_same_name_then_err() {
     let mut database = ChipDatabase::new();
     database.save_chip("Not", chip_description, circuit_description.clone());
 
-    let success = database.save_circuit(CircuitDescription::new(), "Not");
+    let success = database.save_circuit(CircuitDescription::new("test"), "Not");
     assert_eq!(success, false);
 }
 
@@ -184,7 +184,7 @@ fn given_saved_chip_when_save_new_circuit_with_same_name_then_not_overwritten() 
     let mut database = ChipDatabase::new();
     database.save_chip("Not", chip_description, circuit_description.clone());
 
-    database.save_circuit(CircuitDescription::new(), "Not");
+    database.save_circuit(CircuitDescription::new("test"), "Not");
 
     let circuit = database.load_circuit("Not");
     assert_eq!(circuit, Some(&circuit_description));

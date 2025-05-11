@@ -1,7 +1,5 @@
 use std::{collections::{HashMap, VecDeque}, vec};
 
-use serde::Serialize;
-
 use crate::chip_pin;
 
 use super::{
@@ -17,7 +15,7 @@ pub struct Circuit {
 impl Circuit {
     pub fn new() -> Self {
         Self {
-            description: CircuitDescription::new(),
+            description: CircuitDescription::new("New"),
             chips: HashMap::new(),
             back_links: HashMap::new(),
         }
@@ -139,6 +137,12 @@ impl Circuit {
         }
         inputs
         
+    }
+    
+    pub fn get_chip_names(&self) -> HashMap<usize, String> {
+        self.chips.iter()
+            .map(|(id, chip)| (*id, chip.get_name()))
+            .collect()
     }
 }
 

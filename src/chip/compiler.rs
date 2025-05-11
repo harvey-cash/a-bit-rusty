@@ -32,7 +32,7 @@ impl ChipCompiler {
 
         let links: Vec<Link> = Self::construct_links(&forward_links);
 
-        ChipDescription::new(id_type_map, links)
+        ChipDescription::new(&circuit.name, id_type_map, links)
     }
     
     // Add nodes for each circuit ground, supply, input and output

@@ -8,6 +8,7 @@ use super::{
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CircuitDescription {
+    pub name: String,
     pub num_chips: usize,
     pub chip_types: HashMap<usize, ChipType>,
     pub chip_descriptions: HashMap<usize, ChipDescription>,
@@ -15,8 +16,9 @@ pub struct CircuitDescription {
 }
 
 impl CircuitDescription {
-    pub fn new() -> Self {
+    pub fn new(name: &str) -> Self {
         Self {
+            name: name.to_string(),
             num_chips: 0,
             chip_types: HashMap::new(),
             chip_descriptions: HashMap::new(),
