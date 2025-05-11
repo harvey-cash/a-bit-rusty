@@ -1,9 +1,14 @@
-use std::{collections::{HashMap, VecDeque}, vec};
+use std::{
+    collections::{HashMap, VecDeque},
+    vec,
+};
 
 use crate::chip_pin;
 
 use super::{
-    chip::{Chip, ChipType, CustomChip, Tickable}, circuit_description::CircuitDescription, types::*
+    chip::{Chip, ChipType, CustomChip, GroundChip, InputChip, OutputChip, SupplyChip, Tickable},
+    circuit_description::CircuitDescription,
+    types::*,
 };
 
 pub struct Circuit {
@@ -20,7 +25,34 @@ impl Circuit {
             back_links: HashMap::new(),
         }
     }
-    
+
+    pub fn load(description: CircuitDescription) -> Self {
+        if !description.is_valid() {
+            panic!("Invalid circuit description.");
+        }
+
+        let mut chips: HashMap<usize, Box<dyn Chip>> = HashMap::new();
+        for (id, chip_type) in &description.chip_types {
+            let chip: Box<dyn Chip> = match chip_type {
+                ChipType::Input => Box::new(InputChip::new()),
+                ChipType::Output => Box::new(OutputChip::new()),
+                ChipType::Ground => Box::new(GroundChip::new()),
+                ChipType::Supply => Box::new(SupplyChip::new()),
+                ChipType::Custom => {
+                    let custom_chip = description.get_description_of_chip(*id);
+                    Box::new(CustomChip::new(custom_chip))
+                }
+            };
+            chips.insert(*id, chip);
+        }
+
+        Self {
+            description: description.clone(),
+            chips: chips,
+            back_links: description.get_back_links(),
+        }
+    }
+
     pub fn get_description(&self) -> CircuitDescription {
         self.description.clone()
     }
@@ -45,11 +77,16 @@ impl Circuit {
         if self.description.chip_types.get(&input_chip_id) != Some(&ChipType::Input) {
             panic!("Invalid chip ID for input.");
         }
-        self.chips.get_mut(&input_chip_id).unwrap().write_pin(0, value);
+        self.chips
+            .get_mut(&input_chip_id)
+            .unwrap()
+            .write_pin(0, value);
     }
-    
+
     pub fn get_supply_ids(&self) -> Vec<usize> {
-        self.description.chip_types.iter()
+        self.description
+            .chip_types
+            .iter()
             .filter(|(_, chip_type)| chip_type == &&ChipType::Supply)
             .map(|(id, _)| *id)
             .collect()
@@ -77,13 +114,13 @@ impl Circuit {
 
     pub fn delete_link(&mut self, source: ChipAndPin, target: ChipAndPin) {
         self.description.delete_link(source, target);
-        
+
         if !self.back_links.contains_key(&target) {
             panic!("No back link found for target chip and pin.");
         }
         self.back_links.remove(&target);
     }
-    
+
     pub fn get_chip_pin_states(&self) -> HashMap<ChipAndPin, u8> {
         let mut pin_states: HashMap<ChipAndPin, u8> = HashMap::new();
         for (id, chip) in &self.chips {
@@ -107,21 +144,27 @@ impl Circuit {
         self.description
             .chip_types
             .iter()
-            .filter(|(_, chip_type)| chip_type == &&ChipType::Ground || chip_type == &&ChipType::Supply || chip_type == &&ChipType::Input)
+            .filter(|(_, chip_type)| {
+                chip_type == &&ChipType::Ground
+                    || chip_type == &&ChipType::Supply
+                    || chip_type == &&ChipType::Input
+            })
             .map(|(&id, _)| id)
             .collect()
     }
-    
+
     fn get_input_values_for_chip(&self, index: &usize) -> HashMap<usize, u8> {
         let layout = self.chips.get(index).unwrap().get_layout();
-        let all_inputs: Vec<Vec<usize>> = vec![layout.ground_pins, layout.supply_pins, layout.input_pins];
-        let all_pins: Vec<usize> = all_inputs.iter()
+        let all_inputs: Vec<Vec<usize>> =
+            vec![layout.ground_pins, layout.supply_pins, layout.input_pins];
+        let all_pins: Vec<usize> = all_inputs
+            .iter()
             .flat_map(|v| v.iter())
             .map(|v| *v)
             .collect();
 
         let mut inputs = HashMap::new();
-        
+
         for pin_idx in all_pins {
             let pin = chip_pin!(*index, pin_idx);
             let back_link_option = self.back_links.get(&pin);
@@ -130,17 +173,21 @@ impl Circuit {
                 inputs.insert(pin_idx, 0);
                 continue;
             }
-            
+
             let source_pin: ChipAndPin = *back_link_option.unwrap();
-            let value = self.chips.get(&source_pin.chip_id).unwrap().read_pin(source_pin.pin_index);
+            let value = self
+                .chips
+                .get(&source_pin.chip_id)
+                .unwrap()
+                .read_pin(source_pin.pin_index);
             inputs.insert(pin_idx, value);
         }
         inputs
-        
     }
-    
+
     pub fn get_chip_names(&self) -> HashMap<usize, String> {
-        self.chips.iter()
+        self.chips
+            .iter()
             .map(|(id, chip)| (*id, chip.get_name()))
             .collect()
     }

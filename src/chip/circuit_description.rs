@@ -1,10 +1,6 @@
 use std::collections::HashMap;
 
-use super::{
-    types::*,
-    chip::ChipType, 
-    chip_description::ChipDescription
-};
+use super::{chip::ChipType, chip_description::ChipDescription, types::*};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CircuitDescription {
@@ -13,6 +9,8 @@ pub struct CircuitDescription {
     pub chip_types: HashMap<usize, ChipType>,
     pub chip_descriptions: HashMap<usize, ChipDescription>,
     pub forward_links: HashMap<usize, HashMap<usize, Vec<ChipAndPin>>>,
+
+    back_links: HashMap<ChipAndPin, ChipAndPin>,
 }
 
 impl CircuitDescription {
@@ -23,6 +21,7 @@ impl CircuitDescription {
             chip_types: HashMap::new(),
             chip_descriptions: HashMap::new(),
             forward_links: HashMap::new(),
+            back_links: HashMap::new(),
         }
     }
 
@@ -32,7 +31,7 @@ impl CircuitDescription {
         self.chip_types.entry(id).or_insert(chip_type);
         id
     }
-    
+
     pub fn add_custom_chip(&mut self, description: ChipDescription) -> usize {
         let id = self.num_chips;
         self.num_chips += 1;
@@ -47,7 +46,7 @@ impl CircuitDescription {
         }
         return true;
     }
-    
+
     pub fn add_forward_link(&mut self, source: ChipAndPin, target: ChipAndPin) {
         assert!(source != target, "Can not link a pin to itself!");
 
@@ -57,8 +56,14 @@ impl CircuitDescription {
             .entry(source.pin_index)
             .or_insert_with(Vec::new)
             .push(target);
+
+        self.back_links.insert(target, source);
     }
-    
+
+    pub fn get_back_links(&self) -> HashMap<ChipAndPin, ChipAndPin> {
+        self.back_links.clone()
+    }
+
     pub fn delete_link(&mut self, source: ChipAndPin, target: ChipAndPin) {
         let forward_links = self.forward_links.get_mut(&source.chip_id);
         if forward_links.is_none() {
@@ -72,10 +77,26 @@ impl CircuitDescription {
         let targets = targets.unwrap();
         targets.retain(|t| t != &target);
     }
-    
+
+    pub fn get_description_of_chip(&self, id: usize) -> ChipDescription {
+        if let Some(description) = self.chip_descriptions.get(&id) {
+            return description.clone();
+        } else {
+            panic!("No chip description found for ID {}.", id);
+        }
+    }
+
     fn has_custom_chips_but_no_supply(&self) -> bool {
-        let num_custom = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Custom).count();
-        let num_supply = self.chip_types.iter().filter(|(_, chip_type)| chip_type == &&ChipType::Supply).count();
+        let num_custom = self
+            .chip_types
+            .iter()
+            .filter(|(_, chip_type)| chip_type == &&ChipType::Custom)
+            .count();
+        let num_supply = self
+            .chip_types
+            .iter()
+            .filter(|(_, chip_type)| chip_type == &&ChipType::Supply)
+            .count();
         return num_custom > 0 && num_supply == 0;
     }
 }

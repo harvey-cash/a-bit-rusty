@@ -1,10 +1,46 @@
-// ToDo:
-// [ ] Circuit can be constructed from a ChipDescription.
+use crate::{
+    chip::{
+        chip::{
+            Chip, ChipType, CustomChip, GroundChip, InputChip, NAndChip, OutputChip, SupplyChip,
+            Tickable,
+        },
+        chip_description::ChipDescription,
+        circuit::Circuit,
+        circuit_description::CircuitDescription,
+        compiler::ChipCompiler,
+        types::*,
+    },
+    chip_pin,
+};
 
-use crate::{chip::{
-    chip::{Chip, CustomChip, GroundChip, InputChip, NAndChip, OutputChip, SupplyChip, Tickable}, chip_description::ChipDescription, circuit::Circuit, compiler::ChipCompiler, types::*
-}, chip_pin};
+#[test]
+fn given_description_then_description_is_equal() {
+    let description = CircuitDescription::new("Test Circuit");
+    let circuit = Circuit::load(description.clone());
+    assert_eq!(circuit.get_description(), description);
+}
 
+#[test]
+fn given_loaded_not_description_when_input_0_then_output_1() {
+    let mut description = CircuitDescription::new("Test Circuit");
+    let ground = description.add_chip(ChipType::Ground);
+    let supply = description.add_chip(ChipType::Supply);
+    let input = description.add_chip(ChipType::Input);
+    let nand = description.add_custom_chip(NAndChip::new().get_description());
+    let output = description.add_chip(ChipType::Output);
+
+    description.add_forward_link(chip_pin!(ground, 0), chip_pin!(nand, 0));
+    description.add_forward_link(chip_pin!(supply, 0), chip_pin!(nand, 1));
+    description.add_forward_link(chip_pin!(input, 0), chip_pin!(nand, 2));
+    description.add_forward_link(chip_pin!(input, 0), chip_pin!(nand, 3));
+    description.add_forward_link(chip_pin!(nand, 4), chip_pin!(output, 0));
+
+    let mut circuit = Circuit::load(description);
+    circuit.set_supply(supply, 1);
+    circuit.set_input(input, 0);
+    circuit.tick();
+    assert_eq!(circuit.get_output(output), 1);
+}
 
 #[test]
 fn given_just_output_then_output_is_0() {
@@ -103,7 +139,7 @@ fn build_not() -> (Circuit, usize, usize, usize) {
     let ground = circuit.add_chip(GroundChip::new());
     let supply = circuit.add_chip(SupplyChip::new());
     let input_id = circuit.add_chip(InputChip::new());
-    let nand_id = circuit.add_custom_chip(NAndChip::new());    
+    let nand_id = circuit.add_custom_chip(NAndChip::new());
     let output_id = circuit.add_chip(OutputChip::new());
 
     circuit.create_link(chip_pin!(ground, 0), chip_pin!(nand_id, 0));
@@ -135,7 +171,7 @@ fn given_not_gate_when_input_1_then_output_0() {
 
 #[test]
 fn given_compiled_not_circuit_then_functions_as_not_chip() {
-    let (circuit, _, _, _) = build_not();    
+    let (circuit, _, _, _) = build_not();
     let description: ChipDescription = ChipCompiler::compile(circuit.get_description());
 
     let mut chip = CustomChip::new(description);
@@ -149,7 +185,6 @@ fn given_compiled_not_circuit_then_functions_as_not_chip() {
     chip.tick();
     assert_eq!(chip.read_pin(3), 0);
 }
-
 
 fn build_xor() -> (Circuit, usize, usize, usize) {
     let mut circuit = Circuit::new();
@@ -185,7 +220,7 @@ fn build_xor() -> (Circuit, usize, usize, usize) {
     circuit.create_link(chip_pin!(nand_3, 4), chip_pin!(nand_4, 3));
 
     circuit.create_link(chip_pin!(nand_4, 4), chip_pin!(output, 0));
-    
+
     return (circuit, in_a, in_b, output);
 }
 
