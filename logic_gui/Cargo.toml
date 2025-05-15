@@ -1,0 +1,16 @@
+[package]
+name = "logic_gui"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+egui = "0.31"
+eframe = { version = "0.31", features = ["persistence"] }
+log = "0.4"
+env_logger = "0.10" # For native logging
+serde = "1.0.219"
+
+logic_core = { path = "../logic_core" }

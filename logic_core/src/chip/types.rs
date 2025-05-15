@@ -31,7 +31,7 @@ pub fn map_contents_eq_ignore_order(map1: &LinkMap, map2: &LinkMap) -> bool {
     true
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PinLayout {
     pub ground_pins: Vec<usize>,
     pub supply_pins: Vec<usize>,

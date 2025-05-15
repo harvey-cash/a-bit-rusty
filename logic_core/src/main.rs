@@ -1,4 +1,4 @@
-use a_bit_rusty::chip::designer::{ChipPinLink, Designer, DesignerState};
+use logic_core::chip::designer::{ChipPinLink, Designer, DesignerState};
 use axum::{
     body::Body, extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
