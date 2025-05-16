@@ -6,6 +6,7 @@ pub mod circuit_description;
 pub mod circuit;
 pub mod compiler;
 pub mod chip_database;
+pub mod circuit_board;
 pub mod designer;
 
 #[cfg(test)]

@@ -1,41 +1,33 @@
 use eframe::{egui, App, Frame};
-use egui::Vec2; // Only Vec2 is directly used from egui here now
-use std::collections::HashMap;
+use egui::Vec2;
 
-use logic_core::{chip::types::{NodeType, NodeTypeMap, PinLayout}, node_type_map}; // Updated imports
+use logic_core::{chip::{chip::ChipType, designer::{ChipPinLink, Designer, DesignerState}, types::{PinLayout, ChipAndPin}}, chip_pin}; // Updated imports
 
 pub mod chip_view;
 use chip_view::ChipView;
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize)]
 #[serde(default)]
 pub struct MyApp {
-    chip_display: ChipView,
-    sample_pin_layout: PinLayout,
-    sample_logic_levels: HashMap<usize, u8>,
+    designer_state: DesignerState
 }
 
 impl Default for MyApp {
     fn default() -> Self {
-        let id_type_map: NodeTypeMap = node_type_map!(
-            0 => NodeType::Ground,
-            1 => NodeType::Supply,
-            2 => NodeType::Input,
-            3 => NodeType::Input,
-            4 => NodeType::Output,
-        );
 
-        let mut logic_levels = HashMap::new();
-        logic_levels.insert(0, 0);
-        logic_levels.insert(1, 1);
-        logic_levels.insert(2, 1);
-        logic_levels.insert(3, 0);
-        logic_levels.insert(4, 0);
+        let mut designer = Designer::new();
+        let input = designer.add_chip(&ChipType::Input.to_string()).unwrap();
+        let output = designer.add_chip(&ChipType::Output.to_string()).unwrap();
+        let _ = designer.add_link(ChipPinLink { 
+            source: chip_pin!(input, 0), 
+            target: chip_pin!(output, 0) 
+        });
+        let _ = designer.set_input_chip_value(input, 1);
+        designer.tick();
+        let state = designer.get_state();
 
         Self {
-            chip_display: ChipView::new(),
-            sample_pin_layout: PinLayout::new(id_type_map),
-            sample_logic_levels: logic_levels,
+            designer_state: state
         }
     }
 }
@@ -46,16 +38,27 @@ impl App for MyApp {
             ui.heading("Digital Chip Simulator");
             ui.separator();
 
-            let chip_position = ui.available_rect_before_wrap().min + Vec2::new(50.0, 50.0);
+            let mut pos_x = 0.0;
+            for (id, name) in &self.designer_state.chip_names {
+                pos_x += 50.0;
+                let chip_position = ui.available_rect_before_wrap().min + Vec2::new(pos_x, 50.0);
             
-            self.chip_display.show(
-                ui,
-                "74LS00 NAND",
-                &self.sample_pin_layout,
-                &self.sample_logic_levels,
-                chip_position,
-                "my_sample_chip"
-            );
+                let chip_display = ChipView::new();
+
+                let layout: &PinLayout = self.designer_state.layouts.get(name).unwrap();
+                let logic_levels = self.designer_state.chip_pin_states.get(id).unwrap();
+
+                chip_display.show(
+                    ui,
+                    "74LS00 NAND",
+                    layout,
+                    logic_levels,
+                    chip_position,
+                    "my_sample_chip"
+                );
+            }
+
+            
         });
     }
 }

@@ -25,3 +25,11 @@
 // [ ] After a Chip is ticked, Traces connected to its Outputs have their value set.
 // [ ] After a CircuitBoard is ticked, all output Chips have their values set to the value of the connected Traces.
 // [ ] Trace states can be read from a CircuitBoard.
+
+use crate::chip::circuit_board::CircuitBoard;
+
+#[test]
+fn given_empty_board_then_no_chips() {
+    let board = CircuitBoard::new();
+    assert_eq!(board.get_chip_positions().len(), 0);
+}
