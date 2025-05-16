@@ -26,10 +26,17 @@
 // [ ] After a CircuitBoard is ticked, all output Chips have their values set to the value of the connected Traces.
 // [ ] Trace states can be read from a CircuitBoard.
 
-use crate::chip::circuit_board::CircuitBoard;
+use crate::chip::{circuit_board::CircuitBoard, trace::Vector3};
 
 #[test]
 fn given_empty_board_then_no_chips() {
     let board = CircuitBoard::new();
     assert_eq!(board.get_chip_positions().len(), 0);
+}
+
+#[test]
+fn given_add_chip_then_one_chip_position() {
+    let mut board = CircuitBoard::new();
+    let _ = board.add_chip_at_position(0, Vector3::new(0, 1, 2));
+    assert_eq!(board.get_chip_positions().len(), 1);
 }
