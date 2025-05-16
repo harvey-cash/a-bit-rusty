@@ -40,7 +40,7 @@ impl App for MyApp {
 
             let mut pos_x = 0.0;
             for (id, name) in &self.designer_state.chip_names {
-                pos_x += 50.0;
+                pos_x += 200.0;
                 let chip_position = ui.available_rect_before_wrap().min + Vec2::new(pos_x, 50.0);
             
                 let chip_display = ChipView::new();
@@ -50,15 +50,13 @@ impl App for MyApp {
 
                 chip_display.show(
                     ui,
-                    "74LS00 NAND",
+                    name,
                     layout,
                     logic_levels,
                     chip_position,
-                    "my_sample_chip"
+                    id
                 );
             }
-
-            
         });
     }
 }
